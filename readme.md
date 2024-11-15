@@ -22,11 +22,11 @@ Setting up django for production is hard! Using this template will give you a ea
 
 
 ## Prerequisites and testing locally
-- [ ] Have Python3 installed
-- [ ] run `brew install mysql` - in case you have don't have this
-- [ ] run `pip3 install -r requirements.txt` to get all requirements for template
-- [ ] fill in the `core/.env` file with your app's details. I provided a sample in the `core` folder
-- [ ] run `python3 manage.py runserver` to check if the app is working on your local machine
+- [x] Have Python3 installed
+- [x] run `brew install mysql` - in case you have don't have this
+- [x] run `pip3 install -r requirements.txt` to get all requirements for template
+- [x] fill in the `core/.env` file with your app's details. I provided a sample in the `core` folder
+- [x] run `python3 manage.py runserver` to check if the app is working on your local machine
 
 
 ## Steps
