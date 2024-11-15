@@ -1,0 +1,9 @@
+{"django": {
+  "image": ":djangoapp.django.latest",
+  "ports": {"8000": "HTTP"}
+  },
+  "nginx": {
+    "image": ":djangoapp.nginx.latest",
+    "ports": {"80": "HTTP"}
+  }
+}
