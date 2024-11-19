@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'tailwind',
+    'theme',
 ]
 
 MIDDLEWARE = [
@@ -148,3 +150,10 @@ AWS_SECRET_ACCESS_KEY = env('S3_SECRET_KEY')
 AWS_STORAGE_BUCKET_NAME = env('S3_AWS_STORAGE_BUCKET_NAME')
 AWS_QUERYSTRING_AUTH = False
 AWS_S3_FILE_OVERWRITE= False
+
+# Tailwind theme
+TAILWIND_APP_NAME = 'theme'
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+]

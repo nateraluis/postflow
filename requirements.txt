@@ -10,3 +10,4 @@ boto3
 uwsgi
 django-storages
 psycopg2-binary
+django-tailwind
