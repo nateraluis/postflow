@@ -1,5 +1,5 @@
 # Set base image (host OS)
-FROM python:3.13.0-slim
+FROM python:3.13.0-bullseye
 
 # By default, listen on port
 EXPOSE 8000/tcp
