@@ -112,7 +112,7 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = f"https://{env('S3_AWS_STORAGE_BUCKET_NAME')}.s3.{env('AWS_S3_REGION_NAME')}.amazonaws.com/static/"
+STATIC_URL = f"https://{env('S3_AWS_STORAGE_BUCKET_NAME')}.s3.eu-central-1.amazonaws.com/"
 STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 # S3 settings for static and media files
