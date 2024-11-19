@@ -1,9 +1,10 @@
-{"django": {
-  "image": ":postflow.django.latest",
-  "ports": {"8000": "HTTP"},
+{
+  "django": {
+    "image": ":***.django.latest",
+    "ports": {"8000": "HTTP"}
   },
   "nginx": {
-    "image": ":postflow.nginx.latest",
-    "ports": {"80": "HTTP"},
+    "image": ":***.nginx.latest",
+    "ports": {"80": "HTTP"}
   }
 }
