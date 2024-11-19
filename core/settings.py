@@ -12,32 +12,21 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-import environ
 
 env = environ.Env()
 environ.Env.read_env()
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("DJANGO_SECRET_KEY")
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
-
 ALLOWED_HOSTS = ['.amazonlightsail.com', 'localhost', '0.0.0.0', '127.0.0.1','https://postflow.pp347jb6gimu4.eu-central-1.cs.amazonlightsail.com']
 CSRF_TRUSTED_ORIGINS = ['https://localhost','https://*.amazonlightsail.com','https://127.0.0.1','https://postflow.pp347jb6gimu4.eu-central-1.cs.amazonlightsail.com']
 
-
-
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -84,8 +73,6 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
 DATABASES = {  
     'default': {  
         'ENGINE': 'django.db.backends.postgresql',  
@@ -97,11 +84,7 @@ DATABASES = {
     }  
 }  
 
-
-
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -119,41 +102,39 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#File storage settings
-STORAGES = {
-    # ...
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = f"https://{env('S3_AWS_STORAGE_BUCKET_NAME')}.s3.{env('AWS_S3_REGION_NAME')}.amazonaws.com/static/"
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# S3 settings for static and media files
 AWS_ACCESS_KEY_ID = env('S3_ACCESS_KEY')
 AWS_SECRET_ACCESS_KEY = env('S3_SECRET_KEY')
 AWS_STORAGE_BUCKET_NAME = env('S3_AWS_STORAGE_BUCKET_NAME')
-AWS_QUERYSTRING_AUTH = False
-AWS_S3_FILE_OVERWRITE= False
+AWS_S3_REGION_NAME = 'eu-central-1'  # Update this to your region
+AWS_QUERYSTRING_AUTH = False  # Optional, if you don't want query string authentication for your static files
+AWS_S3_FILE_OVERWRITE = False  # Optional, avoid overwriting files with the same name
+
+# Configure S3 storage backend for staticfiles
+STORAGES = {
+    'staticfiles': {
+        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+        'BUCKET_NAME': AWS_STORAGE_BUCKET_NAME,
+        'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
+        'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
+        'AWS_S3_REGION_NAME': AWS_S3_REGION_NAME,
+        'AWS_S3_FILE_OVERWRITE': False,
+        'AWS_QUERYSTRING_AUTH': False,
+    },
+}
 
 # Tailwind theme
 TAILWIND_APP_NAME = 'theme'

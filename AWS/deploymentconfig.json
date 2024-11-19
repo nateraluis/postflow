@@ -1,15 +1,9 @@
 {"django": {
   "image": ":postflow.django.latest",
   "ports": {"8000": "HTTP"},
-  "volumes": [
-      "/staticfiles:/staticfiles"
-    ]
   },
   "nginx": {
     "image": ":postflow.nginx.latest",
     "ports": {"80": "HTTP"},
-    "volumes": [
-      "/staticfiles:/staticfiles"
-    ]
   }
 }
