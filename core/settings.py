@@ -123,6 +123,9 @@ AWS_S3_REGION_NAME = 'eu-central-1'  # Update this to your region
 AWS_QUERYSTRING_AUTH = False  # Optional, if you don't want query string authentication for your static files
 AWS_S3_FILE_OVERWRITE = False  # Optional, avoid overwriting files with the same name
 
+# Tailwind theme
+TAILWIND_APP_NAME = 'theme'
+
 # Configure S3 storage backend for staticfiles
 STORAGES = {
     'staticfiles': {
@@ -136,8 +139,6 @@ STORAGES = {
     },
 }
 
-# Tailwind theme
-TAILWIND_APP_NAME = 'theme'
 
 INTERNAL_IPS = [
     "127.0.0.1",
