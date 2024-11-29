@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-import os
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -114,12 +113,25 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Static files (CSS, JavaScript, Images)
+# if DEBUG:
+#     STATIC_URL = '/static/'
+#     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+# else:
+#     STATIC_URL = f"https://{env('S3_AWS_STORAGE_BUCKET_NAME')}.s3.eu-central-1.amazonaws.com/"
+#     STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATIC_URL = '/static/'
 if DEBUG:
-    STATIC_URL = '/static/'
+    # Include the global 'static' directory
+    STATICFILES_DIRS = [
+        BASE_DIR / "static",  # This points to the /static directory in your root
+    ]
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 else:
     STATIC_URL = f"https://{env('S3_AWS_STORAGE_BUCKET_NAME')}.s3.eu-central-1.amazonaws.com/"
     STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # S3 settings for static and media files
 AWS_ACCESS_KEY_ID = env('S3_ACCESS_KEY')
