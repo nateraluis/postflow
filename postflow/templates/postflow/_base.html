@@ -1,0 +1,29 @@
+{% load tailwind_tags %}
+{% load django_htmx %}
+{% load static %}
+{% load i18n %}
+
+<!doctype html>
+<html lang="en">
+<script src="{% static 'htmx.min.js' %}" defer></script>
+  <head>
+    {% block head %}
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>PostFlow</title>
+      <meta name="htmx-config" content='{"historyCacheSize": 15}'>
+      <script src="{% static 'htmx.min.js' %}" defer></script>
+      <script src="{% static 'ext/debug.js' %}" defer></script>
+      <script src="{% static 'ext/event-header.js' %}" defer></script>
+      {% tailwind_css %}
+    {% endblock %}
+  </head>
+  <body hx-ext="debug, event-header">
+    <div class="bg-base-100" id="main">
+      {% block main %}
+      {% endblock %}
+    </div>
+    {% django_htmx_script %}
+  </body>
+
+</html>

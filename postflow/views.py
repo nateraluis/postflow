@@ -2,4 +2,4 @@ from django.shortcuts import render
 
 
 def index(request):
-    return render(request, "postflow/index.html")
+    return render(request, "postflow/landing_page.html")
