@@ -76,14 +76,14 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 DATABASES = {  
     'default': {  
-        'ENGINE': 'django.db.backends.postgresql',  
-        'NAME': env('DB_NAME'),  
-        'USER': env('DB_USER'),  
-        'PASSWORD': env('DB_PASSWORD'),  
-        'HOST': env('DB_HOST'),  
-        'PORT': env('DB_PORT'),  
-    }  
-}  
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('DB_NAME'),
+        'USER': env('DB_USER'),
+        'PASSWORD': env('DB_PASSWORD'),
+        'HOST': env('DB_HOST'),
+        'PORT': env('DB_PORT'),
+    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -101,6 +101,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Custom User model
+AUTH_USER_MODEL = "postflow.CustomUser"
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
