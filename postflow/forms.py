@@ -33,11 +33,9 @@ class CustomUserCreationForm(UserCreationForm):
         }
 
 class CustomUserChangeForm(UserChangeForm):
-
     class Meta:
         model = CustomUser
-        fields = ("username", "email")
-
+        fields = ("email", "first_name", "last_name", "is_staff", "is_active")
 
 class CustomAuthenticationForm(AuthenticationForm):
     username = forms.CharField(

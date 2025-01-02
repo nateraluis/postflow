@@ -9,7 +9,7 @@
     <h2 class="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">Create your account</h2>
   </div>
   <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-    <form method="post" action="{% url 'register' %}" class="space-y-6">
+    <form hx-post="{% url 'register' %}" hx-trigger="submit" hx-push-url="true" hx-target="#main">
       {% csrf_token %}
       
       {% if form.non_field_errors %}
