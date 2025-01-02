@@ -3,7 +3,7 @@ from django.shortcuts import redirect
 from django.contrib.auth import authenticate, login
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
-from .forms import CustomUserCreationForm
+from .forms import CustomUserCreationForm, CustomAuthenticationForm
 
 
 def _validate_user(request, username):
@@ -17,7 +17,21 @@ def index(request):
 
 
 def login_view(request):
-    return render(request, "postflow/login.html")
+    if request.method == "POST":
+        form = CustomAuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data["username"]
+            password = form.cleaned_data["password"]
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect("profile", username=username)
+            else:
+                form.add_error("username", "Invalid email or password")
+    else:
+        form = CustomAuthenticationForm()
+    context = {"form": form}
+    return render(request, "postflow/login.html", context)
 
 
 @require_http_methods(["GET", "POST"])
