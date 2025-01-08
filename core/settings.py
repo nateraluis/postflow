@@ -21,7 +21,7 @@ environ.Env.read_env()
 
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
-DEBUG = env("DEBUG")
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['.amazonlightsail.com', 'localhost', '0.0.0.0', '127.0.0.1','https://postflow.pp347jb6gimu4.eu-central-1.cs.amazonlightsail.com','postflow.photo','www.postflow.photo']
 CSRF_TRUSTED_ORIGINS = ['https://localhost','https://*.amazonlightsail.com','https://127.0.0.1','https://postflow.pp347jb6gimu4.eu-central-1.cs.amazonlightsail.com','https://postflow.photo','https://www.postflow.photo']
 
