@@ -128,11 +128,14 @@ if DEBUG:
     # Include the global 'static' directory
     STATICFILES_DIRS = [
         BASE_DIR / "static",  # This points to the /static directory in your root
+        BASE_DIR / "postflow" / "static",  # Static directory for 'postflow' app
+        BASE_DIR / "theme" / "static",  # Static directory for 'theme' app
     ]
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 else:
     STATIC_URL = f"https://{env('S3_AWS_STORAGE_BUCKET_NAME')}.s3.eu-central-1.amazonaws.com/"
     STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -149,17 +152,24 @@ AWS_S3_FILE_OVERWRITE = False  # Optional, avoid overwriting files with the same
 TAILWIND_APP_NAME = 'theme'
 
 # Configure S3 storage backend for staticfiles
-STORAGES = {
-    'staticfiles': {
-        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
-        'BUCKET_NAME': AWS_STORAGE_BUCKET_NAME,
-        'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
-        'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
-        'AWS_S3_REGION_NAME': AWS_S3_REGION_NAME,
-        'AWS_S3_FILE_OVERWRITE': False,
-        'AWS_QUERYSTRING_AUTH': False,
-    },
-}
+if DEBUG:
+    STORAGES = {
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
+else:
+    STORAGES = {
+        'staticfiles': {
+            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+            'BUCKET_NAME': AWS_STORAGE_BUCKET_NAME,
+            'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
+            'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
+            'AWS_S3_REGION_NAME': AWS_S3_REGION_NAME,
+            'AWS_S3_FILE_OVERWRITE': False,
+            'AWS_QUERYSTRING_AUTH': False,
+        },
+    }
 
 
 INTERNAL_IPS = [
