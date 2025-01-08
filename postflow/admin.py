@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import CustomUserCreationForm, CustomUserChangeForm
-from .models import CustomUser
+from .models import CustomUser, Tag, TagGroup
 
 
 class CustomUserAdmin(UserAdmin):
@@ -27,4 +27,22 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
+
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')  # Display ID and name in list view
+    search_fields = ('name',)      # Enable search by name
+    ordering = ('name',)           # Default ordering by name
+
+
+class TagGroupAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'user')  # Display ID, name, and associated user
+    search_fields = ('name', 'user__email')  # Enable search by group name and user email
+    list_filter = ('user',)                 # Add filter by user
+    ordering = ('name', 'user')             # Default ordering by name and user
+    filter_horizontal = ('tags',)           # For better UI when selecting many-to-many tags
+
+
 admin.site.register(CustomUser, CustomUserAdmin)
+admin.site.register(Tag, TagAdmin)
+admin.site.register(TagGroup, TagGroupAdmin)
+

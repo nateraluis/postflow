@@ -117,12 +117,12 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Static files (CSS, JavaScript, Images)
-# if DEBUG:
-#     STATIC_URL = '/static/'
-#     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-# else:
-#     STATIC_URL = f"https://{env('S3_AWS_STORAGE_BUCKET_NAME')}.s3.eu-central-1.amazonaws.com/"
-#     STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+if DEBUG:
+    STATIC_URL = '/static/'
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATIC_URL = f"https://{env('S3_AWS_STORAGE_BUCKET_NAME')}.s3.eu-central-1.amazonaws.com/"
+    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 STATIC_URL = '/static/'
 if DEBUG:
     # Include the global 'static' directory
