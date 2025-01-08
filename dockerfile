@@ -5,6 +5,7 @@ FROM python:3.13.0-bullseye
 EXPOSE 8000/tcp
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV DEBUG=False
 
 # Copy the dependencies file to the working directory
 COPY requirements.txt .
