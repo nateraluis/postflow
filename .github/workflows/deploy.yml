@@ -106,7 +106,7 @@ jobs:
 
       - name: 📦 Install Dependencies
         run: |
-          sudo pip3 install --upgrade pip
+          # sudo pip3 install --upgrade pip
           sudo pip3 install -r requirements.txt
 
       - name: 🐳 Build Docker Container for Django
