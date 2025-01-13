@@ -1,8 +1,9 @@
 from django.shortcuts import render
-from django.shortcuts import redirect
+from django.shortcuts import redirect, reverse
 from django.contrib.auth import authenticate, login
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
 
 
@@ -32,6 +33,10 @@ def login_view(request):
         form = CustomAuthenticationForm()
     context = {"form": form}
     return render(request, "postflow/login.html", context)
+
+
+def logout_view(request):
+    return redirect("login")
 
 
 @require_http_methods(["GET", "POST"])
@@ -66,5 +71,5 @@ def register(request):
 @require_http_methods(["GET", "POST"])
 def profile_view(request, username):
     user = _validate_user(request, username)
-    context = {"user": user}
+    context = {"profile_user": user}
     return render(request, "postflow/profile.html", context)
