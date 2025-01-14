@@ -57,7 +57,7 @@
                 <ul role="list" class="-mx-2 space-y-1">
                   <li>
                     <!-- Current: "bg-gray-800 text-white", Default: "text-gray-400 hover:text-white hover:bg-gray-800" -->
-                    <a href="#" class="group flex gap-x-3 rounded-md bg-gray-800 p-2 text-sm/6 font-semibold text-white">
+                    <a href="{% url 'dashboard' %}" hx-get="{% url 'dashboard' %}" hx-target="#content-area" hx-swap="innerHTML" class="group flex gap-x-3 rounded-md bg-gray-800 p-2 text-sm/6 font-semibold text-white">
                       <img
                         src="{% static 'postflow/icons/home.svg' %}"
                         class="size-6 shrink-0"
@@ -142,7 +142,7 @@
             <ul role="list" class="-mx-2 space-y-1">
               <li>
                 <!-- Current: "bg-gray-800 text-white", Default: "text-gray-400 hover:text-white hover:bg-gray-800" -->
-                <a href="#" class="group flex gap-x-3 rounded-md bg-gray-800 p-2 text-sm/6 font-semibold text-white">
+                <a href="{% url 'dashboard' %}" hx-get="{% url 'dashboard' %}" hx-target="#content-area" hx-swap="innerHTML" class="group flex gap-x-3 rounded-md bg-gray-800 p-2 text-sm/6 font-semibold text-white">
                   <img
                     src="{% static 'postflow/icons/home.svg' %}"
                     class="size-6 shrink-0"
@@ -211,9 +211,4 @@
     </a>
   </div>
 
-  <main class="py-10 lg:pl-72">
-    <div class="px-4 sm:px-6 lg:px-8">
-      <!-- Your content -->
-    </div>
-  </main>
 </div>

@@ -1,4 +1,13 @@
 {% extends "postflow/_base.html" %}
+
 {% block main %}
-{% include "postflow/components/sidebar.html" %}
+<div class="flex">
+  <!-- Sidebar (static) -->
+  {% include "postflow/components/sidebar.html" %}
+
+  <!-- Content area (dynamic, rendered via Htmx) -->
+  <div id="content-area" class="flex-1 py-10 px-4 sm:px-6 lg:px-8">
+    {% block content %}{% endblock %}
+  </div>
+</div>
 {% endblock %}

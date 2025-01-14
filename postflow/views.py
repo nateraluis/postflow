@@ -73,3 +73,8 @@ def profile_view(request, username):
     user = _validate_user(request, username)
     context = {"profile_user": user}
     return render(request, "postflow/profile.html", context)
+
+@login_required
+@require_http_methods(["GET"])
+def dashboard(request):
+    return render(request, 'postflow/components/dashboard.html')
