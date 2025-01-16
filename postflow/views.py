@@ -78,3 +78,15 @@ def profile_view(request, username):
 @require_http_methods(["GET"])
 def dashboard(request):
     return render(request, 'postflow/components/dashboard.html')
+
+
+@login_required
+@require_http_methods(["GET"])
+def hashtags(request):
+    return render(request, 'postflow/components/hashtags.html')
+
+
+@login_required
+@require_http_methods(["GET"])
+def calendar(request):
+    return render(request, 'postflow/components/calendar.html')
