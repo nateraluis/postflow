@@ -1,4 +1,5 @@
 from django.db import IntegrityError
+from django_htmx.http import retarget, reswap
 from django.shortcuts import render
 from django.shortcuts import redirect, reverse
 from django.contrib.auth import authenticate, login
@@ -107,11 +108,10 @@ def hashtags_view(request):
 
             except IntegrityError:
                 if request.headers.get("HX-Request"):
-                    return HttpResponse(
-                            '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">'
-                            f'Hashtag <strong>{hashtag}</strong> already exists!</div>',
-                            status=400
-                        )
+                    form.add_error("hashtag", "Hashtag already exists!")
+                    hashtags = Tag.objects.all()
+                    context = {"form": form, "hashtags": hashtags}
+                    return reswap(retarget(render(request, 'postflow/components/hashtags.html', context), "#content-area"), "innerHTML")
                 else:
                     form.add_error("hashtag", "Hashtag already exists!")
     else:
