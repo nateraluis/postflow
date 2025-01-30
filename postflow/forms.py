@@ -48,3 +48,10 @@ class CustomAuthenticationForm(AuthenticationForm):
             'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
         })
     )
+
+class HashtagCreationForm(forms.Form):
+    hashtag = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+        })
+    )

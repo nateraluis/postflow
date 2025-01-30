@@ -15,10 +15,17 @@ class CustomUser(AbstractUser):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=255, unique=True, db_index=True, help_text="Name of the hashtag (e.g., #example)")
+    name = models.CharField(max_length=255, db_index=True, help_text="Name of the hashtag (e.g., #example)")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tags", help_text="User who owns this tag", default=1)
+    
+    class Meta:
+         constraints = [
+            models.UniqueConstraint(fields=["name", "user"], name="unique_tag_per_user")
+        ]
 
     def __str__(self):
         return self.name or "Unnamed Tag"
+
 
 
 class TagGroup(models.Model):
@@ -27,7 +34,9 @@ class TagGroup(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tag_groups", help_text="User who owns this tag group")
 
     class Meta:
-        unique_together = ("name", "user")
+         constraints = [
+            models.UniqueConstraint(fields=["name", "user"], name="unique_group_per_user")
+        ]
 
     def __str__(self):
         return self.name or "Unnamed Tag Group"

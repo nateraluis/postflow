@@ -1,10 +1,12 @@
+from django.db import IntegrityError
 from django.shortcuts import render
 from django.shortcuts import redirect, reverse
 from django.contrib.auth import authenticate, login
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from .forms import CustomUserCreationForm, CustomAuthenticationForm
+from .forms import CustomUserCreationForm, CustomAuthenticationForm, HashtagCreationForm
+from .models import Tag
 
 
 def _validate_user(request, username):
@@ -81,12 +83,50 @@ def dashboard(request):
 
 
 @login_required
-@require_http_methods(["GET"])
-def hashtags(request):
-    return render(request, 'postflow/components/hashtags.html')
+@require_http_methods(["GET", "POST"])
+def hashtags_view(request):
+    if request.method == "POST":
+        form = HashtagCreationForm(request.POST)
+        if form.is_valid():
+            try:
+                hashtag = form.cleaned_data["hashtag"]
+                Tag.objects.create(
+                    name=hashtag,
+                    user=request.user   
+                )
+                if request.headers.get("HX-Request"):
+                    return HttpResponse(f"""
+                    <tr>
+                      <td class="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-0">
+                        {hashtag}
+                      </td>
+                    </tr>
+                    """)
+                
+                return redirect("add-hashtag")
+
+            except IntegrityError:
+                if request.headers.get("HX-Request"):
+                    return HttpResponse(
+                            '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">'
+                            f'Hashtag <strong>{hashtag}</strong> already exists!</div>',
+                            status=400
+                        )
+                else:
+                    form.add_error("hashtag", "Hashtag already exists!")
+    else:
+        form = HashtagCreationForm()
+    hashtags = Tag.objects.all()
+    context = {"form": form, "hashtags": hashtags}
+    return render(request, 'postflow/components/hashtags.html', context)
 
 
 @login_required
 @require_http_methods(["GET"])
-def calendar(request):
+def calendar_view(request):
     return render(request, 'postflow/components/calendar.html')
+
+@login_required
+@require_http_methods(["POST"])
+def add_hashtag_view(request):
+    pass
