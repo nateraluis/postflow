@@ -100,6 +100,7 @@ jobs:
           envkey_S3_AWS_STORAGE_BUCKET_NAME: ${{ secrets.S3_AWS_STORAGE_BUCKET_NAME }}
           envkey_S3_AWS_S3_REGION_NAME: ${{ secrets.AWS_S3_REGION_NAME }}
           envkey_DEBUG: False
+          envkey_REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
           directory: core
           file_name: .env
           fail_on_empty: false
