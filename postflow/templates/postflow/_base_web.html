@@ -19,17 +19,9 @@
     {% endblock %}
   </head>
   <body hx-ext="debug, event-header">
-    <div class="flex">
-      <!-- Sidebar -->
-      {% block sidebar %}
-        {% include "postflow/components/sidebar.html" %}
-      {% endblock %}
-
-      <!-- Main Content with Left Margin to Offset Sidebar -->
-      <div class="flex-1 bg-base-100 ml-72 p-6" id="content-area">
+    <div class="bg-base-100" id="main">
         {% block main %}
         {% endblock %}
-      </div>
     </div>
     {% django_htmx_script %}
   </body>

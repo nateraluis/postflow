@@ -1,13 +1,15 @@
 from django.db import IntegrityError
+import requests
 from django_htmx.http import retarget, reswap
 from django.shortcuts import render
-from django.shortcuts import redirect, reverse
+from django.shortcuts import redirect, reverse, get_object_or_404
 from django.contrib.auth import authenticate, login
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
-from .forms import CustomUserCreationForm, CustomAuthenticationForm, HashtagCreationForm
-from .models import Tag, TagGroup
+from .forms import CustomUserCreationForm, CustomAuthenticationForm 
+from .models import Tag, TagGroup, MastodonAccount
 
 
 def _validate_user(request, username):
@@ -80,45 +82,9 @@ def profile_view(request, username):
 @login_required
 @require_http_methods(["GET"])
 def dashboard(request):
-    return render(request, 'postflow/components/dashboard.html')
-
-
-@login_required
-@require_http_methods(["GET", "POST"])
-def hashtags_view(request):
-    if request.method == "POST":
-        form = HashtagCreationForm(request.POST)
-        if form.is_valid():
-            try:
-                hashtag = form.cleaned_data["hashtag"]
-                Tag.objects.create(
-                    name=hashtag,
-                    user=request.user   
-                )
-                if request.headers.get("HX-Request"):
-                    return HttpResponse(f"""
-                    <tr>
-                      <td class="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-0">
-                        {hashtag}
-                      </td>
-                    </tr>
-                    """)
-                
-                return redirect("add-hashtag")
-
-            except IntegrityError:
-                if request.headers.get("HX-Request"):
-                    form.add_error("hashtag", "Hashtag already exists!")
-                    hashtags = Tag.objects.all()
-                    context = {"form": form, "hashtags": hashtags}
-                    return reswap(retarget(render(request, 'postflow/components/hashtags.html', context), "#content-area"), "innerHTML")
-                else:
-                    form.add_error("hashtag", "Hashtag already exists!")
-    else:
-        form = HashtagCreationForm()
-    hashtags = Tag.objects.all()
-    context = {"form": form, "hashtags": hashtags}
-    return render(request, 'postflow/components/hashtags.html', context)
+    if request.headers.get("HX-Request"):
+        return render(request, 'postflow/components/dashboard.html')
+    return render(request, 'postflow/pages/dashboard.html')
 
 
 @login_required
@@ -126,14 +92,12 @@ def hashtags_view(request):
 def calendar_view(request):
     return render(request, 'postflow/components/calendar.html')
 
-@login_required
-@require_http_methods(["POST"])
-def add_hashtag_view(request):
-    pass
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def hashtag_groups_view(request):
+    """Handles hashtag group creation and displays groups dynamically."""
+
     user = request.user
 
     if request.method == "POST":
@@ -141,29 +105,133 @@ def hashtag_groups_view(request):
         hashtag_text = request.POST.get("hashtags", "").strip()
 
         if name and hashtag_text:
-            # Ensure uniqueness per user
-            group, created = TagGroup.objects.get_or_create(name=name, user=user)
+            try:
+                group, created = TagGroup.objects.get_or_create(name=name, user=user)
 
-            # Process hashtag input
-            hashtags = [h.strip() for h in hashtag_text.split(" ") if h.strip()]
-            for hashtag_name in hashtags:
-                hashtag, _ = Tag.objects.get_or_create(name=hashtag_name, user=user)
-                group.tags.add(hashtag)
+                # Process hashtags (split by spaces or commas)
+                hashtags = [h.strip() for h in hashtag_text.replace(",", " ").split() if h.strip()]
+                for hashtag_name in hashtags:
+                    hashtag, _ = Tag.objects.get_or_create(name=hashtag_name, user=user)
+                    group.tags.add(hashtag)
 
-            group.refresh_from_db()
+                # **HTMX Request Handling: Return Only the New Group Card**
+                if "HX-Request" in request.headers:
+                    return render(request, "postflow/components/partials/hashtag_group_card.html", {"group": group})
 
-            # If HTMX request, return ONLY the new group card
-            if "HX-Request" in request.headers:
-                return render(request, "postflow/components/partials/hashtag_group_card.html", {"group": group})
+                return redirect("hashtag-groups")
 
-            return redirect("hashtag_groups")
+            except IntegrityError:
+                # Handle duplicate group error dynamically
+                if "HX-Request" in request.headers:
+                    return HttpResponse('<script>document.getElementById("error-message").innerText = "Group name already exists!"</script>')
 
-    # Fetch only the groups that belong to the logged-in user
+    # Fetch hashtag groups for the logged-in user
     hashtag_groups = TagGroup.objects.filter(user=user).prefetch_related("tags")
 
-    # If it's an HTMX request, return only the groups (NOT the form)
+    # **HTMX Fix: Load Full Hashtags Component Instead of Just Groups**
     if "HX-Request" in request.headers:
-        return render(request, "postflow/components/hashtags_groups.html", {"hashtag_groups": hashtag_groups})
+        return render(request, "postflow/components/hashtags.html", {"hashtag_groups": hashtag_groups})
 
-    # For a full page load, return the entire hashtags page
+    # **Normal Request: Render Full Page with Sidebar**
     return render(request, "postflow/pages/hashtags.html", {"hashtag_groups": hashtag_groups})
+
+
+@login_required
+@require_http_methods(["GET"])
+def hashtag_groups_list_view(request):
+    """Returns only the list of hashtag groups (used for HTMX dynamic updates)."""
+    user = request.user
+    hashtag_groups = TagGroup.objects.filter(user=user).prefetch_related("tags")
+    return render(request, "postflow/components/hashtags_groups.html", {"hashtag_groups": hashtag_groups})
+
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def connect_mastodon(request):
+    if request.method == "POST":
+        instance_url = request.POST.get("instance_url").strip().rstrip("/")
+        if not instance_url.startswith("https://"):
+            instance_url = f"https://{instance_url}"
+
+        # Step 1: Register the app with Mastodon
+        response = requests.post(f"{instance_url}/api/v1/apps", data={
+            "client_name": "Your App Name",
+            "redirect_uris": REDIRECT_URI,
+            "scopes": "read write",
+            "website": "https://yourwebsite.com"
+        })
+
+        if response.status_code == 200:
+            app_data = response.json()
+            request.session["mastodon_instance"] = instance_url
+            request.session["mastodon_client_id"] = app_data["client_id"]
+            request.session["mastodon_client_secret"] = app_data["client_secret"]
+
+            # Step 2: Redirect user to Mastodon authorization page
+            auth_url = (
+                f"{instance_url}/oauth/authorize"
+                f"?client_id={app_data['client_id']}"
+                f"&scope=read+write"
+                f"&redirect_uri={REDIRECT_URI}"
+                f"&response_type=code"
+            )
+            return redirect(auth_url)
+
+    return redirect("dashboard")
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def mastodon_callback(request):
+    instance_url = request.session.get("mastodon_instance")
+    client_id = request.session.get("mastodon_client_id")
+    client_secret = request.session.get("mastodon_client_secret")
+    code = request.GET.get("code")
+
+    if not instance_url or not code:
+        return redirect("dashboard")
+
+    # Step 3: Exchange code for access token
+    token_response = requests.post(f"{instance_url}/oauth/token", data={
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": REDIRECT_URI,
+        "grant_type": "authorization_code",
+        "code": code
+    })
+
+    if token_response.status_code == 200:
+        token_data = token_response.json()
+        access_token = token_data["access_token"]
+        print(access_token)
+
+        # Step 4: Fetch user's Mastodon profile
+        user_info = requests.get(f"{instance_url}/api/v1/accounts/verify_credentials", headers={
+            "Authorization": f"Bearer {access_token}"
+        }).json()
+
+        MastodonAccount.objects.create(
+            user=request.user,
+            instance_url=instance_url,
+            access_token=access_token,
+            username=user_info["username"]
+        )
+
+    return redirect("dashboard")
+
+@login_required
+@csrf_exempt
+@require_http_methods(["DELETE", "POST"])
+def disconnect_mastodon(request, account_id):
+    """Delete the user's Mastodon account connection."""
+    account = get_object_or_404(MastodonAccount, id=account_id, user=request.user)
+
+    if request.method == "DELETE":
+        account.delete()
+
+        # If it's an HTMX request, return a blank response to remove the element
+        if "HX-Request" in request.headers:
+            return HttpResponse("", status=204)
+
+    return redirect("dashboard")

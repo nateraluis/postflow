@@ -3,14 +3,19 @@
   <!-- Title -->
   <h1 class="text-2xl font-bold text-gray-900 mb-4">Hashtag Groups</h1>
   <p>Manage your hashtags here.</p>
-  {% include 'postflow/components/hashtags_groups_form.html' %}
-  <div 
-      id="hashtags-groups-container"
-      hx-get="{% url 'hashtag-groups' %}" 
-      hx-trigger="load" 
-      hx-target="this" 
-      hx-swap="innerHTML">
-      <p class="text-gray-500">Loading hashtag groups...</p>
+
+  <!-- Hashtag Group Form -->
+  <div id="hashtags-groups-form">
+    {% include 'postflow/components/hashtags_groups_form.html' %}
+  </div>
+
+  <!-- Container for Hashtag Groups -->
+  <div id="hashtags-groups-container"
+     hx-get="{% url 'hashtag-groups-list' %}" 
+     hx-trigger="load" 
+     hx-target="this"
+     hx-swap="innerHTML">
+    <p class="text-gray-500">Loading hashtag groups...</p>
   </div>
 </div>
 {% endblock %}

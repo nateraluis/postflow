@@ -10,8 +10,10 @@ urlpatterns = [
     path("register/", views.register, name="register"),
     path("profile/<str:username>/", views.profile_view, name="profile"),
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('hashtags/', views.hashtags_view, name='hashtags'),
     path('hashtag-groups/', views.hashtag_groups_view, name='hashtag-groups'),
-    path('add-hashtag/', views.add_hashtag_view, name='add-hashtag'),
+    path("hashtags/list/", views.hashtag_groups_list_view, name="hashtag-groups-list"),
     path('calendar/', views.calendar_view, name='calendar'),
+    path("mastodon/connect/", views.connect_mastodon, name="connect_mastodon"),
+    path("mastodon/callback/", views.mastodon_callback, name="mastodon_callback"),
+    path("mastodon/disconnect/<int:account_id>/", views.disconnect_mastodon, name="disconnect_mastodon"),
 ]
