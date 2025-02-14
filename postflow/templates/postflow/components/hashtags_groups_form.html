@@ -1,0 +1,23 @@
+<form 
+  method="POST"
+  action="{% url 'hashtag-groups' %}"
+  class="bg-white p-4 rounded-lg shadow border mb-6"
+  hx-post="{% url 'hashtag-groups' %}" 
+  hx-target="#groups-container" 
+  hx-swap="beforeend"
+  hx-on="htmx:afterRequest:this.reset()">
+
+  {% csrf_token %}
+
+  <label class="block text-gray-700 font-semibold mb-2">Group Name:</label>
+  <input type="text" name="name" placeholder="Enter group name" class="w-full p-2 border rounded mb-4" required>
+
+  <label class="block text-gray-700 font-semibold mb-2">Hashtags:</label>
+  <textarea name="hashtags" placeholder="#example #another #hashtag"
+    class="w-full p-2 border rounded mb-4 h-24" required></textarea>
+
+  <button type="submit"
+    class="w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">
+    Create Group
+  </button>
+</form>

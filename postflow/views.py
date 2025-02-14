@@ -7,7 +7,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm, HashtagCreationForm
-from .models import Tag
+from .models import Tag, TagGroup
 
 
 def _validate_user(request, username):
@@ -130,3 +130,40 @@ def calendar_view(request):
 @require_http_methods(["POST"])
 def add_hashtag_view(request):
     pass
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def hashtag_groups_view(request):
+    user = request.user
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        hashtag_text = request.POST.get("hashtags", "").strip()
+
+        if name and hashtag_text:
+            # Ensure uniqueness per user
+            group, created = TagGroup.objects.get_or_create(name=name, user=user)
+
+            # Process hashtag input
+            hashtags = [h.strip() for h in hashtag_text.split(" ") if h.strip()]
+            for hashtag_name in hashtags:
+                hashtag, _ = Tag.objects.get_or_create(name=hashtag_name, user=user)
+                group.tags.add(hashtag)
+
+            group.refresh_from_db()
+
+            # If HTMX request, return ONLY the new group card
+            if "HX-Request" in request.headers:
+                return render(request, "postflow/components/partials/hashtag_group_card.html", {"group": group})
+
+            return redirect("hashtag_groups")
+
+    # Fetch only the groups that belong to the logged-in user
+    hashtag_groups = TagGroup.objects.filter(user=user).prefetch_related("tags")
+
+    # If it's an HTMX request, return only the groups (NOT the form)
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/components/hashtags_groups.html", {"hashtag_groups": hashtag_groups})
+
+    # For a full page load, return the entire hashtags page
+    return render(request, "postflow/pages/hashtags.html", {"hashtag_groups": hashtag_groups})

@@ -1,0 +1,9 @@
+<div id="groups-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  {% if not hashtag_groups %}
+    <p id="no-groups-message" class="text-gray-500">No groups available.</p>
+  {% endif %}
+
+  {% for group in hashtag_groups %}
+    {% include 'postflow/components/partials/hashtag_group_card.html' with group=group %}
+  {% endfor %}
+</div>

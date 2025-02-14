@@ -1,0 +1,10 @@
+<div class="p-4 border rounded-lg shadow bg-white" id="group-{{ group.id }}">
+  <h3 class="text-lg font-semibold text-gray-900">{{ group.name }}</h3>
+  <p class="text-sm text-gray-600 mt-2">
+    {% for tag in group.tags.all %}
+      <span class="inline-block bg-gray-200 text-gray-800 text-xs font-semibold px-2 py-1 rounded mr-2">
+        {{ tag.name }}
+      </span>
+    {% endfor %}
+  </p>
+</div>
