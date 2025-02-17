@@ -1,6 +1,5 @@
 from django.db import IntegrityError
 import requests
-from django_htmx.http import retarget, reswap
 from django.shortcuts import render
 from django.shortcuts import redirect, reverse, get_object_or_404
 from django.contrib.auth import authenticate, login
@@ -10,7 +9,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm 
 from .models import Tag, TagGroup, MastodonAccount
+import os
 
+REDIRECT_URI = os.getenv('REDIRECT_URI', 'https://postflow.photo/mastodon/callback') == "https://localhost:8000/mastodon/callback"
 
 def _validate_user(request, username):
     user = request.user
@@ -77,7 +78,7 @@ def register(request):
 def profile_view(request, username):
     user = _validate_user(request, username)
     context = {"profile_user": user}
-    return render(request, "postflow/profile.html", context)
+    return render(request, "postflow/pages/dashboard.html", context)
 
 @login_required
 @require_http_methods(["GET"])
