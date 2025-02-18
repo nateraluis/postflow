@@ -11,7 +11,7 @@ from .forms import CustomUserCreationForm, CustomAuthenticationForm
 from .models import Tag, TagGroup, MastodonAccount
 import os
 
-REDIRECT_URI = 'https://postflow.photo/mastodon/callback'
+REDIRECT_URI = 'https://postflow.photo/mastodon/callback/'
 
 def _validate_user(request, username):
     user = request.user
@@ -194,7 +194,7 @@ def mastodon_callback(request):
         return redirect("dashboard")
         
     # Define the correct redirect URI again
-    REDIRECT_URI = request.build_absolute_uri("/mastodon/callback/")
+    # REDIRECT_URI = request.build_absolute_uri("/mastodon/callback/")
     
     # Step 3: Exchange code for access token
     token_response = requests.post(f"{instance_url}/oauth/token", data={
