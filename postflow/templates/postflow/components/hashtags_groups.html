@@ -7,3 +7,14 @@
     {% include 'postflow/components/partials/hashtag_group_card.html' with group=group %}
   {% endfor %}
 </div>
+
+<script>
+  function copyHashtags(groupId) {
+    const text = document.getElementById(`hashtags-${groupId}`).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Hashtags copied to clipboard!");
+    }).catch(err => {
+      console.error("Failed to copy text: ", err);
+    });
+  }
+</script>
