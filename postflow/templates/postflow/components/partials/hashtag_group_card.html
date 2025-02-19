@@ -1,10 +1,15 @@
 <div class="p-4 border rounded-lg shadow bg-white" id="group-{{ group.id }}">
   <h3 class="text-lg font-semibold text-gray-900">{{ group.name }}</h3>
-  <p class="text-sm text-gray-600 mt-2">
+  <p class="text-sm text-gray-600 mt-2" id="hashtags-{{ group.id }}">
     {% for tag in group.tags.all %}
       <span class="inline-block bg-gray-200 text-gray-800 text-xs font-semibold px-2 py-1 rounded mr-2">
-        {{ tag.name }}
+        #{{ tag.name }}
       </span>
     {% endfor %}
   </p>
+  <button 
+    class="mt-2 px-3 py-1 bg-blue-500 text-white text-xs font-semibold rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+    hx-on:click="copyHashtags('{{ group.id }}')">
+    Copy Hashtags
+  </button>
 </div>
