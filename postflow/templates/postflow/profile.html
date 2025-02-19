@@ -2,11 +2,6 @@
 
 {% block main %}
 <div class="flex">
-  <!-- Sidebar (static) -->
-  <div style="width: 300px;">
-  {% include "postflow/components/sidebar.html" %}
-  </div>
-
   <!-- Content area (dynamic, rendered via Htmx) -->
   <div id="content-area" class="flex-1 py-10 px-4 sm:px-6 lg:px-8 overflow-auto" style="flex: 1; min-height: 100%; overflow: auto;">
     {% block content %}
