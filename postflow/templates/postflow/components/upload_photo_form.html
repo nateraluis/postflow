@@ -107,14 +107,10 @@
 document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("user_timezone").value = Intl.DateTimeFormat().resolvedOptions().timeZone;
 });
-document.getElementById("uploadPhotoForm").addEventListener("submit", function(event) {
-    const photoInput = document.getElementById("photoInput");
 
-    if (!photoInput.files.length) {
-        document.getElementById("imageError").classList.remove("hidden");
-        event.preventDefault();  // Stop form submission
-    } else {
-        document.getElementById("imageError").classList.add("hidden");
-    }
+// Ensure user timezone is updated before submitting the form
+document.getElementById("uploadPhotoForm").addEventListener("submit", function(event) {
+    const timezoneInput = document.getElementById("user_timezone");
+    timezoneInput.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
 });
 </script>
