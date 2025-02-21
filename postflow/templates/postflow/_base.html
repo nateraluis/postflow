@@ -115,5 +115,18 @@
       </div>
     </div>
     {% django_htmx_script %}
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let timezoneInput = document.getElementById("user_timezone");
+        if (!timezoneInput) {
+            timezoneInput = document.createElement("input");
+            timezoneInput.type = "hidden";
+            timezoneInput.name = "user_timezone";
+            timezoneInput.id = "user_timezone";
+            document.body.appendChild(timezoneInput);
+        }
+        timezoneInput.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    });
+    </script>
   </body>
 </html>
