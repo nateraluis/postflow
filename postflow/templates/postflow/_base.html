@@ -17,16 +17,31 @@
       <script src="{% static 'ext/event-header.js' %}" defer></script>
       {% tailwind_css %}
       <script>
-      document.addEventListener("DOMContentLoaded", function () {
-          let timezoneInput = document.getElementById("user_timezone");
-          if (!timezoneInput) {
-              timezoneInput = document.createElement("input");
-              timezoneInput.type = "hidden";
-              timezoneInput.name = "user_timezone";
-              timezoneInput.id = "user_timezone";
-              document.body.appendChild(timezoneInput);
+        document.addEventListener("DOMContentLoaded", function () {
+          function setUserTimezone() {
+              let timezoneInput = document.getElementById("user_timezone");
+              if (!timezoneInput) {
+                  timezoneInput = document.createElement("input");
+                  timezoneInput.type = "hidden";
+                  timezoneInput.name = "user_timezone";
+                  timezoneInput.id = "user_timezone";
+                  document.body.appendChild(timezoneInput);
+              }
+              timezoneInput.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
           }
-          timezoneInput.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+          // Set timezone when the page loads
+          setUserTimezone();
+
+          // Ensure timezone is set before form submission (for HTMX)
+          document.addEventListener("htmx:beforeRequest", function (event) {
+              setUserTimezone();
+          });
+
+          // Ensure it's set when submitting via standard form
+          document.getElementById("uploadPhotoForm").addEventListener("submit", function (event) {
+              setUserTimezone();
+          });
       });
       </script>
     {% endblock %}
