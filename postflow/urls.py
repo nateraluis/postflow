@@ -13,6 +13,7 @@ urlpatterns = [
     path('hashtag-groups/', views.hashtag_groups_view, name='hashtag-groups'),
     path("hashtags/list/", views.hashtag_groups_list_view, name="hashtag-groups-list"),
     path('calendar/', views.calendar_view, name='calendar'),
+    path('schedule-post/', views.schedule_post, name="schedule_post"),
     path("mastodon/connect/", views.connect_mastodon, name="connect_mastodon"),
     path("mastodon/callback/", views.mastodon_callback, name="mastodon_callback"),
     path("mastodon/disconnect/<int:account_id>/", views.disconnect_mastodon, name="disconnect_mastodon"),

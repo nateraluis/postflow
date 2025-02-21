@@ -6,6 +6,7 @@ EXPOSE 8000/tcp
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV DEBUG=False
+ENV AWS_STORAGE_MEDIA_BUCKET_NAME=postflow-media
 
 # Copy the dependencies file to the working directory
 COPY requirements.txt .

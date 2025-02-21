@@ -1,37 +1,11 @@
-import os
 from pathlib import Path
 import environ
-import logging
 
 # Load environment variables
 env = environ.Env()
 environ.Env.read_env()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# ✅ Logging Configuration
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "file": {
-            "level": "DEBUG",
-            "class": "logging.FileHandler",
-            "filename": os.path.join(BASE_DIR, "logs", "debug.log"),
-        },
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["file", "console"],
-            "level": "DEBUG",
-            "propagate": True,
-        },
-    },
-}
 
 # ✅ Security & Debug
 SECRET_KEY = env("DJANGO_SECRET_KEY")
@@ -143,10 +117,12 @@ if DEBUG:
 else:
     AWS_S3_REGION_NAME = "eu-central-1"
     AWS_STORAGE_BUCKET_NAME = env("S3_AWS_STORAGE_BUCKET_NAME")
+    AWS_STORAGE_MEDIA_BUCKET_NAME = env("S3_AWS_STORAGE_MEDIA_BUCKET_NAME")
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+    AWS_S3_MEDIA_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
 
     STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+    MEDIA_URL = f"https://{AWS_S3_MEDIA_DOMAIN}/media/"
 
 # ✅ Django 5+ Storage Settings
 if DEBUG:

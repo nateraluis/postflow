@@ -1,5 +1,6 @@
+import os
+from http import HTTPStatus
 from django.db import IntegrityError
-import logging
 import requests
 from django.shortcuts import render
 from django.shortcuts import redirect, reverse, get_object_or_404
@@ -11,10 +12,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm 
 from .models import Tag, TagGroup, MastodonAccount, ScheduledPost
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 import pytz
 from datetime import datetime, timedelta
 
-logger = logging.getLogger(__name__)
 
 # REDIRECT_URI = 'https://postflow.photo/mastodon/callback/'
 REDIRECT_URI = "http://127.0.0.1:8000/mastodon/callback/"
@@ -95,79 +97,94 @@ def dashboard(request):
 
 
 @login_required
-@require_http_methods(["GET", "POST"])
+@require_http_methods(["GET"])
 def calendar_view(request):
-    # Context for GET requests
+    scheduled_posts = ScheduledPost.objects.filter(user=request.user).order_by("-post_date")
+
     context = {
         "hours": range(0, 24),
         "minutes": range(0, 60, 5),
         "hashtag_groups": TagGroup.objects.filter(user=request.user),
         "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
+        "instagram_accounts": None,
+        "scheduled_posts": scheduled_posts,
     }
 
-    if request.method == "POST":
-        # Extract form data
-        user_timezone = request.POST.get("user_timezone", "UTC")
-        post_date = request.POST.get("post_date")
-        post_hour = request.POST.get("post_hour")
-        post_minute = request.POST.get("post_minute")
-        caption = request.POST.get("caption", "")
-        hashtag_group_ids = request.POST.getlist("hashtag_groups")
-        mastodon_account_ids = request.POST.getlist("social_accounts")
-        image = request.FILES.get("photo")  # Must use `request.FILES`
-
-        # Debugging log
-        logger.info(f"Received POST request with post_date={post_date}, image={image}")
-
-        if not image:
-            context["error"] = "Please select an image to post."
-            return render(request, 'postflow/pages/calendar.html', context)
-
-        if not post_date or not post_hour or not post_minute:
-            context["error"] = "Please select a valid date and time."
-            return render(request, 'postflow/pages/calendar.html', context)
-
-        # Convert local time to UTC
-        try:
-            scheduled_datetime = f"{post_date} {post_hour}:{post_minute}:00"
-            user_tz = pytz.timezone(user_timezone)
-            localized_datetime = user_tz.localize(datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S"))
-            utc_datetime = localized_datetime.astimezone(pytz.UTC)
-        except Exception as e:
-            logger.error(f"Error converting time: {e}")
-            context["error"] = "Invalid date and time selected"
-            return render(request, 'postflow/pages/calendar.html', context)
-
-        # Validate that the scheduled time is in the future (at least 5 minutes ahead)
-        min_allowed_time = now() + timedelta(minutes=5)
-        if utc_datetime < min_allowed_time:
-            context["error"] = "The scheduled time must be at least 5 minutes in the future."
-            return render(request, 'postflow/pages/calendar.html', context)
-
-        try:
-            # Explicitly saving the post before setting M2M relationships
-            scheduled_post = ScheduledPost(
-                user=request.user,
-                image=image,  # Correctly saving the image
-                caption=caption,
-                post_date=utc_datetime,
-                user_timezone=user_timezone,
-            )
-            scheduled_post.save()
-
-            # Assign many-to-many fields AFTER saving
-            scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
-            scheduled_post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_account_ids))
-
-            return redirect("calendar")  # Ensure "calendar" is a valid redirect target
-        except Exception as e:
-            logger.error(f"Error saving ScheduledPost: {e}")
-            context["error"] = "An error occurred while scheduling the post."
-            return render(request, 'postflow/pages/calendar.html', context)
-
     if "HX-Request" in request.headers:
-        return render(request, 'postflow/components/calendar.html', context)
-    return render(request, 'postflow/pages/calendar.html', context)
+        return render(request, "postflow/components/calendar.html", context)
+    
+    return render(request, "postflow/pages/calendar.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def schedule_post(request):
+
+    # Extract form data
+    user_timezone = request.POST.get("user_timezone", "UTC")
+    post_date = request.POST.get("post_date")
+    post_hour = request.POST.get("post_hour")
+    post_minute = request.POST.get("post_minute")
+    caption = request.POST.get("caption", "")
+    hashtag_group_ids = request.POST.getlist("hashtag_groups")
+    mastodon_account_ids = request.POST.getlist("social_accounts")
+    image = request.FILES.get("photo")  # Ensure file is received
+
+    context = {
+        "hours": range(0, 24),
+        "minutes": range(0, 60, 5),
+        "hashtag_groups": TagGroup.objects.filter(user=request.user),
+        "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
+        "instagram_accounts": None,
+        "scheduled_posts": ScheduledPost.objects.filter(user=request.user).order_by("-post_date"),
+    }
+
+    if not image:
+        context["error"] = "Please select an image to post."
+        return render(request, "postflow/components/upload_photo_form.html", context)
+
+    if not post_date or not post_hour or not post_minute:
+        context["error"] = "Please select a valid date and time."
+        return render(request, "postflow/components/upload_photo_form.html", context)
+
+    try:
+        scheduled_datetime = f"{post_date} {post_hour}:{post_minute}:00"
+        user_tz = pytz.timezone(user_timezone)
+        localized_datetime = user_tz.localize(datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S"))
+        utc_datetime = localized_datetime.astimezone(pytz.UTC)
+    except Exception as e:
+        context["error"] = "Invalid date and time selected. Please select a time at least 5 minutes in the future."
+        return render(request, "postflow/components/upload_photo_form.html", context)
+
+    # Validate scheduled time
+    min_allowed_time = now() + timedelta(minutes=5)
+    if utc_datetime < min_allowed_time:
+        context["error"] = "The scheduled time must be at least 5 minutes in the future."
+        return render(request, "postflow/components/upload_photo_form.html", context)
+
+    try:
+        filename, file_extension = os.path.splitext(image.name)
+        unique_filename = f"user_{request.user.id}_{int(datetime.utcnow().timestamp())}{file_extension}"
+        file_path = os.path.join("scheduled_posts", unique_filename)
+
+        saved_path = default_storage.save(file_path, ContentFile(image.read()))
+
+        scheduled_post = ScheduledPost.objects.create(
+            user=request.user,
+            image=saved_path,  # Store the unique file path
+            caption=caption,
+            post_date=utc_datetime,
+            user_timezone=user_timezone,
+        )
+
+        # Assign many-to-many fields AFTER saving
+        scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
+        scheduled_post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_account_ids))
+
+        return render(request, "postflow/components/upload_photo_form.html", context)
+    except Exception as e:
+        context["error"] = "An error occurred while scheduling the post"
+        return render(request, "postflow/components/upload_photo_form.html", context)
 
 
 @login_required
