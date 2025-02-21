@@ -1,17 +1,23 @@
 from django.db import IntegrityError
+import logging
 import requests
 from django.shortcuts import render
 from django.shortcuts import redirect, reverse, get_object_or_404
 from django.contrib.auth import authenticate, login
+from django.utils.timezone import now
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm 
-from .models import Tag, TagGroup, MastodonAccount
-import os
+from .models import Tag, TagGroup, MastodonAccount, ScheduledPost
+import pytz
+from datetime import datetime, timedelta
 
-REDIRECT_URI = 'https://postflow.photo/mastodon/callback/'
+logger = logging.getLogger(__name__)
+
+# REDIRECT_URI = 'https://postflow.photo/mastodon/callback/'
+REDIRECT_URI = "http://127.0.0.1:8000/mastodon/callback/"
 
 def _validate_user(request, username):
     user = request.user
@@ -89,9 +95,79 @@ def dashboard(request):
 
 
 @login_required
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "POST"])
 def calendar_view(request):
-    return render(request, 'postflow/components/calendar.html')
+    # Context for GET requests
+    context = {
+        "hours": range(0, 24),
+        "minutes": range(0, 60, 5),
+        "hashtag_groups": TagGroup.objects.filter(user=request.user),
+        "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
+    }
+
+    if request.method == "POST":
+        # Extract form data
+        user_timezone = request.POST.get("user_timezone", "UTC")
+        post_date = request.POST.get("post_date")
+        post_hour = request.POST.get("post_hour")
+        post_minute = request.POST.get("post_minute")
+        caption = request.POST.get("caption", "")
+        hashtag_group_ids = request.POST.getlist("hashtag_groups")
+        mastodon_account_ids = request.POST.getlist("social_accounts")
+        image = request.FILES.get("photo")  # Must use `request.FILES`
+
+        # Debugging log
+        logger.info(f"Received POST request with post_date={post_date}, image={image}")
+
+        if not image:
+            context["error"] = "Please select an image to post."
+            return render(request, 'postflow/pages/calendar.html', context)
+
+        if not post_date or not post_hour or not post_minute:
+            context["error"] = "Please select a valid date and time."
+            return render(request, 'postflow/pages/calendar.html', context)
+
+        # Convert local time to UTC
+        try:
+            scheduled_datetime = f"{post_date} {post_hour}:{post_minute}:00"
+            user_tz = pytz.timezone(user_timezone)
+            localized_datetime = user_tz.localize(datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S"))
+            utc_datetime = localized_datetime.astimezone(pytz.UTC)
+        except Exception as e:
+            logger.error(f"Error converting time: {e}")
+            context["error"] = "Invalid date and time selected"
+            return render(request, 'postflow/pages/calendar.html', context)
+
+        # Validate that the scheduled time is in the future (at least 5 minutes ahead)
+        min_allowed_time = now() + timedelta(minutes=5)
+        if utc_datetime < min_allowed_time:
+            context["error"] = "The scheduled time must be at least 5 minutes in the future."
+            return render(request, 'postflow/pages/calendar.html', context)
+
+        try:
+            # Explicitly saving the post before setting M2M relationships
+            scheduled_post = ScheduledPost(
+                user=request.user,
+                image=image,  # Correctly saving the image
+                caption=caption,
+                post_date=utc_datetime,
+                user_timezone=user_timezone,
+            )
+            scheduled_post.save()
+
+            # Assign many-to-many fields AFTER saving
+            scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
+            scheduled_post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_account_ids))
+
+            return redirect("calendar")  # Ensure "calendar" is a valid redirect target
+        except Exception as e:
+            logger.error(f"Error saving ScheduledPost: {e}")
+            context["error"] = "An error occurred while scheduling the post."
+            return render(request, 'postflow/pages/calendar.html', context)
+
+    if "HX-Request" in request.headers:
+        return render(request, 'postflow/components/calendar.html', context)
+    return render(request, 'postflow/pages/calendar.html', context)
 
 
 @login_required
@@ -157,10 +233,10 @@ def connect_mastodon(request):
 
         # Step 1: Register the app with Mastodon
         response = requests.post(f"{instance_url}/api/v1/apps", data={
-            "client_name": "Your App Name",
+            "client_name": "PostFlow",
             "redirect_uris": REDIRECT_URI,
             "scopes": "read write",
-            "website": "https://yourwebsite.com"
+            "website": "https://postflow.photo"
         })
 
         if response.status_code == 200:

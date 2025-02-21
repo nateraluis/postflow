@@ -1,15 +1,24 @@
-<div class="p-4 border rounded-lg shadow bg-white" id="group-{{ group.id }}">
-  <h3 class="text-lg font-semibold text-gray-900">{{ group.name }}</h3>
+{% load static %}
+
+
+<div class="p-4 border rounded-lg shadow bg-white relative" id="group-{{ group.id }}">
+  <!-- Group Title with Copy Button -->
+  <div class="flex justify-between items-center">
+    <h3 class="text-lg font-semibold text-gray-900">{{ group.name }}</h3>
+    <button 
+      class="p-1 bg-transparent hover:bg-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
+      onclick="copyHashtags('{{ group.id }}')"
+      title="Copy Hashtags"
+    >
+      <img src="{% static 'postflow/icons/copy.svg' %}" alt="Copy" class="w-4 h-4">
+    </button>
+  </div>
+
   <p class="text-sm text-gray-600 mt-2" id="hashtags-{{ group.id }}">
     {% for tag in group.tags.all %}
       <span class="inline-block bg-gray-200 text-gray-800 text-xs font-semibold px-2 py-1 rounded mr-2">
-        #{{ tag.name }}
+        {{ tag.name }}
       </span>
     {% endfor %}
   </p>
-  <button 
-    class="mt-2 px-3 py-1 bg-blue-500 text-white text-xs font-semibold rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-    hx-on:click="copyHashtags('{{ group.id }}')">
-    Copy Hashtags
-  </button>
 </div>

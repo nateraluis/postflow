@@ -1,0 +1,107 @@
+<form
+  id="uploadPhotoForm"
+  class="bg-white p-6 shadow-md rounded-lg"
+  method="POST"
+  action="{% url 'calendar' %}"
+  enctype="multipart/form-data">
+    {% csrf_token %}
+    <!-- Upload Photo -->
+    <label class="block mb-2 text-sm font-medium text-gray-700">Upload Photo</label>
+    <input type="file" name="photo" accept="image/*" class="w-full p-2 border rounded-md">
+
+    <!-- Select Date -->
+    <label class="block mt-4 mb-2 text-sm font-medium text-gray-700">Select Date & Time</label>
+    <div class="flex space-x-2">
+        <input type="date" name="post_date" class="w-1/2 p-2 border rounded-md">
+       
+      <select name="post_hour" class="w-1/4 p-2 border rounded-md">
+          <option value="">Hour</option>
+          {% for hour in hours %}
+              <option value="{{ hour }}">{{ hour }}</option>
+          {% endfor %}
+      </select>
+
+      <select name="post_minute" class="w-1/4 p-2 border rounded-md">
+          <option value="">Minute</option>
+          {% for minute in minutes %}
+              <option value="{{ minute }}">{{ minute }}</option>
+          {% endfor %}
+      </select>
+    </div>
+
+
+    <!-- Hashtag Groups (Clickable Selection) -->
+    <label class="block mt-4 mb-2 text-sm font-medium text-gray-700">Hashtags to use</label>
+    <div class="flex flex-wrap gap-2">
+      {% for group in hashtag_groups %}
+        <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
+          <input type="checkbox" name="hashtag_groups" value="{{ group.id }}" class="hidden">
+            <span class="select-box">{{ group.name }}</span>
+        </label>
+        {% endfor %}
+    </div>
+
+    <!-- Social Media Accounts (Clickable Selection) -->
+    <label class="block mt-4 mb-2 text-sm font-medium text-gray-700">Accounts to post</label>
+
+    <!-- Fediverse (Mastodon) Accounts -->
+    {% if mastodon_accounts %}
+        <h3 class="text-md font-semibold text-gray-600 mt-2">Fediverse (Mastodon)</h3>
+        <div class="flex flex-wrap gap-2">
+            {% for account in mastodon_accounts %}
+                <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
+                    <input type="checkbox" name="social_accounts" value="{{ account.id }}" class="hidden">
+                    <span class="select-box">{{ account.username }}@{{ account.instance_url|cut:"https://" }}</span>
+                </label>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Instagram Accounts -->
+    {% if instagram_accounts %}
+        <h3 class="text-md font-semibold text-gray-600 mt-4">Instagram</h3>
+        <div class="flex flex-wrap gap-2">
+            {% for account in instagram_accounts %}
+                <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
+                    <input type="checkbox" name="social_accounts" value="{{ account.id }}" class="hidden">
+                    <span class="select-box">{{ account.username }}</span>
+                </label>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <!-- Caption -->
+    <textarea name="caption" rows="4" class="w-full p-2 border rounded-md" placeholder="Write your caption..."></textarea>
+
+    <input type="hidden" id="user_timezone" name="user_timezone">
+
+    <!-- Submit Button -->
+    <button type="submit" class="mt-4 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
+        Schedule Post
+    </button>
+</form>
+
+<!-- Add Tailwind Styling for Selected State -->
+<style>
+    input:checked + .select-box {
+        background-color: #2563eb;
+        color: white;
+        border-color: #2563eb;
+    }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("user_timezone").value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+});
+document.getElementById("uploadPhotoForm").addEventListener("submit", function(event) {
+    const photoInput = document.getElementById("photoInput");
+
+    if (!photoInput.files.length) {
+        document.getElementById("imageError").classList.remove("hidden");
+        event.preventDefault();  // Stop form submission
+    } else {
+        document.getElementById("imageError").classList.add("hidden");
+    }
+});
+</script>

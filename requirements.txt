@@ -4,6 +4,8 @@ requests==2.32.3
 django_extensions==3.2.3
 django-jsonfield==1.4.1
 environ==1.0
+Pillow
+pytz
 whitenoise
 boto3
 uwsgi

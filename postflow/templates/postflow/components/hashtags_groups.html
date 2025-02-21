@@ -11,10 +11,6 @@
 <script>
   function copyHashtags(groupId) {
     const text = document.getElementById(`hashtags-${groupId}`).innerText;
-    navigator.clipboard.writeText(text).then(() => {
-      alert("Hashtags copied to clipboard!");
-    }).catch(err => {
-      console.error("Failed to copy text: ", err);
-    });
+    navigator.clipboard.writeText(text)
   }
 </script>
