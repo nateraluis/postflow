@@ -87,25 +87,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: 🤐 Create .env File for Django
-        uses: SpicyPizza/create-envfile@v2.0
-        with:
-          envkey_DB_USER: ${{ secrets.DB_USER }}
-          envkey_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          envkey_DB_HOST: ${{ secrets.DB_HOST }}
-          envkey_DB_NAME: ${{ secrets.DB_NAME }}
-          envkey_DB_PORT: ${{ secrets.DB_PORT }}
-          envkey_DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-          envkey_S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
-          envkey_S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
-          envkey_S3_AWS_STORAGE_BUCKET_NAME: ${{ secrets.S3_AWS_STORAGE_BUCKET_NAME }}
-          envkey_S3_AWS_S3_REGION_NAME: ${{ secrets.AWS_S3_REGION_NAME }}
-          envkey_MEDIA_ACCESS_KEY: ${{ secrets.MEDIA_ACCESS_KEY }}  # 🔹 Add this
-          envkey_MEDIA_SECRET_ACCESS_KEY: ${{ secrets.MEDIA_SECRET_ACCESS_KEY }}  # 🔹 Add this
-          envkey_DEBUG: False
-          envkey_REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
-          directory: core
-          file_name: .env
-          fail_on_empty: false
+        run: |
+          echo "DB_USER=${{ secrets.DB_USER }}" >> core/.env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> core/.env
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> core/.env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> core/.env
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> core/.env
+          echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> core/.env
+          echo "S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }}" >> core/.env
+          echo "S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}" >> core/.env
+          echo "S3_AWS_STORAGE_BUCKET_NAME=${{ secrets.S3_AWS_STORAGE_BUCKET_NAME }}" >> core/.env
+          echo "S3_AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }}" >> core/.env
+          echo "MEDIA_ACCESS_KEY=${{ secrets.MEDIA_ACCESS_KEY }}" >> core/.env  # 🔹 Add this
+          echo "MEDIA_SECRET_ACCESS_KEY=${{ secrets.MEDIA_SECRET_ACCESS_KEY }}" >> core/.env  # 🔹 Add this
+          echo "DEBUG=False" >> core/.env
+          echo "REDIRECT_URI=${{ secrets.REDIRECT_URI }}" >> core/.env
 
       - name: 📦 Install Dependencies
         run: |
