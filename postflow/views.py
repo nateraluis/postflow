@@ -17,6 +17,9 @@ from django.core.files.storage import default_storage
 from .utils import get_s3_signed_url
 import pytz
 from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # REDIRECT_URI = 'https://postflow.photo/mastodon/callback/'
@@ -123,8 +126,6 @@ def calendar_view(request):
 @login_required
 @require_http_methods(["POST"])
 def schedule_post(request):
-
-    # Extract form data
     user_timezone = request.POST.get("user_timezone", "UTC")
     post_date = request.POST.get("post_date")
     post_hour = request.POST.get("post_hour")
@@ -132,7 +133,7 @@ def schedule_post(request):
     caption = request.POST.get("caption", "")
     hashtag_group_ids = request.POST.getlist("hashtag_groups")
     mastodon_account_ids = request.POST.getlist("social_accounts")
-    image = request.FILES.get("photo")  # Ensure file is received
+    image = request.FILES.get("photo")
 
     context = {
         "hours": range(0, 24),
@@ -156,13 +157,24 @@ def schedule_post(request):
         user_tz = pytz.timezone(user_timezone)
         localized_datetime = user_tz.localize(datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S"))
         utc_datetime = localized_datetime.astimezone(pytz.UTC)
+
+        logger.debug(f"📅 User Timezone: {user_timezone}")
+        logger.debug(f"🕒 Localized DateTime: {localized_datetime}")
+        logger.debug(f"🌍 Converted UTC DateTime: {utc_datetime}")
+
     except Exception as e:
         context["error"] = "Invalid date and time selected. Please select a time at least 5 minutes in the future."
         return render(request, "postflow/components/upload_photo_form.html", context)
 
     # Validate scheduled time
-    min_allowed_time = now() + timedelta(minutes=5)
+    current_utc_time = now()
+    min_allowed_time = current_utc_time + timedelta(minutes=5)
+
+    logger.debug(f"🕒 Current UTC Time: {current_utc_time}")
+    logger.debug(f"⏳ Minimum Allowed Time: {min_allowed_time}")
+
     if utc_datetime < min_allowed_time:
+        logger.warning(f"🚨 Scheduled time is too soon! {utc_datetime} < {min_allowed_time}")
         context["error"] = "The scheduled time must be at least 5 minutes in the future."
         return render(request, "postflow/components/upload_photo_form.html", context)
 
@@ -175,21 +187,21 @@ def schedule_post(request):
 
         scheduled_post = ScheduledPost.objects.create(
             user=request.user,
-            image=saved_path,  # Store the unique file path
+            image=saved_path,
             caption=caption,
             post_date=utc_datetime,
             user_timezone=user_timezone,
         )
 
-        # Assign many-to-many fields AFTER saving
         scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
         scheduled_post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_account_ids))
 
         return render(request, "postflow/components/upload_photo_form.html", context)
-    except Exception as e:
-        context["error"] = "An error occurred while scheduling the post"
-        return render(request, "postflow/components/upload_photo_form.html", context)
 
+    except Exception as e:
+        logger.error(f"❌ Error saving ScheduledPost: {e}")
+        context["error"] = "An error occurred while scheduling the post."
+        return render(request, "postflow/components/upload_photo_form.html", context)
 
 @login_required
 @require_http_methods(["GET", "POST"])
