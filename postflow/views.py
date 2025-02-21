@@ -14,6 +14,7 @@ from .forms import CustomUserCreationForm, CustomAuthenticationForm
 from .models import Tag, TagGroup, MastodonAccount, ScheduledPost
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from .utils import get_s3_signed_url
 import pytz
 from datetime import datetime, timedelta
 
@@ -100,6 +101,9 @@ def dashboard(request):
 @require_http_methods(["GET"])
 def calendar_view(request):
     scheduled_posts = ScheduledPost.objects.filter(user=request.user).order_by("-post_date")
+
+    for post in scheduled_posts:
+        post.image_url = get_s3_signed_url(post.image.name)
 
     context = {
         "hours": range(0, 24),

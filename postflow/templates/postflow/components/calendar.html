@@ -15,6 +15,14 @@
             <!-- Calendar implementation will go here -->
             <p class="text-gray-500">Calendar component coming soon...</p>
         </div>
+      {% for post in scheduled_posts %}
+          <div class="post-item">
+              <p>{{ post.caption }}</p>
+              {% if post.image_url %}
+                  <img src="{{ post.image_url }}" alt="Scheduled Post Image" class="w-64 h-64 object-cover">
+              {% endif %}
+          </div>
+      {% endfor %}
     </div>
 </div>
 {% endblock %}
