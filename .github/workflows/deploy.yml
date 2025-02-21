@@ -87,7 +87,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: 🤐 Create .env File for Django
-        uses: SpicyPizza/create-envfile@v1.3
+        uses: SpicyPizza/create-envfile@v2.0
         with:
           envkey_DB_USER: ${{ secrets.DB_USER }}
           envkey_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
@@ -99,6 +99,8 @@ jobs:
           envkey_S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
           envkey_S3_AWS_STORAGE_BUCKET_NAME: ${{ secrets.S3_AWS_STORAGE_BUCKET_NAME }}
           envkey_S3_AWS_S3_REGION_NAME: ${{ secrets.AWS_S3_REGION_NAME }}
+          envkey_MEDIA_ACCESS_KEY: ${{ secrets.MEDIA_ACCESS_KEY }}  # 🔹 Add this
+          envkey_MEDIA_SECRET_ACCESS_KEY: ${{ secrets.MEDIA_SECRET_ACCESS_KEY }}  # 🔹 Add this
           envkey_DEBUG: False
           envkey_REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
           directory: core

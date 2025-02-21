@@ -136,6 +136,11 @@ if DEBUG:
         },
     }
 else:
+    # Media-specific credentials
+    AWS_MEDIA_ACCESS_KEY_ID = env("MEDIA_ACCESS_KEY")  # 🔹 Use separate credentials for media
+    AWS_MEDIA_SECRET_ACCESS_KEY = env("MEDIA_SECRET_ACCESS_KEY")  # 🔹 Use separate credentials for media
+    AWS_STORAGE_MEDIA_BUCKET_NAME = env("S3_AWS_STORAGE_MEDIA_BUCKET_NAME")
+
     # S3 storage for production
     AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY")
     AWS_SECRET_ACCESS_KEY = env("S3_SECRET_KEY")
@@ -157,10 +162,12 @@ else:
             "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
             "OPTIONS": {
                 "bucket_name": AWS_STORAGE_MEDIA_BUCKET_NAME,
-                "querystring_auth": True,  # Enables signed URLs
+                "access_key": AWS_MEDIA_ACCESS_KEY_ID,  # 🔹 Use MEDIA_ACCESS_KEY
+                "secret_key": AWS_MEDIA_SECRET_ACCESS_KEY,  # 🔹 Use MEDIA_SECRET_ACCESS_KEY
+                "region_name": AWS_S3_REGION_NAME,
+                },
             },
-        },
-    }
+        }
     MEDIA_URL = f"https://{AWS_STORAGE_MEDIA_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/"
 
 AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY")
