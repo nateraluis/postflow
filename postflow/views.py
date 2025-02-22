@@ -1,22 +1,22 @@
 import os
-from http import HTTPStatus
 from django.db import IntegrityError
 import requests
 from django.shortcuts import render
-from django.shortcuts import redirect, reverse, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
 from django.utils.timezone import now
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
-from .forms import CustomUserCreationForm, CustomAuthenticationForm 
+from .forms import CustomUserCreationForm, CustomAuthenticationForm
 from .models import Tag, TagGroup, MastodonAccount, ScheduledPost
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from .utils import get_s3_signed_url
 import pytz
 from datetime import datetime, timedelta
+from collections import defaultdict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -103,10 +103,21 @@ def dashboard(request):
 @login_required
 @require_http_methods(["GET"])
 def calendar_view(request):
-    scheduled_posts = ScheduledPost.objects.filter(user=request.user).order_by("-post_date")
+    today = datetime.today().date()
+    scheduled_posts = ScheduledPost.objects.filter(
+        user=request.user, post_date__date__gte=today
+    ).prefetch_related("hashtag_groups__tags").order_by("post_date")
 
+
+    # Generate signed URLs for images
     for post in scheduled_posts:
         post.image_url = get_s3_signed_url(post.image.name)
+        post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
+
+    # Group posts by date
+    grouped_posts = defaultdict(list)
+    for post in scheduled_posts:
+        grouped_posts[post.post_date.date()].append(post)
 
     context = {
         "hours": range(0, 24),
@@ -114,12 +125,12 @@ def calendar_view(request):
         "hashtag_groups": TagGroup.objects.filter(user=request.user),
         "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
         "instagram_accounts": None,
-        "scheduled_posts": scheduled_posts,
+        "grouped_posts": dict(grouped_posts),  # Convert defaultdict to dict
     }
 
     if "HX-Request" in request.headers:
-        return render(request, "postflow/components/calendar.html", context)
-    
+        return render(request, "postflow/components/schedule_posts.html", context)
+
     return render(request, "postflow/pages/calendar.html", context)
 
 

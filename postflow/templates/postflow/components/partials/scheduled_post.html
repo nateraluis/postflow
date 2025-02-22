@@ -1,0 +1,44 @@
+<div class="w-full bg-gray-100 p-4 rounded-lg shadow-md flex items-center">
+    <!-- Left: Full-height image -->
+    {% if post.image_url %}
+        <div class="w-40 h-full flex-shrink-0">
+            <img src="{{ post.image_url }}" alt="Scheduled Post Image" class="w-full h-full object-cover rounded-lg">
+        </div>
+    {% endif %}
+
+    <!-- Right: Post details -->
+    <div class="flex flex-col justify-between flex-1 ml-4">
+        <p class="text-gray-800 font-semibold">{{ post.caption }}</p>
+
+        {% if post.hashtags %}
+            <p class="text-sm text-gray-600 mt-2">
+                Hashtags:
+                <span class="text-blue-500">
+                    {% for hashtag in post.hashtags %}
+                        {{ hashtag.name }}
+                    {% empty %}
+                        <span class="text-gray-400">No hashtags assigned</span>
+                    {% endfor %}
+                </span>
+            </p>
+        {% endif %}
+
+        <p class="text-sm text-gray-500 mt-2">Scheduled for: {{ post.post_date|date:"F j, Y, g:i A" }}</p>
+        <!-- Where it will be posted -->
+        <p class="text-sm text-gray-700 mt-2">
+            Posting to:
+            <span class="font-semibold">
+                {% if post.mastodon_accounts.exists %}
+                    {% for account in post.mastodon_accounts.all %}
+                        Mastodon ({{ account.username }} @ {{ account.instance_url }}){% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <span class="text-gray-400">No accounts selected</span>
+                {% endif %}
+            </span>
+        </p>
+        <p class="text-sm font-semibold {% if post.status == 'pending' %}text-yellow-600{% elif post.status == 'posted' %}text-green-600{% else %}text-red-600{% endif %}">
+            Status: {{ post.get_status_display }}
+        </p>
+    </div>
+</div>

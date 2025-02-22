@@ -1,0 +1,19 @@
+{% block content %}
+<div class="mt-8 max-w-4xl mx-auto">
+  <!-- Title -->
+  <h1 class="text-2xl font-bold text-gray-900 mb-4">Schedule your posts</h1>
+  <p>Schedule and mange your content to be posted.</p>
+
+  <!-- Hashtag Group Form -->
+  <div id="hashtags-groups-form">
+    {% include 'postflow/components/upload_photo_form.html' %}
+  </div>
+
+  <div class="mt-6">
+    <h2 class="text-xl font-semibold mb-4">Scheduled Posts</h2>
+      <div id="calendar" class="border p-4 rounded-lg shadow-md">
+        {% include 'postflow/components/calendar.html' with scheduled_posts=scheduled_posts %}
+      </div>
+  </div>
+</div>
+{% endblock %}
