@@ -162,8 +162,8 @@ else:
             "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
             "OPTIONS": {
                 "bucket_name": AWS_STORAGE_MEDIA_BUCKET_NAME,
-                "access_key": AWS_MEDIA_ACCESS_KEY_ID,  # 🔹 Use MEDIA_ACCESS_KEY
-                "secret_key": AWS_MEDIA_SECRET_ACCESS_KEY,  # 🔹 Use MEDIA_SECRET_ACCESS_KEY
+                "access_key": AWS_ACCESS_KEY_ID,  # 🔹 Use MEDIA_ACCESS_KEY
+                "secret_key": AWS_SECRET_ACCESS_KEY,  # 🔹 Use MEDIA_SECRET_ACCESS_KEY
                 "region_name": AWS_S3_REGION_NAME,
                 },
             },
