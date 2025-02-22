@@ -17,32 +17,27 @@
       <script src="{% static 'ext/event-header.js' %}" defer></script>
       {% tailwind_css %}
       <script>
-        document.addEventListener("DOMContentLoaded", function () {
-          function setUserTimezone() {
-              let timezoneInput = document.getElementById("user_timezone");
-              if (!timezoneInput) {
-                  timezoneInput = document.createElement("input");
-                  timezoneInput.type = "hidden";
-                  timezoneInput.name = "user_timezone";
-                  timezoneInput.id = "user_timezone";
-                  document.body.appendChild(timezoneInput);
-              }
-              timezoneInput.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          }
+          document.addEventListener("htmx:load", function () {
+            setUserTimezone();  // Runs when HTMX loads new content
+        });
 
-          // Set timezone when the page loads
-          setUserTimezone();
+        document.addEventListener("htmx:beforeRequest", function () {
+            setUserTimezone();  // Ensures timezone is set before HTMX request
+        });
 
-          // Ensure timezone is set before form submission (for HTMX)
-          document.addEventListener("htmx:beforeRequest", function (event) {
-              setUserTimezone();
-          });
-
-          // Ensure it's set when submitting via standard form
-          document.getElementById("uploadPhotoForm").addEventListener("submit", function (event) {
-              setUserTimezone();
-          });
-      });
+        function setUserTimezone() {
+            let timezoneInput = document.getElementById("user_timezone");
+            if (!timezoneInput) {
+                timezoneInput = document.createElement("input");
+                timezoneInput.type = "hidden";
+                timezoneInput.name = "user_timezone";
+                timezoneInput.id = "user_timezone";
+                document.body.appendChild(timezoneInput);
+            }
+            timezoneInput.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }
+        // Initial setting when page loads
+        setUserTimezone();
       </script>
     {% endblock %}
   </head>
