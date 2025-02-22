@@ -133,7 +133,6 @@ def calendar_view(request):
 
     return render(request, "postflow/pages/calendar.html", context)
 
-
 @login_required
 @require_http_methods(["POST"])
 def schedule_post(request):
@@ -152,43 +151,46 @@ def schedule_post(request):
         "hashtag_groups": TagGroup.objects.filter(user=request.user),
         "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
         "instagram_accounts": None,
-        "scheduled_posts": ScheduledPost.objects.filter(user=request.user).order_by("-post_date"),
     }
 
+    # Validation: Ensure an image is uploaded
     if not image:
         context["error"] = "Please select an image to post."
-        return render(request, "postflow/components/upload_photo_form.html", context)
+        response = render(request, "postflow/components/upload_photo_form.html", context)
+        response['HX-Retarget'] = '#form-container'
+        return response
 
+    # Validation: Ensure date & time are selected
     if not post_date or not post_hour or not post_minute:
         context["error"] = "Please select a valid date and time."
-        return render(request, "postflow/components/upload_photo_form.html", context)
+        response = render(request, "postflow/components/upload_photo_form.html", context)
+        response['HX-Retarget'] = '#form-container'
+        return response
 
+    # Convert user-selected date & time to UTC
     try:
         scheduled_datetime = f"{post_date} {post_hour}:{post_minute}:00"
         user_tz = pytz.timezone(user_timezone)
         localized_datetime = user_tz.localize(datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S"))
         utc_datetime = localized_datetime.astimezone(pytz.UTC)
 
-        logger.debug(f"📅 User Timezone: {user_timezone}")
-        logger.debug(f"🕒 Localized DateTime: {localized_datetime}")
-        logger.debug(f"🌍 Converted UTC DateTime: {utc_datetime}")
-
     except Exception as e:
-        context["error"] = "Invalid date and time selected. Please select a time at least 5 minutes in the future."
-        return render(request, "postflow/components/upload_photo_form.html", context)
+        context["error"] = "Invalid date and time selected."
+        response = render(request, "postflow/components/upload_photo_form.html", context)
+        response['HX-Retarget'] = '#form-container'
+        return response
 
-    # Validate scheduled time
+    # Ensure the scheduled time is in the future (at least 5 min)
     current_utc_time = now()
     min_allowed_time = current_utc_time + timedelta(minutes=5)
 
-    logger.debug(f"🕒 Current UTC Time: {current_utc_time}")
-    logger.debug(f"⏳ Minimum Allowed Time: {min_allowed_time}")
-
     if utc_datetime < min_allowed_time:
-        logger.warning(f"🚨 Scheduled time is too soon! {utc_datetime} < {min_allowed_time}")
         context["error"] = "The scheduled time must be at least 5 minutes in the future."
-        return render(request, "postflow/components/upload_photo_form.html", context)
+        response = render(request, "postflow/components/upload_photo_form.html", context)
+        response['HX-Retarget'] = '#form-container'
+        return response
 
+    # Save the uploaded image and create the ScheduledPost
     try:
         filename, file_extension = os.path.splitext(image.name)
         unique_filename = f"user_{request.user.id}_{int(datetime.utcnow().timestamp())}{file_extension}"
@@ -207,12 +209,29 @@ def schedule_post(request):
         scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
         scheduled_post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_account_ids))
 
-        return render(request, "postflow/components/upload_photo_form.html", context)
+        # Refresh grouped posts to update calendar component
+        scheduled_posts = ScheduledPost.objects.filter(
+            user=request.user, post_date__date__gte=current_utc_time.date()
+        ).prefetch_related("hashtag_groups__tags", "mastodon_accounts").order_by("post_date")
+
+        # Group posts by date
+        grouped_posts = defaultdict(list)
+        for post in scheduled_posts:
+            post.image_url = get_s3_signed_url(post.image.name)
+            post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
+            grouped_posts[post.post_date.date()].append(post)
+
+        calendar_context = {"grouped_posts": dict(grouped_posts)}
+
+        return render(request, "postflow/components/calendar.html", calendar_context)
+
 
     except Exception as e:
-        logger.error(f"❌ Error saving ScheduledPost: {e}")
         context["error"] = "An error occurred while scheduling the post."
-        return render(request, "postflow/components/upload_photo_form.html", context)
+        response = render(request, "postflow/components/upload_photo_form.html", context)
+        response['HX-Retarget'] = '#form-container'
+        return response
+
 
 @login_required
 @require_http_methods(["GET", "POST"])
