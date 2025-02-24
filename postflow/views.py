@@ -165,6 +165,7 @@ def schedule_post(request):
         context["error"] = "Please select a valid date and time."
         response = render(request, "postflow/components/upload_photo_form.html", context)
         response['HX-Retarget'] = '#form-container'
+        logger.error("Invalid date and time selected.")
         return response
 
     # Convert user-selected date & time to UTC
@@ -178,6 +179,7 @@ def schedule_post(request):
         context["error"] = "Invalid date and time selected."
         response = render(request, "postflow/components/upload_photo_form.html", context)
         response['HX-Retarget'] = '#form-container'
+        logger.error(f"Invalid date and time: {e}")
         return response
 
     # Ensure the scheduled time is in the future (at least 5 min)
@@ -188,6 +190,7 @@ def schedule_post(request):
         context["error"] = "The scheduled time must be at least 5 minutes in the future."
         response = render(request, "postflow/components/upload_photo_form.html", context)
         response['HX-Retarget'] = '#form-container'
+        logger.error(f"Invalid scheduled time: {utc_datetime}")
         return response
 
     # Save the uploaded image and create the ScheduledPost
@@ -222,7 +225,7 @@ def schedule_post(request):
             grouped_posts[post.post_date.date()].append(post)
 
         calendar_context = {"grouped_posts": dict(grouped_posts)}
-
+        logger.info(f"Post scheduled successfully: {scheduled_post}")
         return render(request, "postflow/components/calendar.html", calendar_context)
 
 
@@ -230,6 +233,7 @@ def schedule_post(request):
         context["error"] = "An error occurred while scheduling the post."
         response = render(request, "postflow/components/upload_photo_form.html", context)
         response['HX-Retarget'] = '#form-container'
+        logger.error(f"Error scheduling post: {e}")
         return response
 
 
