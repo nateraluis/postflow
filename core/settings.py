@@ -137,8 +137,8 @@ if DEBUG:
     }
 else:
     # Media-specific credentials
-    AWS_MEDIA_ACCESS_KEY_ID = env("MEDIA_ACCESS_KEY")  # 🔹 Use separate credentials for media
-    AWS_MEDIA_SECRET_ACCESS_KEY = env("MEDIA_SECRET_ACCESS_KEY")  # 🔹 Use separate credentials for media
+    MEDIA_ACCESS_KEY_ID = env("MEDIA_ACCESS_KEY")  # 🔹 Use separate credentials for media
+    MEDIA_SECRET_ACCESS_KEY = env("MEDIA_SECRET_ACCESS_KEY")  # 🔹 Use separate credentials for media
     AWS_STORAGE_MEDIA_BUCKET_NAME = env("S3_AWS_STORAGE_MEDIA_BUCKET_NAME")
 
     # S3 storage for production
@@ -146,7 +146,6 @@ else:
     AWS_SECRET_ACCESS_KEY = env("S3_SECRET_KEY")
     AWS_S3_REGION_NAME = "eu-central-1"
     AWS_STORAGE_BUCKET_NAME = env("S3_AWS_STORAGE_BUCKET_NAME")
-    AWS_STORAGE_MEDIA_BUCKET_NAME = env("S3_AWS_STORAGE_MEDIA_BUCKET_NAME")
 
     AWS_QUERYSTRING_AUTH = True  # Requires signed URLs
     AWS_DEFAULT_ACL = None  # No public ACL

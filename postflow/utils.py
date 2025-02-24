@@ -7,12 +7,13 @@ def get_s3_signed_url(file_path, expiration=3600):
     - file_path: Path to the file in the S3 bucket (e.g., "scheduled_posts/user_1_1714000000.png")
     - expiration: Time (in seconds) before the URL expires (default: 1 hour)
     """
-    # if settings.DEBUG:
-        # return f"{settings.MEDIA_URL}{file_path}"
+    if settings.DEBUG:
+        return f"{settings.MEDIA_URL}{file_path}"
+
     s3_client = boto3.client(
         "s3",
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        aws_access_key_id=settings.MEDIA_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.MEDIA_SECRET_ACCESS_KEY,
         region_name=settings.AWS_S3_REGION_NAME,
     )
 
@@ -24,8 +25,6 @@ def get_s3_signed_url(file_path, expiration=3600):
             Params={"Bucket": bucket_name, "Key": file_path},
             ExpiresIn=expiration,
         )
-        print(signed_url)
         return signed_url
     except Exception as e:
-        print(f"Error generating signed URL: {e}")
         return None
