@@ -17,6 +17,7 @@ ALLOWED_HOSTS = [
     'postflow.photo', 'www.postflow.photo'
 ]
 
+
 CSRF_TRUSTED_ORIGINS = [
     'https://localhost', 'https://*.amazonlightsail.com', 'https://127.0.0.1',
     'https://postflow.pp347jb6gimu4.eu-central-1.cs.amazonlightsail.com',
@@ -73,6 +74,7 @@ TEMPLATES = [
 # ✅ Authentication Redirects
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "home"
+REDIRECT_URI = env("REDIRECT_URI")
 
 # ✅ WSGI Application
 WSGI_APPLICATION = 'core.wsgi.application'
@@ -172,7 +174,6 @@ else:
 AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY")
 AWS_SECRET_ACCESS_KEY = env("S3_SECRET_KEY")
 AWS_S3_REGION_NAME = "eu-central-1"
-AWS_STORAGE_MEDIA_BUCKET_NAME = "media-postflow"
 # ✅ Static files settings
 STATIC_ROOT = BASE_DIR / "staticfiles"
 if DEBUG:

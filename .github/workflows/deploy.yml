@@ -100,6 +100,7 @@ jobs:
           echo "S3_AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }}" >> core/.env
           echo "MEDIA_ACCESS_KEY=${{ secrets.MEDIA_ACCESS_KEY }}" >> core/.env  # 🔹 Add this
           echo "MEDIA_SECRET_ACCESS_KEY=${{ secrets.MEDIA_SECRET_ACCESS_KEY }}" >> core/.env  # 🔹 Add this
+          echo "AWS_STORAGE_MEDIA_BUCKET_NAME=${{ secrets.AWS_STORAGE_MEDIA_BUCKET_NAME }}" >> core/.env  # 🔹 Add this
           echo "DEBUG=False" >> core/.env
           echo "REDIRECT_URI=${{ secrets.REDIRECT_URI }}" >> core/.env
 

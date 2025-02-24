@@ -17,13 +17,13 @@ from .utils import get_s3_signed_url, upload_to_s3
 import pytz
 from datetime import datetime, timedelta
 from collections import defaultdict
+from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-# REDIRECT_URI = 'https://postflow.photo/mastodon/callback/'
-REDIRECT_URI = "http://127.0.0.1:8000/mastodon/callback/"
+REDIRECT_URI = settings.REDIRECT_URI if hasattr(settings, "REDIRECT_URI") else "http://localhost:8000/mastodon/callback/"
 
 def _validate_user(request, username):
     user = request.user
