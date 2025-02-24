@@ -119,7 +119,7 @@ if DEBUG:
 else:
     AWS_S3_REGION_NAME = "eu-central-1"
     AWS_STORAGE_BUCKET_NAME = env("S3_AWS_STORAGE_BUCKET_NAME")
-    AWS_STORAGE_MEDIA_BUCKET_NAME = env("S3_AWS_STORAGE_MEDIA_BUCKET_NAME")
+    AWS_STORAGE_MEDIA_BUCKET_NAME = env("AWS_STORAGE_MEDIA_BUCKET_NAME")
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
     AWS_S3_MEDIA_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
 
@@ -141,7 +141,7 @@ else:
     # Media-specific credentials
     MEDIA_ACCESS_KEY_ID = env("MEDIA_ACCESS_KEY")  # 🔹 Use separate credentials for media
     MEDIA_SECRET_ACCESS_KEY = env("MEDIA_SECRET_ACCESS_KEY")  # 🔹 Use separate credentials for media
-    AWS_STORAGE_MEDIA_BUCKET_NAME = env("S3_AWS_STORAGE_MEDIA_BUCKET_NAME")
+    AWS_STORAGE_MEDIA_BUCKET_NAME = env("AWS_STORAGE_MEDIA_BUCKET_NAME")
 
     # S3 storage for production
     AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY")
