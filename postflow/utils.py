@@ -52,5 +52,5 @@ def upload_to_s3(file, file_path):
         )
         return file_path  # Return the file path saved in S3
     except Exception as e:
-        print(f"❌ Error uploading to S3: {e}")
+        print(f"❌ Error uploading to S3: {e}. File: {file_path}, Bucket: {settings.AWS_STORAGE_MEDIA_BUCKET_NAME}")
         return None

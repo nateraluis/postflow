@@ -202,8 +202,11 @@ def schedule_post(request):
         # saved_path = default_storage.save(file_path, ContentFile(image.read()))
         saved_path = upload_to_s3(image, file_path)
         if not saved_path:
-            return render(request, "postflow/components/upload_photo_form.html", {"error": "Failed to upload the image to S3."})
-
+            context["error"] = "Failed to upload the image to S3."
+            response = render(request, "postflow/components/upload_photo_form.html", context)
+            response['HX-Retarget'] = '#form-container'
+            logger.error("Failed to upload the image to S3.")
+            return response
 
         scheduled_post = ScheduledPost.objects.create(
             user=request.user,
