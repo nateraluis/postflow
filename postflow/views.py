@@ -13,7 +13,7 @@ from .forms import CustomUserCreationForm, CustomAuthenticationForm
 from .models import Tag, TagGroup, MastodonAccount, ScheduledPost
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from .utils import get_s3_signed_url
+from .utils import get_s3_signed_url, upload_to_s3
 import pytz
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -199,7 +199,11 @@ def schedule_post(request):
         unique_filename = f"user_{request.user.id}_{int(datetime.utcnow().timestamp())}{file_extension}"
         file_path = os.path.join("scheduled_posts", unique_filename)
 
-        saved_path = default_storage.save(file_path, ContentFile(image.read()))
+        # saved_path = default_storage.save(file_path, ContentFile(image.read()))
+        saved_path = upload_to_s3(image, file_path)
+        if not saved_path:
+            return render(request, "postflow/components/upload_photo_form.html", {"error": "Failed to upload the image to S3."})
+
 
         scheduled_post = ScheduledPost.objects.create(
             user=request.user,

@@ -1,5 +1,16 @@
-import boto3
 from django.conf import settings
+import boto3
+import os
+from django.conf import settings
+from django.core.files.base import ContentFile
+
+def _get_s3_client():
+    return boto3.client(
+        "s3",
+        aws_access_key_id=settings.MEDIA_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.MEDIA_SECRET_ACCESS_KEY,
+        region_name=settings.AWS_S3_REGION_NAME,
+    )
 
 def get_s3_signed_url(file_path, expiration=3600):
     """
@@ -10,12 +21,7 @@ def get_s3_signed_url(file_path, expiration=3600):
     if settings.DEBUG:
         return f"{settings.MEDIA_URL}{file_path}"
 
-    s3_client = boto3.client(
-        "s3",
-        aws_access_key_id=settings.MEDIA_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.MEDIA_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_S3_REGION_NAME,
-    )
+    s3_client = _get_s3_client()
 
     bucket_name = settings.AWS_STORAGE_MEDIA_BUCKET_NAME
 
@@ -27,4 +33,24 @@ def get_s3_signed_url(file_path, expiration=3600):
         )
         return signed_url
     except Exception as e:
+        return None
+
+
+def upload_to_s3(file, file_path):
+    """
+    Uploads a file to S3 manually using boto3 instead of default_storage.
+    Ensures correct ACL and permissions for private storage.
+    """
+    s3_client = _get_s3_client()
+
+    try:
+        s3_client.upload_fileobj(
+            file,  # File object
+            settings.AWS_STORAGE_MEDIA_BUCKET_NAME,  # Bucket name
+            file_path,  # File path in S3
+            ExtraArgs={"ACL": "private", "ContentType": file.content_type},  # Ensure private access
+        )
+        return file_path  # Return the file path saved in S3
+    except Exception as e:
+        print(f"❌ Error uploading to S3: {e}")
         return None
