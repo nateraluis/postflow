@@ -14,3 +14,4 @@ psycopg2-binary
 django-tailwind
 django_browser_reload
 django-htmx
+Mastodon.py

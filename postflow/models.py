@@ -55,6 +55,13 @@ class MastodonAccount(models.Model):
 
 
 class ScheduledPost(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("scheduled", "Scheduled"),
+        ("posted", "Posted"),
+        ("failed", "Failed"),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     image = models.ImageField(upload_to="scheduled_posts/", blank=False, null=False)
     caption = models.TextField(blank=True, null=True)
@@ -62,11 +69,9 @@ class ScheduledPost(models.Model):
     user_timezone = models.CharField(max_length=50, default="UTC")
     hashtag_groups = models.ManyToManyField("TagGroup", blank=True)
     mastodon_accounts = models.ManyToManyField("MastodonAccount", blank=True)
-    status = models.CharField(
-        max_length=20,
-        choices=[("pending", "Pending"), ("posted", "Posted"), ("failed", "Failed")],
-        default="pending",
-    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    mastodon_media_id = models.CharField(max_length=255, blank=True, null=True)  # Stores media ID from Mastodon
+    mastodon_post_id = models.CharField(max_length=255, blank=True, null=True)  # Stores the scheduled post ID
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

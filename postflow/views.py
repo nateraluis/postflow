@@ -1,6 +1,7 @@
 import os
 from django.db import IntegrityError
 import requests
+from mastodon import Mastodon
 from django.shortcuts import render
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
@@ -11,9 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
 from .models import Tag, TagGroup, MastodonAccount, ScheduledPost
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-from .utils import get_s3_signed_url, upload_to_s3
+from .utils import get_s3_signed_url, upload_to_s3, post_pixelfed
 import pytz
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -23,13 +22,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-REDIRECT_URI = settings.REDIRECT_URI if hasattr(settings, "REDIRECT_URI") else "http://localhost:8000/mastodon/callback/"
-
 def _validate_user(request, username):
     user = request.user
     if username != user.username:
         return redirect("login")
     return user
+
 
 def index(request):
     return render(request, "postflow/landing_page.html")
@@ -199,7 +197,6 @@ def schedule_post(request):
         unique_filename = f"user_{request.user.id}_{int(datetime.utcnow().timestamp())}{file_extension}"
         file_path = os.path.join("scheduled_posts", unique_filename)
 
-        # saved_path = default_storage.save(file_path, ContentFile(image.read()))
         saved_path = upload_to_s3(image, file_path)
         if not saved_path:
             context["error"] = "Failed to upload the image to S3."
@@ -215,14 +212,21 @@ def schedule_post(request):
             post_date=utc_datetime,
             user_timezone=user_timezone,
         )
+        logger.info(f"New Scheduled Post created: {scheduled_post}")
+
 
         scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
         scheduled_post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_account_ids))
+        logger.info(f"Hashtag groups and Mastodon accounts added to post: {scheduled_post}")
 
         # Refresh grouped posts to update calendar component
         scheduled_posts = ScheduledPost.objects.filter(
             user=request.user, post_date__date__gte=current_utc_time.date()
         ).prefetch_related("hashtag_groups__tags", "mastodon_accounts").order_by("post_date")
+        logger.info(f"Refreshing grouped posts for calendar view: {scheduled_posts}")
+
+        post_pixelfed(scheduled_post, saved_path)
+        logger.info(f"Post scheduled on Mastodon: {scheduled_post}")
 
         # Group posts by date
         grouped_posts = defaultdict(list)
@@ -297,7 +301,6 @@ def hashtag_groups_list_view(request):
 
 
 
-@login_required
 @require_http_methods(["GET", "POST"])
 def connect_mastodon(request):
     if request.method == "POST":
@@ -305,28 +308,29 @@ def connect_mastodon(request):
         if not instance_url.startswith("https://"):
             instance_url = f"https://{instance_url}"
 
-        # Step 1: Register the app with Mastodon
-        response = requests.post(f"{instance_url}/api/v1/apps", data={
-            "client_name": "PostFlow",
-            "redirect_uris": REDIRECT_URI,
-            "scopes": "read write",
-            "website": "https://postflow.photo"
-        })
+        client_id, client_secret = Mastodon.create_app(
+                client_name="PostFlow",
+                scopes=["read", "write"],
+                redirect_uris=settings.REDIRECT_URI,
+                website="https://postflow.photo",
+                api_base_url=f"{instance_url}",
+                )
 
-        if response.status_code == 200:
-            app_data = response.json()
+        if client_id is not None:
             request.session["mastodon_instance"] = instance_url
-            request.session["mastodon_client_id"] = app_data["client_id"]
-            request.session["mastodon_client_secret"] = app_data["client_secret"]
+            request.session["mastodon_client_id"] = client_id
+            request.session["mastodon_client_secret"] = client_secret
 
-            # Step 2: Redirect user to Mastodon authorization page
-            auth_url = (
-                f"{instance_url}/oauth/authorize"
-                f"?client_id={app_data['client_id']}"
-                f"&scope=read+write"
-                f"&redirect_uri={REDIRECT_URI}"
-                f"&response_type=code"
-            )
+            query_params = {
+                "client_id": client_id,
+                "scope": "read write write:media",
+                "redirect_uri": settings.REDIRECT_URI,  # Keep this unchanged
+                "response_type": "code",
+            }
+            print(query_params)
+            print(settings.REDIRECT_URI)
+            auth_url = f"{instance_url}/oauth/authorize?client_id={client_id}&scope=read+write&redirect_uri={settings.REDIRECT_URI}&response_type=code"
+            print(auth_url)
             return redirect(auth_url)
 
     return redirect("dashboard")
@@ -350,7 +354,7 @@ def mastodon_callback(request):
     token_response = requests.post(f"{instance_url}/oauth/token", data={
         "client_id": client_id,
         "client_secret": client_secret,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": settings.REDIRECT_URI,
         "grant_type": "authorization_code",
         "code": code
     })

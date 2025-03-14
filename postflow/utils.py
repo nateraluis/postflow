@@ -1,8 +1,7 @@
 from django.conf import settings
 import boto3
-import os
-from django.conf import settings
-from django.core.files.base import ContentFile
+import requests
+
 
 def _get_s3_client():
     return boto3.client(
@@ -11,6 +10,7 @@ def _get_s3_client():
         aws_secret_access_key=settings.MEDIA_SECRET_ACCESS_KEY,
         region_name=settings.AWS_S3_REGION_NAME,
     )
+
 
 def get_s3_signed_url(file_path, expiration=3600):
     """
@@ -41,6 +41,11 @@ def upload_to_s3(file, file_path):
     Uploads a file to S3 manually using boto3 instead of default_storage.
     Ensures correct ACL and permissions for private storage.
     """
+    if settings.DEBUG:
+        from django.core.files.base import ContentFile
+        from django.core.files.storage import default_storage
+        saved_path = default_storage.save(file_path, ContentFile(file.read()))
+        return f"{saved_path}"
     s3_client = _get_s3_client()
 
     try:
@@ -54,3 +59,42 @@ def upload_to_s3(file, file_path):
     except Exception as e:
         print(f"❌ Error uploading to S3: {e}. File: {file_path}, Bucket: {settings.AWS_STORAGE_MEDIA_BUCKET_NAME}")
         return None
+
+
+def post_pixelfed(scheduled_post, image_path):
+    if settings.DEBUG:
+        image_url = (f"http://localhost:8000/{settings.MEDIA_URL}{image_path}")
+    else:
+        image_url = get_s3_signed_url(image_path)
+    for account in scheduled_post.mastodon_accounts.all():
+        headers = {
+            "Authorization": f"Bearer {account.access_token}",
+            "Accept": "application/json",
+        }
+        hashtags = ""
+        for tag_group in scheduled_post.hashtag_groups.all():
+            for tag in tag_group.tags.all():
+                hashtags += " " + tag.name
+        print(hashtags)
+        data = {
+            "status": scheduled_post.caption + " " + hashtags,
+            "visibility": "public",
+        }
+        response = requests.get(image_url, stream=True)  # Ensure it's accessible
+        response.raise_for_status()
+        files = {"file": ("image.jpg", response.raw, "image/jpeg")}
+
+        try:
+            pixelfed_api_status = account.instance_url + "/api/v1.1/status/create"
+            response = requests.post(pixelfed_api_status, headers=headers, files=files, data=data)
+            response.raise_for_status()
+            post_response = response.json()
+
+            # Update ScheduledPost with Mastodon post ID and status
+            scheduled_post.mastodon_post_id = post_response.get("id")
+            scheduled_post.status = "posted"
+            scheduled_post.save(update_fields=["mastodon_post_id", "status"])
+
+        except requests.RequestException as e:
+            print(f"Failed to schedule post on Mastodon: {e}")
+
