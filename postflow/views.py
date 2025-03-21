@@ -225,8 +225,9 @@ def schedule_post(request):
         ).prefetch_related("hashtag_groups__tags", "mastodon_accounts").order_by("post_date")
         logger.info(f"Refreshing grouped posts for calendar view: {scheduled_posts}")
 
-        post_pixelfed(scheduled_post, saved_path)
-        logger.info(f"Post scheduled on Mastodon: {scheduled_post}")
+        # Post to pixelfed
+        # post_pixelfed(scheduled_post, saved_path)
+        # logger.info(f"Post scheduled on Mastodon: {scheduled_post}")
 
         # Group posts by date
         grouped_posts = defaultdict(list)

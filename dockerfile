@@ -7,6 +7,12 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV DEBUG=False
 
+# Install cron
+RUN apt-get update && apt-get install -y cron
+
+# Set working directory
+WORKDIR /app
+
 # Copy the dependencies file to the working directory
 COPY requirements.txt .
 
@@ -21,6 +27,11 @@ COPY entrypoint.sh /entrypoint.sh
 
 # Make the script executable
 RUN chmod +x /entrypoint.sh
+
+# Copy and set up crontab
+COPY cronjob /etc/cron.d/postflow-cron
+RUN chmod 0644 /etc/cron.d/postflow-cron && \
+    crontab /etc/cron.d/postflow-cron
 
 # Use the script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
