@@ -97,4 +97,3 @@ def post_pixelfed(scheduled_post, image_path):
 
         except requests.RequestException as e:
             print(f"Failed to schedule post on Mastodon: {e}")
-

@@ -29,9 +29,11 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Copy and set up crontab
-COPY cronjob /etc/cron.d/postflow-cron
-RUN chmod 0644 /etc/cron.d/postflow-cron && \
-    crontab /etc/cron.d/postflow-cron
+# COPY cronjob /etc/cron.d/postflow-cron
+# RUN chmod 0644 /etc/cron.d/postflow-cron && \
+#     crontab /etc/cron.d/postflow-cron
+RUN echo "* * * * * root cd /app && $(which python3) manage.py run_post_scheduled >> /var/log/cron.log 2>&1" > /etc/cron.d/postflow-cron
+RUN chmod 0644 /etc/cron.d/postflow-cron && crontab /etc/cron.d/postflow-cron
 
 # Use the script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
