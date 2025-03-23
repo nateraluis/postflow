@@ -1,1 +1,1 @@
-* * * * * root cd /app && python3 manage.py run_post_scheduled >> /var/log/cron.log 2>&1
+* * * * * root cd /app && /usr/local/bin/python3 manage.py run_post_scheduled >> /var/log/cron.log 2>&1
