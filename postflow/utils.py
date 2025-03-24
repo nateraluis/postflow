@@ -71,16 +71,15 @@ def post_pixelfed(scheduled_post):
             "Authorization": f"Bearer {account.access_token}",
             "Accept": "application/json",
         }
-        hashtags = ""
-        for tag_group in scheduled_post.hashtag_groups.all():
-            for tag in tag_group.tags.all():
-                hashtags += " " + tag.name
+        hashtags = " ".join(
+            tag.name
+            for tag_group in scheduled_post.hashtag_groups.all()
+            for tag in tag_group.tags.all()
+        )
         data = {
-            "status": scheduled_post.caption + " " + hashtags,
+            "status": scheduled_post.caption + "\n" + hashtags,
             "visibility": "public",
         }
-        # response = requests.get(image_url, stream=True)  # Ensure it's accessible
-        # response.raise_for_status()
         files = {"file": ("image.jpg", image_file, "image/jpeg")}
 
         try:
