@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.utils.timezone import localtime
-import boto3
+from .utils import _get_s3_client
 import pytz
 from io import BytesIO
 
@@ -91,13 +91,7 @@ class ScheduledPost(models.Model):
         if settings.DEBUG:
             return self.image.file
 
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION,
-        )
-
+        s3_client = _get_s3_client()
         bucket_name = settings.AWS_STORAGE_MEDIA_BUCKET_NAME
         object_key = self.image.name  # This is the path/key in S3
 
