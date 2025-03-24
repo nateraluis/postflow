@@ -2,7 +2,9 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.utils.timezone import localtime
+import boto3
 import pytz
+from io import BytesIO
 
 
 class CustomUser(AbstractUser):
@@ -80,3 +82,30 @@ class ScheduledPost(models.Model):
     def get_local_post_time(self):
         user_tz = pytz.timezone(self.user_timezone)
         return localtime(self.post_date, timezone=user_tz)
+
+    def get_image_file(self):
+        """
+        Downloads the image file from S3 and returns it as a file-like object (BytesIO).
+        Works only when DEBUG=False and image is stored in private S3.
+        """
+        if settings.DEBUG:
+            return self.image.file
+
+        s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION,
+        )
+
+        bucket_name = settings.AWS_STORAGE_MEDIA_BUCKET_NAME
+        object_key = self.image.name  # This is the path/key in S3
+
+        try:
+            file_stream = BytesIO()
+            s3_client.download_fileobj(bucket_name, object_key, file_stream)
+            file_stream.seek(0)
+            return file_stream
+        except Exception as e:
+            print(f"❌ Error downloading image from S3: {e}")
+            return None

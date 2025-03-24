@@ -11,4 +11,4 @@ def post_scheduled():
     posts = ScheduledPost.objects.filter(status="pending", post_date__lte=now)
     for post in posts:
         # Get the image path
-        post_pixelfed(post, post.image)
+        post_pixelfed(post)

@@ -61,11 +61,11 @@ def upload_to_s3(file, file_path):
         return None
 
 
-def post_pixelfed(scheduled_post, image_path):
-    if settings.DEBUG:
-        image_url = (f"http://localhost:8000/{settings.MEDIA_URL}{image_path}")
-    else:
-        image_url = get_s3_signed_url(image_path)
+def post_pixelfed(scheduled_post):
+    image_file = scheduled_post.get_image_file()
+    if not image_file:
+        print(f"❌ Could not get image for scheduled post ID {scheduled_post.id}")
+        return
     for account in scheduled_post.mastodon_accounts.all():
         headers = {
             "Authorization": f"Bearer {account.access_token}",
@@ -75,14 +75,13 @@ def post_pixelfed(scheduled_post, image_path):
         for tag_group in scheduled_post.hashtag_groups.all():
             for tag in tag_group.tags.all():
                 hashtags += " " + tag.name
-        print(hashtags)
         data = {
             "status": scheduled_post.caption + " " + hashtags,
             "visibility": "public",
         }
-        response = requests.get(image_url, stream=True)  # Ensure it's accessible
-        response.raise_for_status()
-        files = {"file": ("image.jpg", response.raw, "image/jpeg")}
+        # response = requests.get(image_url, stream=True)  # Ensure it's accessible
+        # response.raise_for_status()
+        files = {"file": ("image.jpg", image_file, "image/jpeg")}
 
         try:
             pixelfed_api_status = account.instance_url + "/api/v1.1/status/create"
