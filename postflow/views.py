@@ -394,3 +394,13 @@ def disconnect_mastodon(request, account_id):
             return HttpResponse("", status=204)
 
     return redirect("dashboard")
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def connect_instagram(request):
+    if request.method == "POST":
+        # Handle Instagram connection logic here
+        pass
+
+    return redirect("dashboard")

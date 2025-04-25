@@ -17,4 +17,5 @@ urlpatterns = [
     path("mastodon/connect/", views.connect_mastodon, name="connect_mastodon"),
     path("mastodon/callback/", views.mastodon_callback, name="mastodon_callback"),
     path("mastodon/disconnect/<int:account_id>/", views.disconnect_mastodon, name="disconnect_mastodon"),
+    path("instagram/connect/", views.connect_instagram, name="connect_instagram"),
 ]
