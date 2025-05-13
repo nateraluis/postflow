@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  django:
+    build: .
+    container_name: postflow_django
+    env_file:
+      - ./core/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    command: >
+      uwsgi --http 0.0.0.0:8000 --protocol uwsgi --wsgi core.wsgi:application
+
+  nginx:
+    build:
+      context: ./AWS/nginx
+    container_name: postflow_nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - django
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+
+volumes:
+  static_volume:
+  media_volume:
+
