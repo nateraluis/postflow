@@ -14,7 +14,7 @@ DEBUG = env.bool("DEBUG", default=True)
 ALLOWED_HOSTS = [
     '.amazonlightsail.com', 'localhost', '0.0.0.0', '127.0.0.1',
     'https://postflow.pp347jb6gimu4.eu-central-1.cs.amazonlightsail.com',
-    'postflow.photo', 'www.postflow.photo'
+    'postflow.photo', 'www.postflow.photo', '3.70.194.91'
 ]
 
 
