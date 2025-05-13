@@ -20,11 +20,14 @@ services:
     container_name: postflow_nginx
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - django
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
 
 volumes:
   static_volume:

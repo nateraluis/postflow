@@ -3,6 +3,8 @@
 # docker build -t nginx:latest -f Infrastructure/nginx/Dockerfile .
 
 FROM nginx:1.19.0-alpine
+RUN apk add --no-cache certbot openssl
+
 # Adding temp file for cache
 RUN mkdir /tmp/nginx
 
