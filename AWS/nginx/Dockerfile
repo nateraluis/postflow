@@ -12,6 +12,7 @@ RUN mkdir /tmp/nginx
 
 
 #Specific settings so nginx works as a reverse proxy
-COPY AWS/nginx/default.conf ./etc/nginx/conf.d/default.conf
+# COPY AWS/nginx/default.conf ./etc/nginx/conf.d/default.conf
+COPY default.conf ./etc/nginx/conf.d/default.conf
 
 EXPOSE 80
