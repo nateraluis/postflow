@@ -71,7 +71,7 @@ def register(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            print("👤 User saved to DB:", user)
+            logger.debug("👤 User saved to DB:", user)
             username = form.cleaned_data["email"]
             user = authenticate(
                 username=username,
@@ -80,10 +80,10 @@ def register(request):
             if user:
                 login(request, user)
             else:
-                print("❌ Authentication failed for:", username)
+                logger.debug("❌ Authentication failed for:", username)
             return redirect("profile", username=username)
         else:
-            print("❌ Form is invalid. Errors:", form.errors)
+            logger.debug("❌ Form is invalid. Errors:", form.errors)
             context["form"] = form
     return render(request, "postflow/signup.html", context)
 
@@ -333,10 +333,10 @@ def connect_mastodon(request):
                 "redirect_uri": settings.REDIRECT_URI,  # Keep this unchanged
                 "response_type": "code",
             }
-            print(query_params)
-            print(settings.REDIRECT_URI)
+            logger.debug(query_params)
+            logger.debug(settings.REDIRECT_URI)
             auth_url = f"{instance_url}/oauth/authorize?client_id={client_id}&scope=read+write&redirect_uri={settings.REDIRECT_URI}&response_type=code"
-            print(auth_url)
+            logger.debug(auth_url)
             return redirect(auth_url)
 
     return redirect("dashboard")
@@ -368,7 +368,7 @@ def mastodon_callback(request):
     if token_response.status_code == 200:
         token_data = token_response.json()
         access_token = token_data["access_token"]
-        print(access_token)
+        logger.debug(access_token)
 
         # Step 4: Fetch user's Mastodon profile
         user_info = requests.get(f"{instance_url}/api/v1/accounts/verify_credentials", headers={
