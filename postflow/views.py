@@ -19,7 +19,7 @@ from collections import defaultdict
 from django.conf import settings
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("postflow")
 
 
 def _validate_user(request, username):
