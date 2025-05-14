@@ -56,13 +56,6 @@ def logout_view(request):
 
 
 @require_http_methods(["GET", "POST"])
-def signup(request):
-    form=CustomUserCreationForm()
-    context = {"form": form}
-    return render(request, "postflow/signup.html", context)
-
-
-@require_http_methods(["POST"])
 def register(request):
     context = {}
     form = CustomUserCreationForm()
