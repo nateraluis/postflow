@@ -19,7 +19,7 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta:
         model = CustomUser
-        fields = ("email", "first_name", "last_name", "password1", "password2")
+        fields = ("email", "first_name", "last_name")
         widgets = {
             'email': forms.EmailInput(attrs={
                 'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
@@ -31,6 +31,13 @@ class CustomUserCreationForm(UserCreationForm):
                 'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
             }),
         }
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password1"])
+        if commit:
+            user.save()
+        return user
 
 class CustomUserChangeForm(UserChangeForm):
     class Meta:
