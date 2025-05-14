@@ -33,4 +33,5 @@ jobs:
             git pull origin main
             docker-compose down
             docker-compose up --build -d
+          ssh_options: "-o PubkeyAcceptedKeyTypes=+ssh-ed25519 -o PreferredAuthentications=publickey"
 
