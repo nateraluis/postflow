@@ -70,15 +70,20 @@ def register(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            print("👤 User saved to DB:", user)
             username = form.cleaned_data["email"]
             user = authenticate(
                 username=username,
                 password=form.cleaned_data["password1"],
             )
-            login(request, user)
+            if user:
+                login(request, user)
+            else:
+                print("❌ Authentication failed for:", username)
             return redirect("profile", username=username)
         else:
+            print("❌ Form is invalid. Errors:", form.errors)
             context["form"] = form
     return render(request, "postflow/signup.html", context)
 
