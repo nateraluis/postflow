@@ -19,6 +19,35 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
+      - name: 📝 Create .env file from GitHub secrets
+        run: |
+          cat <<EOF > .env
+          DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+
+          S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}
+          S3_AWS_STORAGE_BUCKET_NAME=${{ secrets.S3_AWS_STORAGE_BUCKET_NAME }}
+
+          AWS_STORAGE_MEDIA_BUCKET_NAME=${{ secrets.AWS_STORAGE_MEDIA_BUCKET_NAME }}
+          MEDIA_ACCESS_KEY=${{ secrets.MEDIA_ACCESS_KEY }}
+          MEDIA_SECRET_ACCESS_KEY=${{ secrets.MEDIA_SECRET_ACCESS_KEY }}
+
+          REDIRECT_URI=${{ secrets.REDIRECT_URI }}
+          AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }}
+
+          DEBUG=False
+          EOF
+
+      - name: 📤 Upload .env to EC2
+        run: |
+          scp -i ~/.ssh/id_rsa .env ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/postflow/core/.env
+
       - name: 🚀 SSH and Deploy
         run: |
           ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
