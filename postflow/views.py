@@ -126,7 +126,7 @@ def calendar_view(request):
         "minutes": range(0, 60, 5),
         "hashtag_groups": TagGroup.objects.filter(user=request.user),
         "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
-        "instagram_accounts": None,
+        "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
         "grouped_posts": dict(grouped_posts),  # Convert defaultdict to dict
     }
 
