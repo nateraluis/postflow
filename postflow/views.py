@@ -404,11 +404,10 @@ def disconnect_mastodon(request, account_id):
 @require_http_methods(["GET", "POST"])
 def connect_instagram(request):
     if request.method == "POST":
-        # base_url = "https://www.instagram.com/oauth/authorize"
-        base_url = "https://www.facebook.com/v19.0/dialog/oauth"
+        base_url = "https://www.instagram.com/oauth/authorize"
         params = {
-            # "enable_fb_login": "0",
-            # "force_authentication": "1",
+            "enable_fb_login": "0",
+            "force_authentication": "1",
             "client_id": settings.FACEBOOK_APP_ID,
             "redirect_uri": settings.INSTAGRAM_BUSINESS_REDIRECT_URI,
             "response_type": "code",
@@ -421,7 +420,8 @@ def connect_instagram(request):
             ),
         }
 
-        url = f"{base_url}?{urllib.parse.urlencode(params)}"
+        # url = f"{base_url}?{urllib.parse.urlencode(params)}"
+        url = "https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=1370425837536915&redirect_uri=https://postflow.photo/accounts/instagram/business/callback/&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights"
         return redirect(url)
 
     return redirect("dashboard")
