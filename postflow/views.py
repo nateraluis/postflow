@@ -561,9 +561,9 @@ def instagram_data_deletion(request):
 
 @login_required
 @require_http_methods(["POST"])
-def disconnect_instagram(request):
+def disconnect_instagram(request, account_id):
     """Delete the user's Instagram account connection."""
-    account = get_object_or_404(InstagramBusinessAccount, user=request.user)
+    account = get_object_or_404(InstagramBusinessAccount, user=request.user, id=account_id)
 
     if request.method == "POST":
         account.delete()
