@@ -454,7 +454,7 @@ def instagram_business_callback(request):
         return render(request, "error.html", {"message": "Missing authorization code."})
 
     # Step 1: Exchange code for short-lived access token
-    token_url = "https://graph.facebook.com/v19.0/oauth/access_token"
+    token_url = "https://api.instagram.com/oauth/access_token"
     token_resp = requests.get(token_url, params={
         "client_id": settings.FACEBOOK_APP_ID,
         "client_secret": settings.FACEBOOK_APP_SECRET,
@@ -470,53 +470,37 @@ def instagram_business_callback(request):
                 )
     access_token = token_resp.json().get("access_token")
 
-    # Step 2: Get the user's Facebook Pages
-    pages_resp = requests.get("https://graph.facebook.com/v19.0/me/accounts", params={
-        "access_token": access_token
-    }).json()
+    # Get instagram User
+    ig_resp = requests.get(
+        f"https://graph.facebook.com/v22.0/me",
+        params={
+            "fields": "user_id,username",
+            "access_token": access_token,
+        }
+    ).json()
 
-    for page in pages_resp.get("data", []):
-        page_id = page["id"]
-        page_token = page["access_token"]
+    if ig_resp:
+        ig_id = ig_resp["user_id"]
 
-        # Step 3: Check if the page has an Instagram account linked
-        ig_resp = requests.get(
-            f"https://graph.facebook.com/v19.0/{page_id}",
-            params={
-                "fields": "instagram_business_account",
-                "access_token": page_token,
+        username = ig_resp.get("username")
+
+        # Step 5: Save to DB
+        InstagramBusinessAccount.objects.update_or_create(
+            user=request.user,
+            instagram_id=ig_id,
+            defaults={
+                "username": username,
+                "access_token": access_token,
             }
-        ).json()
+        )
 
-        ig_account = ig_resp.get("instagram_business_account")
-        if ig_account:
-            ig_id = ig_account["id"]
+        return redirect("dashboard")
 
-            # Step 4: Get Instagram account info
-            profile_resp = requests.get(
-                f"https://graph.facebook.com/v19.0/{ig_id}",
-                params={
-                    "fields": "username",
-                    "access_token": page_token,
-                }
-            ).json()
-
-            username = profile_resp.get("username")
-
-            # Step 5: Save to DB
-            InstagramBusinessAccount.objects.update_or_create(
-                user=request.user,
-                instagram_id=ig_id,
-                defaults={
-                    "username": username,
-                    "access_token": page_token,
-                    "page_id": page_id,
-                }
-            )
-
-            return redirect("dashboard")
-
-    return render(request, "error.html", {"message": "No linked Instagram Business account found."})
+    return HttpResponse(
+        f"⚠️ Failed to get Instagram user:<br>Status: {ig_resp.status_code}<br>Response: {ig_resp.text}",
+        status=ig_resp.status_code,
+        content_type="text/html"
+    )
 
 
 def parse_signed_request(signed_request, app_secret):
