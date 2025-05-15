@@ -481,21 +481,23 @@ def instagram_business_callback(request):
     ).json()
 
     if ig_resp:
-        ig_id = ig_resp["user_id"]
-
-        username = ig_resp.get("username")
-
-        # Step 5: Save to DB
-        InstagramBusinessAccount.objects.update_or_create(
-            user=request.user,
-            instagram_id=ig_id,
-            defaults={
-                "username": username,
-                "access_token": access_token,
-            }
-        )
-
-        return redirect("dashboard")
+        return HttpResponse(
+                ig_resp)
+        # ig_id = ig_resp["user_id"]
+        #
+        # username = ig_resp.get("username")
+        #
+        # # Step 5: Save to DB
+        # InstagramBusinessAccount.objects.update_or_create(
+        #     user=request.user,
+        #     instagram_id=ig_id,
+        #     defaults={
+        #         "username": username,
+        #         "access_token": access_token,
+        #     }
+        # )
+        #
+        # return redirect("dashboard")
 
     return HttpResponse(
         f"⚠️ Failed to get Instagram user:<br>Status: {ig_resp.status_code}<br>Response: {ig_resp.text}",
