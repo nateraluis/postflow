@@ -462,7 +462,11 @@ def instagram_business_callback(request):
     })
 
     if token_resp.status_code != 200:
-        return render(request, "error.html", {"message": "Failed to get Facebook access token."})
+        return HttpResponse(
+                f"⚠️ Failed to get access token:<br>Status: {token_resp.status_code}<br>Response: {token_resp.text}",
+                status=token_resp.status_code,
+                content_type="text/html"
+                )
     access_token = token_resp.json().get("access_token")
 
     # Step 2: Get the user's Facebook Pages
