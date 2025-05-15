@@ -473,37 +473,32 @@ def instagram_business_callback(request):
 
     # Get instagram User
     ig_resp = requests.get(
-        f"https://graph.facebook.com/v22.0/me",
+        f"https://graph.instagram.com/v22.0/me",
         params={
             "fields": "user_id,username",
             "access_token": access_token,
         }
     ).json()
 
-    if ig_resp:
+    if ig_respstatus_code != 200:
         return HttpResponse(
-                ig_resp)
-        # ig_id = ig_resp["user_id"]
-        #
-        # username = ig_resp.get("username")
-        #
-        # # Step 5: Save to DB
-        # InstagramBusinessAccount.objects.update_or_create(
-        #     user=request.user,
-        #     instagram_id=ig_id,
-        #     defaults={
-        #         "username": username,
-        #         "access_token": access_token,
-        #     }
-        # )
-        #
-        # return redirect("dashboard")
+                f"⚠️ Failed to fetch Instagram user data:<br>Status: {ig_resp.status_code}<br>Response: {ig_resp.text}",
+                status=ig_resp.status_code,
+                content_type="text/html"
+                )
+    data = ig_resp.json()
 
-    return HttpResponse(
-        f"⚠️ Failed to get Instagram user:<br>Status: {ig_resp.status_code}<br>Response: {ig_resp.text}",
-        status=ig_resp.status_code,
-        content_type="text/html"
+    InstagramBusinessAccount.objects.update_or_create(
+        user=request.user,
+        instagram_id=data.get("user_id"),
+        defaults={
+            "username": data.get("username"),
+            "access_token": access_token,
+            "page_id": "",  # Optional: you can remove or populate if available separately
+        }
     )
+    return redirect("dashboard")
+
 
 
 def parse_signed_request(signed_request, app_secret):
