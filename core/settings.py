@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ✅ Security & Debug
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DEBUG", default=True)
+FACEBOOK_VERIFY_TOKEN = env("FACEBOOK_VERIFY_TOKEN")
 
 ALLOWED_HOSTS = [
     'localhost', '0.0.0.0', '127.0.0.1',

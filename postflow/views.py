@@ -9,7 +9,7 @@ from django.utils.timezone import now
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
 from .models import Tag, TagGroup, MastodonAccount, ScheduledPost
 from .utils import get_s3_signed_url, upload_to_s3, post_pixelfed
@@ -402,3 +402,23 @@ def connect_instagram(request):
         pass
 
     return redirect("dashboard")
+
+
+@csrf_exempt
+def facebook_webhook(request):
+    if request.method == "GET":
+        verify_token = request.GET.get("hub.verify_token")
+        challenge = request.GET.get("hub.challenge")
+
+        if verify_token == settings.FACEBOOK_VERIFY_TOKEN:
+            return HttpResponse(challenge)
+        return HttpResponse("Invalid verify token", status=403)
+
+    elif request.method == "POST":
+        # Incoming data from Facebook (e.g. media, comments, etc.)
+        data = request.body
+        # Optionally parse JSON and handle it
+        # For now, just acknowledge
+        return JsonResponse({"status": "received"})
+
+    return HttpResponse(status=405)

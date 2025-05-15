@@ -41,6 +41,8 @@ jobs:
           REDIRECT_URI=${{ secrets.REDIRECT_URI }}
           AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }}
 
+          FACEBOOK_VERIFY_TOKEN=${{ secrets.FACEBOOK_VERIFY_TOKEN }}
+
           DEBUG=False
           EOF
 
