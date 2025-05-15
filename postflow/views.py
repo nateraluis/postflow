@@ -557,3 +557,19 @@ def instagram_data_deletion(request):
     return JsonResponse({
         "confirmation_code": confirmation_code
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def disconnect_instagram(request):
+    """Delete the user's Instagram account connection."""
+    account = get_object_or_404(InstagramBusinessAccount, user=request.user)
+
+    if request.method == "POST":
+        account.delete()
+
+        # If it's an HTMX request, return a blank response to remove the element
+        if "HX-Request" in request.headers:
+            return HttpResponse("", status=204)
+
+    return redirect("dashboard")

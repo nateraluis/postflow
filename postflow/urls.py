@@ -21,4 +21,5 @@ urlpatterns = [
     path("accounts/instagram/business/callback/", views.instagram_business_callback, name="instagram_business_callback"),
     path("accounts/instagram/business/deauthorize/", views.instagram_deauthorize, name="instagram_business_deauthorize"),
     path("accounts/instagram/business/data-deletion/", views.instagram_data_deletion, name="instagram_business_data_deletion"),
+    path("instagram/disconnect", views.disconnect_instagram, name="disconnect_instagram"),
 ]
