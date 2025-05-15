@@ -480,7 +480,7 @@ def instagram_business_callback(request):
         }
     ).json()
 
-    if ig_respstatus_code != 200:
+    if ig_resp.status_code != 200:
         return HttpResponse(
                 f"⚠️ Failed to fetch Instagram user data:<br>Status: {ig_resp.status_code}<br>Response: {ig_resp.text}",
                 status=ig_resp.status_code,
