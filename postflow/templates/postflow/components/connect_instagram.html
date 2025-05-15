@@ -23,11 +23,12 @@
     <p class="text-gray-500">No accounts connected.</p>
   {% endif %}
 
-  <div class="mt-4">
-    <a 
-      href="{% url 'connect_instagram' %}"
+  <form method="POST" action="{% url 'connect_instagram' %}" class="mt-4">
+    {% csrf_token %}
+    <button 
+      type="submit"
       class="w-full block text-center bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-500">
       Connect Instagram Account
-    </a>
-  </div>
+    </button>
+  </form>
 </div>

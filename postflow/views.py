@@ -1,4 +1,10 @@
 import os
+import base64
+import hmac
+import hashlib
+import uuid
+import urllib
+import json
 from django.db import IntegrityError
 import requests
 from mastodon import Mastodon
@@ -9,7 +15,7 @@ from django.utils.timezone import now
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
 from .models import Tag, TagGroup, MastodonAccount, ScheduledPost, InstagramBusinessAccount
 from .utils import get_s3_signed_url, upload_to_s3, post_pixelfed
@@ -398,8 +404,24 @@ def disconnect_mastodon(request, account_id):
 @require_http_methods(["GET", "POST"])
 def connect_instagram(request):
     if request.method == "POST":
-        # Handle Instagram connection logic here
-        pass
+        base_url = "https://www.instagram.com/oauth/authorize"
+        params = {
+            "enable_fb_login": "0",
+            "force_authentication": "1",
+            "client_id": settings.FACEBOOK_APP_ID,
+            "redirect_uri": settings.INSTAGRAM_BUSINESS_REDIRECT_URI,
+            "response_type": "code",
+            "scope": (
+                "instagram_business_basic,"
+                "instagram_business_manage_messages,"
+                "instagram_business_manage_comments,"
+                "instagram_business_content_publish,"
+                "instagram_business_manage_insights"
+            ),
+        }
+
+        query_string = urllib.parse.urlencode(params)
+        return redirect(f"{base_url}?{query_string}")
 
     return redirect("dashboard")
 
@@ -490,3 +512,61 @@ def instagram_business_callback(request):
             return redirect("dashboard")
 
     return render(request, "error.html", {"message": "No linked Instagram Business account found."})
+
+
+def parse_signed_request(signed_request, app_secret):
+    try:
+        encoded_sig, payload = signed_request.split('.', 1)
+        sig = base64.urlsafe_b64decode(encoded_sig + "==")
+        data = json.loads(base64.urlsafe_b64decode(payload + "=="))
+
+        expected_sig = hmac.new(
+            key=app_secret.encode(),
+            msg=payload.encode(),
+            digestmod=hashlib.sha256
+        ).digest()
+
+        if not hmac.compare_digest(sig, expected_sig):
+            return None
+        return data
+    except Exception:
+        return None
+
+
+@csrf_exempt
+def instagram_deauthorize(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    signed_request = request.POST.get("signed_request")
+    data = parse_signed_request(signed_request, settings.FACEBOOK_APP_SECRET)
+    if not data:
+        return HttpResponseBadRequest("Invalid signature")
+
+    user_id = data.get("user_id")
+    if not user_id:
+        return HttpResponseBadRequest("Missing user_id")
+
+    # Remove InstagramBusinessAccount(s) for this user_id
+    InstagramBusinessAccount.objects.filter(instagram_id=user_id).delete()
+
+    return JsonResponse({"success": True})
+
+
+@csrf_exempt
+def instagram_data_deletion(request):
+    signed_request = request.POST.get("signed_request")
+    data = parse_signed_request(signed_request, settings.FACEBOOK_APP_SECRET)
+    if not data:
+        return HttpResponseBadRequest("Invalid signature")
+
+    user_id = data.get("user_id")
+    confirmation_code = str(uuid.uuid4())
+
+    # Delete data for user
+    InstagramBusinessAccount.objects.filter(instagram_id=user_id).delete()
+
+    # Respond with confirmation and optional status page
+    return JsonResponse({
+        "confirmation_code": confirmation_code
+    })
