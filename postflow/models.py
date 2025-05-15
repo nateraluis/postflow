@@ -103,3 +103,14 @@ class ScheduledPost(models.Model):
         except Exception as e:
             print(f"❌ Error downloading image from S3: {e}")
             return None
+
+
+class InstagramBusinessAccount(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="instagram_business_accounts")
+    instagram_id = models.CharField(max_length=255)
+    username = models.CharField(max_length=255)
+    access_token = models.TextField(help_text="Page access token with access to IG account")
+    page_id = models.CharField(max_length=255, help_text="Facebook Page ID linked to IG account")
+
+    def __str__(self):
+        return f"{self.username} (Business)"

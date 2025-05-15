@@ -18,4 +18,5 @@ urlpatterns = [
     path("mastodon/disconnect/<int:account_id>/", views.disconnect_mastodon, name="disconnect_mastodon"),
     path("instagram/connect/", views.connect_instagram, name="connect_instagram"),
     path("webhooks/facebook/", views.facebook_webhook, name="facebook_webhook"),
+    path("accounts/instagram/business/callback/", views.instagram_business_callback, name="instagram_business_callback"),
 ]

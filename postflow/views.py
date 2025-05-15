@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
-from .models import Tag, TagGroup, MastodonAccount, ScheduledPost
+from .models import Tag, TagGroup, MastodonAccount, ScheduledPost, InstagramBusinessAccount
 from .utils import get_s3_signed_url, upload_to_s3, post_pixelfed
 import pytz
 from datetime import datetime, timedelta
@@ -422,3 +422,71 @@ def facebook_webhook(request):
         return JsonResponse({"status": "received"})
 
     return HttpResponse(status=405)
+
+
+@login_required
+def instagram_business_callback(request):
+    code = request.GET.get("code")
+    if not code:
+        return render(request, "error.html", {"message": "Missing authorization code."})
+
+    # Step 1: Exchange code for short-lived access token
+    token_url = "https://graph.facebook.com/v19.0/oauth/access_token"
+    token_resp = requests.get(token_url, params={
+        "client_id": settings.FACEBOOK_APP_ID,
+        "client_secret": settings.FACEBOOK_APP_SECRET,
+        "redirect_uri": settings.INSTAGRAM_BUSINESS_REDIRECT_URI,
+        "code": code,
+    })
+
+    if token_resp.status_code != 200:
+        return render(request, "error.html", {"message": "Failed to get Facebook access token."})
+    access_token = token_resp.json().get("access_token")
+
+    # Step 2: Get the user's Facebook Pages
+    pages_resp = requests.get("https://graph.facebook.com/v19.0/me/accounts", params={
+        "access_token": access_token
+    }).json()
+
+    for page in pages_resp.get("data", []):
+        page_id = page["id"]
+        page_token = page["access_token"]
+
+        # Step 3: Check if the page has an Instagram account linked
+        ig_resp = requests.get(
+            f"https://graph.facebook.com/v19.0/{page_id}",
+            params={
+                "fields": "instagram_business_account",
+                "access_token": page_token,
+            }
+        ).json()
+
+        ig_account = ig_resp.get("instagram_business_account")
+        if ig_account:
+            ig_id = ig_account["id"]
+
+            # Step 4: Get Instagram account info
+            profile_resp = requests.get(
+                f"https://graph.facebook.com/v19.0/{ig_id}",
+                params={
+                    "fields": "username",
+                    "access_token": page_token,
+                }
+            ).json()
+
+            username = profile_resp.get("username")
+
+            # Step 5: Save to DB
+            InstagramBusinessAccount.objects.update_or_create(
+                user=request.user,
+                instagram_id=ig_id,
+                defaults={
+                    "username": username,
+                    "access_token": page_token,
+                    "page_id": page_id,
+                }
+            )
+
+            return redirect("dashboard")
+
+    return render(request, "error.html", {"message": "No linked Instagram Business account found."})
