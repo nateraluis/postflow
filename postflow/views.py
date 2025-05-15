@@ -420,8 +420,8 @@ def connect_instagram(request):
             ),
         }
 
-        query_string = urllib.parse.urlencode(params)
-        return redirect(f"{base_url}?{query_string}")
+        url = f"{base_url}?{urllib.parse.urlencode(params)}"
+        return redirect(url)
 
     return redirect("dashboard")
 
