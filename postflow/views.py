@@ -115,6 +115,9 @@ def calendar_view(request):
     for post in scheduled_posts:
         post.image_url = get_s3_signed_url(post.image.name)
         post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
+        # update the post date to the user timezone
+        user_tz = pytz.timezone(post.user_timezone)
+        post.post_date = post.post_date.astimezone(user_tz)
 
     # Group posts by date
     grouped_posts = defaultdict(list)
