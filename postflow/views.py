@@ -455,7 +455,7 @@ def instagram_business_callback(request):
 
     # Step 1: Exchange code for short-lived access token
     token_url = "https://api.instagram.com/oauth/access_token"
-    token_resp = requests.get(token_url, params={
+    token_resp = requests.post(token_url, params={
         "client_id": settings.FACEBOOK_APP_ID,
         "client_secret": settings.FACEBOOK_APP_SECRET,
         "redirect_uri": settings.INSTAGRAM_BUSINESS_REDIRECT_URI,
