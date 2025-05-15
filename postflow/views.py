@@ -478,7 +478,7 @@ def instagram_business_callback(request):
             "fields": "user_id,username",
             "access_token": access_token,
         }
-    ).json()
+    )
 
     if ig_resp.status_code != 200:
         return HttpResponse(
