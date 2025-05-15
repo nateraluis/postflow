@@ -9,6 +9,11 @@
   <head>
     {% block head %}
       <meta charset="utf-8">
+      <link rel="manifest" href="{% static 'manifest.json' %}">
+      <meta name="theme-color" content="#4f46e5">
+      <meta name="apple-mobile-web-app-capable" content="yes">
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+      <link rel="apple-touch-icon" href="{% static 'icons/web-app-manifest-192x192.png' %}">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>PostFlow</title>
       <meta name="htmx-config" content='{"historyCacheSize": 15}'>
@@ -149,3 +154,15 @@
     {% django_htmx_script %}
   </body>
 </html>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("{% static 'serviceworker.js' %}")
+      .then(function () {
+        console.log("Service Worker registered");
+      })
+      .catch(function (error) {
+        console.log("Service Worker registration failed:", error);
+      });
+  }
+</script>
