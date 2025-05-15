@@ -15,6 +15,7 @@
       <script src="{% static 'htmx.min.js' %}" defer></script>
       <script src="{% static 'ext/debug.js' %}" defer></script>
       <script src="{% static 'ext/event-header.js' %}" defer></script>
+      <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
       {% tailwind_css %}
       <script>
           document.addEventListener("htmx:load", function () {
@@ -41,10 +42,10 @@
       </script>
     {% endblock %}
   </head>
-  <body hx-ext="debug, event-header">
-    <div class="flex">
+  <body hx-ext="debug, event-header" :class="{ 'overflow-hidden': mobileOpen }" x-data="{ mobileOpen: false }">
+    <div class="lg:flex">
       <!-- Sidebar -->
-     <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col bg-gray-900">
+    <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col bg-gray-900">
     <div class="flex grow flex-col gap-y-5 overflow-y-auto px-6">
       <!-- Logo -->
       <div class="flex h-16 shrink-0 items-center">
@@ -116,23 +117,31 @@
     </div>
   </div>
   
-  <!-- Mobile Header (Small Screens) -->
-  <m:px-6 lg:hidden">
-    <button type="button" class="-m-2.5 p-2.5 text-gray-400 lg:hidden">
-      <span class="sr-only">Open sidebar</span>
-      <img src="{% static 'postflow/icons/home.svg' %}" class="size-6 shrink-0" alt="Home icon" />
+  <!-- Mobile Header -->
+  <div class="flex items-center justify-between p-4 bg-gray-900 text-white lg:hidden">
+    <button @click="mobileOpen = !mobileOpen" class="text-gray-300 hover:text-white">
+      <img src="{% static 'postflow/icons/home.svg' %}" class="size-6" alt="Menu icon">
     </button>
-    <div class="flex-1 text-sm font-semibold text-white">Dashboard</div>
-    <a href="#">
-      <span class="sr-only">Your profile</span>
-      <img class="size-8 rounded-full bg-gray-800" 
-           src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" 
-           alt="">
-    </a>
+    <div class="font-semibold text-lg">Dashboard</div>
+    <img class="size-8 rounded-full bg-gray-800" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Profile" />
+  </div>
+  <!-- Mobile Menu -->
+  <div class="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50" x-show="mobileOpen" @click.away="mobileOpen = false" x-transition>
+    <div class="w-64 bg-gray-900 h-full p-6 space-y-6" @click.stop>
+      <a href="{% url 'dashboard' %}" class="block text-white font-semibold">Dashboard</a>
+      <a href="{% url 'hashtag-groups' %}" class="block text-gray-300 hover:text-white">Hashtags</a>
+      <a href="{% url 'calendar' %}" class="block text-gray-300 hover:text-white">Calendar</a>
+      <hr class="border-gray-700">
+      <a href="#" class="flex items-center gap-3 text-white">
+        <img class="w-8 h-8 rounded-full bg-gray-800" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+        {{ request.user.first_name }} {{ request.user.last_name }}
+      </a>
+      <a href="{% url 'logout' %}" class="block text-red-400 hover:text-red-600">Log out</a>
+    </div>
   </div>
 
       <!-- Main Content with Left Margin to Offset Sidebar -->
-      <div class="flex-1 bg-base-100 ml-72 p-6" id="content-area">
+      <div class="flex-1 bg-base-100 lg:ml-72 p-6" id="content-area">
         {% block main %}
         {% endblock %}
       </div>
