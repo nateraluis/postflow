@@ -404,10 +404,11 @@ def disconnect_mastodon(request, account_id):
 @require_http_methods(["GET", "POST"])
 def connect_instagram(request):
     if request.method == "POST":
-        base_url = "https://www.instagram.com/oauth/authorize"
+        # base_url = "https://www.instagram.com/oauth/authorize"
+        base_url = "https://www.facebook.com/v19.0/dialog/oauth"
         params = {
-            "enable_fb_login": "0",
-            "force_authentication": "1",
+            # "enable_fb_login": "0",
+            # "force_authentication": "1",
             "client_id": settings.FACEBOOK_APP_ID,
             "redirect_uri": settings.INSTAGRAM_BUSINESS_REDIRECT_URI,
             "response_type": "code",
