@@ -458,6 +458,7 @@ def instagram_business_callback(request):
     token_resp = requests.post(token_url, data={
         "client_id": settings.FACEBOOK_APP_ID,
         "client_secret": settings.FACEBOOK_APP_SECRET,
+        "grant_type": "authorization_code",
         "redirect_uri": settings.INSTAGRAM_BUSINESS_REDIRECT_URI,
         "code": code,
     })
