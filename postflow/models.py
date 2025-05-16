@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils.timezone import is_naive
 from django.conf import settings
-from django.utils.timezone import localtime
 from .utils import _get_s3_client
 import pytz
 from io import BytesIO
@@ -81,7 +81,12 @@ class ScheduledPost(models.Model):
 
     def get_local_post_time(self):
         user_tz = pytz.timezone(self.user_timezone)
-        return localtime(self.post_date, timezone=user_tz)
+        if is_naive(self.post_date):
+            # If post_date is naive (no timezone info), assume it's in UTC
+            aware_post_date = pytz.utc.localize(self.post_date)
+        else:
+            aware_post_date = self.post_date
+        return aware_post_date.astimezone(user_tz)
 
     def get_image_file(self):
         """
