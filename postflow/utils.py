@@ -95,3 +95,63 @@ def post_pixelfed(scheduled_post):
 
         except requests.RequestException as e:
             print(f"Failed to schedule post on Mastodon: {e}")
+
+
+def post_instagram(scheduled_post):
+    """
+    Publishes a scheduled post image to all linked Instagram Business Accounts.
+    """
+    # Generate a public (signed) URL for Instagram to curl the image
+    image_url = get_s3_signed_url(scheduled_post.image.name)
+    if not image_url:
+        print(f"❌ Could not generate signed URL for scheduled post ID {scheduled_post.id}")
+        scheduled_post.status = "failed"
+        scheduled_post.save(update_fields=["status"])
+        return
+
+    caption = scheduled_post.caption or ""
+    hashtags = " ".join(
+        tag.name
+        for tag_group in scheduled_post.hashtag_groups.all()
+        for tag in tag_group.tags.all()
+    )
+    full_caption = f"{caption}\n{hashtags}".strip()
+
+    for account in scheduled_post.instagram_accounts.all():
+        try:
+            # Step 1: Create media container
+            create_url = f"https://graph.instagram.com/v22.0/{account.instagram_id}/media"
+            media_payload = {
+                "image_url": image_url,
+                "caption": full_caption,
+                "access_token": account.access_token,
+            }
+
+            media_response = requests.post(create_url, data=media_payload)
+            media_response.raise_for_status()
+            container_id = media_response.json().get("id")
+
+            if not container_id:
+                raise Exception("No container ID returned.")
+
+            # Step 2: Publish the container
+            publish_url = f"https://graph.instagram.com/v22.0/{account.instagram_id}/media_publish"
+            publish_payload = {
+                "creation_id": container_id,
+                "access_token": account.access_token,
+            }
+
+            publish_response = requests.post(publish_url, data=publish_payload)
+            publish_response.raise_for_status()
+
+            ig_media_id = publish_response.json().get("id")
+            print(f"✅ Posted to Instagram @{account.username}, media ID: {ig_media_id}")
+
+            # Mark as posted
+            scheduled_post.status = "posted"
+            scheduled_post.save(update_fields=["status"])
+
+        except requests.RequestException as e:
+            print(f"❌ Instagram post failed for @{account.username}: {e}")
+            scheduled_post.status = "failed"
+            scheduled_post.save(update_fields=["status"])

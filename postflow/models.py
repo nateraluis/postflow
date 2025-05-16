@@ -71,6 +71,7 @@ class ScheduledPost(models.Model):
     user_timezone = models.CharField(max_length=50, default="UTC")
     hashtag_groups = models.ManyToManyField("TagGroup", blank=True)
     mastodon_accounts = models.ManyToManyField("MastodonAccount", blank=True)
+    instagram_accounts = models.ManyToManyField("InstagramBusinessAccount", blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     mastodon_media_id = models.CharField(max_length=255, blank=True, null=True)  # Stores media ID from Mastodon
     mastodon_post_id = models.CharField(max_length=255, blank=True, null=True)  # Stores the scheduled post ID
@@ -114,7 +115,6 @@ class InstagramBusinessAccount(models.Model):
     instagram_id = models.CharField(max_length=255)
     username = models.CharField(max_length=255)
     access_token = models.TextField(help_text="Page access token with access to IG account")
-    page_id = models.CharField(max_length=255, help_text="Facebook Page ID linked to IG account")
 
     def __str__(self):
         return f"{self.username} (Business)"

@@ -146,6 +146,7 @@ def schedule_post(request):
     caption = request.POST.get("caption", "")
     hashtag_group_ids = request.POST.getlist("hashtag_groups")
     mastodon_account_ids = request.POST.getlist("social_accounts")
+    instagram_account_ids = request.POST.get("instagram_accounts")
     image = request.FILES.get("photo")
 
     context = {
@@ -153,7 +154,7 @@ def schedule_post(request):
         "minutes": range(0, 60, 5),
         "hashtag_groups": TagGroup.objects.filter(user=request.user),
         "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
-        "instagram_accounts": None,
+        "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
     }
 
     # Validation: Ensure an image is uploaded
@@ -224,6 +225,7 @@ def schedule_post(request):
 
         scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
         scheduled_post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_account_ids))
+        scheduled_post.instagram_accounts.set(InstagramBusinessAccount.objects.filter(id__in=instagram_account_ids))
         logger.info(f"Hashtag groups and Mastodon accounts added to post: {scheduled_post}")
 
         # Refresh grouped posts to update calendar component
@@ -231,10 +233,6 @@ def schedule_post(request):
             user=request.user, post_date__date__gte=current_utc_time.date()
         ).prefetch_related("hashtag_groups__tags", "mastodon_accounts").order_by("post_date")
         logger.info(f"Refreshing grouped posts for calendar view: {scheduled_posts}")
-
-        # Post to pixelfed
-        # post_pixelfed(scheduled_post, saved_path)
-        # logger.info(f"Post scheduled on Mastodon: {scheduled_post}")
 
         # Group posts by date
         grouped_posts = defaultdict(list)
@@ -424,7 +422,7 @@ def connect_instagram(request):
         }
 
         # url = f"{base_url}?{urllib.parse.urlencode(params)}"
-        url = "https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=1370425837536915&redirect_uri=https://postflow.photo/accounts/instagram/business/callback/&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights"
+        url = f"https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=1370425837536915&redirect_uri={settings.INSTAGRAM_BUSINESS_REDIRECT_URI}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights"
         return redirect(url)
 
     return redirect("dashboard")
@@ -468,18 +466,34 @@ def instagram_business_callback(request):
 
     if token_resp.status_code != 200:
         return HttpResponse(
-                f"⚠️ Failed to get access token:<br>Status: {token_resp.status_code}<br>Response: {token_resp.text}",
+                f"Failed to get access token:<br>Status: {token_resp.status_code}<br>Response: {token_resp.text}",
                 status=token_resp.status_code,
                 content_type="text/html"
                 )
-    access_token = token_resp.json().get("access_token")
+    short_lived_token = token_resp.json().get("access_token")
+
+    # Step 2: Exchange short-lived for LONG-LIVED token
+    exchange_url = "https://graph.instagram.com/access_token"
+    exchange_resp = requests.get(exchange_url, params={
+        "grant_type": "ig_exchange_token",
+        "client_secret": settings.FACEBOOK_APP_SECRET,
+        "access_token": short_lived_token,
+    })
+    if exchange_resp.status_code != 200:
+        return HttpResponse(
+            f"⚠️ Failed to exchange for long-lived token:<br>Status: {exchange_resp.status_code}<br>Response: {exchange_resp.text}",
+            status=exchange_resp.status_code,
+            content_type="text/html"
+        )
+
+    long_lived_token = exchange_resp.json().get("access_token")
 
     # Get instagram User
     ig_resp = requests.get(
         f"https://graph.instagram.com/v22.0/me",
         params={
             "fields": "user_id,username",
-            "access_token": access_token,
+            "access_token": long_lived_token,
         }
     )
 
@@ -490,14 +504,15 @@ def instagram_business_callback(request):
                 content_type="text/html"
                 )
     data = ig_resp.json()
+    print(data)
 
     InstagramBusinessAccount.objects.update_or_create(
         user=request.user,
         instagram_id=data.get("user_id"),
         defaults={
+            "instagram_id": data.get("user_id"),
             "username": data.get("username"),
-            "access_token": access_token,
-            "page_id": "",  # Optional: you can remove or populate if available separately
+            "access_token": long_lived_token,
         }
     )
     return redirect("dashboard")

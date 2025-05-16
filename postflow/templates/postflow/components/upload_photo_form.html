@@ -58,12 +58,23 @@
         <label class="block mt-4 mb-2 text-sm font-medium text-gray-700">Accounts to post</label>
 
         {% if mastodon_accounts %}
-            <h3 class="text-md font-semibold text-gray-600 mt-2">Fediverse (Mastodon)</h3>
+            <h3 class="text-md font-semibold text-gray-600 mt-2">Fediverse accounts</h3>
             <div class="flex flex-wrap gap-2">
                 {% for account in mastodon_accounts %}
                     <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
                         <input type="checkbox" name="social_accounts" value="{{ account.id }}" class="hidden">
                         <span class="select-box">{{ account.username }}@{{ account.instance_url|cut:"https://" }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if instagram_accounts %}
+            <h3 class="text-md font-semibold text-gray-600 mt-2">Instagram accounts</h3>
+            <div class="flex flex-wrap gap-2">
+                {% for account in instagram_accounts %}
+                    <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
+                        <input type="checkbox" name="instagram_accounts" value="{{ account.id }}" class="hidden">
+                        <span class="select-box">{{ account.username }}</span>
                     </label>
                 {% endfor %}
             </div>

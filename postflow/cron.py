@@ -1,7 +1,7 @@
 from .models import ScheduledPost
 import pytz
 import datetime
-from .utils import post_pixelfed
+from .utils import post_pixelfed, post_instagram
 
 
 def post_scheduled():
@@ -12,3 +12,4 @@ def post_scheduled():
     for post in posts:
         # Get the image path
         post_pixelfed(post)
+        post_instagram(post)
