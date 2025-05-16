@@ -24,8 +24,7 @@
         {% endif %}
 
         <p class="text-sm text-gray-500 mt-2">
-            Scheduled for: {{ post.get_local_post_time|date:"F j, Y, g:i A" }} ({{ post.user_timezone }})
-            Scheduled for: {{ post.post_date|date:"F j, Y, g:i A" }}
+            Scheduled for: {{ post.get_local_post_time_str }} ({{ post.user_timezone }})
         </p>
         <!-- Where it will be posted -->
         <p class="text-sm text-gray-700 mt-2">

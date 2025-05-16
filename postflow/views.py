@@ -3,7 +3,7 @@ import base64
 import hmac
 import hashlib
 import uuid
-import urllib
+from django.utils.timezone import make_aware
 import json
 from django.db import IntegrityError
 import requests
@@ -175,8 +175,10 @@ def schedule_post(request):
     try:
         scheduled_datetime = f"{post_date} {post_hour}:{post_minute}:00"
         user_tz = pytz.timezone(user_timezone)
-        localized_datetime = user_tz.localize(datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S"))
+        naive_dt = datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S")
+        localized_datetime = user_tz.localize(naive_dt)
         utc_datetime = localized_datetime.astimezone(pytz.UTC)
+        print(utc_datetime)
 
     except Exception as e:
         context["error"] = "Invalid date and time selected."

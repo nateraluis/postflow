@@ -81,12 +81,11 @@ class ScheduledPost(models.Model):
 
     def get_local_post_time(self):
         user_tz = pytz.timezone(self.user_timezone)
-        if is_naive(self.post_date):
-            # If post_date is naive (no timezone info), assume it's in UTC
-            aware_post_date = pytz.utc.localize(self.post_date)
-        else:
-            aware_post_date = self.post_date
-        return aware_post_date.astimezone(user_tz)
+        return self.post_date.astimezone(user_tz)
+
+    def get_local_post_time_str(self):
+        local_dt = self.get_local_post_time()
+        return local_dt.strftime("%B %d, %Y, %I:%M %p")  # same as "F j, Y, g:i A"
 
     def get_image_file(self):
         """
