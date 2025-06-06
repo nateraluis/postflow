@@ -17,7 +17,7 @@ INSTAGRAM_BUSINESS_REDIRECT_URI = env("INSTAGRAM_BUSINESS_REDIRECT_URI")
 
 ALLOWED_HOSTS = [
     'localhost', '0.0.0.0', '127.0.0.1',
-    'postflow.photo', 'www.postflow.photo', '3.70.194.91', '3.74.49.26',
+    'postflow.photo', 'www.postflow.photo', '3.70.194.91', '3.74.49.26', 'ec2-3-74-49-26.eu-central-1.compute.amazonaws.com',
     'https://postflow.photo', 'https://www.postflow.photo',
     'http://postflow.photo', 'http://www.postflow.photo',
 ]
