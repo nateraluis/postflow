@@ -72,4 +72,4 @@ jobs:
           sudo systemctl daemon-reload
           sudo systemctl enable postflow-watchdog.service
           sudo systemctl restart postflow-watchdog.service
-        EOF
+          EOF
