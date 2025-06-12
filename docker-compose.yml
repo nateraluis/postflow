@@ -4,7 +4,7 @@ services:
   django:
     build: .
     container_name: postflow_django
-    restarts: always
+    restart: always
     healthcheck:
       test: ["CMD-SHELL", "pgrep cron && pgrep uwsgi"]
       interval: 30s
