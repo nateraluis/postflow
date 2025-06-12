@@ -1,0 +1,15 @@
+[Unit]
+Description=Watchdog for postflow_django cron health
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStart=/bin/bash /home/ubuntu/postflow/watchdog.sh
+StandardOutput=append:/var/log/watchdog.log
+StandardError=append:/var/log/watchdog.log
+Restart=always
+RestartSec=5
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target

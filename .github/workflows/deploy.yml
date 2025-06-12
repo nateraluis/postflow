@@ -55,10 +55,21 @@ jobs:
 
       - name: 🚀 SSH and Deploy
         run: |
-          ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-            cd /home/ubuntu/postflow
-            git pull origin main
-            docker-compose down
-            docker-compose up --build -d
-          EOF
+        ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          set -e
+          cd /home/ubuntu/postflow
 
+          echo "🔁 Pulling latest changes..."
+          git pull origin main
+
+          echo "📦 Rebuilding containers..."
+          docker-compose down
+          docker-compose up --build -d
+
+          echo "🐶 Setting up watchdog..."
+          sudo cp postflow-watchdog.service /etc/systemd/system/
+          sudo systemctl daemon-reexec
+          sudo systemctl daemon-reload
+          sudo systemctl enable postflow-watchdog.service
+          sudo systemctl restart postflow-watchdog.service
+        EOF
