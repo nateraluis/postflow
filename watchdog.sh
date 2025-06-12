@@ -1,9 +1,10 @@
 #!/bin/bash
 
 CONTAINER_NAME="postflow_django"
-LOG_FILE="/var/log/watchdog.log"
+LOG_FILE="/home/ubuntu/logs/watchdog.log"
 
-# Ensure log file exists
+# Create log directory if missing
+mkdir -p /home/ubuntu/logs
 touch "$LOG_FILE"
 
 echo "[$(date)] Watchdog started for container: $CONTAINER_NAME" >> "$LOG_FILE"

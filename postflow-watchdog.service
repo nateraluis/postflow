@@ -5,8 +5,8 @@ Requires=docker.service
 
 [Service]
 ExecStart=/bin/bash /home/ubuntu/postflow/watchdog.sh
-StandardOutput=append:/var/log/watchdog.log
-StandardError=append:/var/log/watchdog.log
+StandardOutput=append:/home/ubuntu/logs/watchdog.log
+StandardError=append:/home/ubuntu/logs/watchdog.log
 Restart=always
 RestartSec=5
 User=ubuntu
