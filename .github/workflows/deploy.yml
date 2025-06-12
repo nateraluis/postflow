@@ -66,6 +66,12 @@ jobs:
           docker-compose down
           docker-compose up --build -d
 
+          echo "📁 Ensuring log directory exists..."
+          mkdir -p /home/ubuntu/logs
+          touch /home/ubuntu/logs/watchdog.log
+          chown ubuntu:ubuntu /home/ubuntu/logs/watchdog.log
+          chmod 664 /home/ubuntu/logs/watchdog.log
+
           echo "🐶 Setting up watchdog..."
           sudo cp postflow-watchdog.service /etc/systemd/system/
           sudo systemctl daemon-reexec
