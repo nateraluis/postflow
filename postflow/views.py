@@ -591,3 +591,8 @@ def disconnect_instagram(request, account_id):
             return HttpResponse("", status=204)
 
     return redirect("dashboard")
+
+@require_http_methods(["GET"])
+def privacy_policy(request):
+    """Render the privacy policy page."""
+    return render(request, "postflow/pages/privacy.html")
