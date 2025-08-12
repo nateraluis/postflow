@@ -70,11 +70,11 @@ jobs:
           echo "🔁 Ensure renewer is up..."
           docker-compose up -d certbot-renewer
 
-          echo "🧪 Certbot dry-run (verifies HTTP-01 + permissions without consuming rate limits)..."
-          docker run --rm \
-            -v "$PWD/certbot/conf:/etc/letsencrypt" \
-            -v "$PWD/certbot/www:/var/www/certbot" \
-            certbot/certbot renew --webroot --webroot-path=/var/www/certbot --dry-run || true
+          # echo "🧪 Certbot dry-run (verifies HTTP-01 + permissions without consuming rate limits)..."
+          # docker run --rm \
+          #   -v "$PWD/certbot/conf:/etc/letsencrypt" \
+          #   -v "$PWD/certbot/www:/var/www/certbot" \
+          #   certbot/certbot renew --webroot --webroot-path=/var/www/certbot --dry-run || true
 
           echo "🔄 Reload nginx once (sanity)"
           docker kill -s HUP postflow_nginx || true
