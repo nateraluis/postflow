@@ -36,22 +36,22 @@ services:
       - ./certbot/www:/var/www/certbot
       - ./certbot/conf:/etc/letsencrypt
 
-    certbot-renewer:
-      image: certbot/certbot
-      container_name: certbot_renewer
-      restart: always
-      volumes:
-        - ./certbot/conf:/etc/letsencrypt
-        - ./certbot/www:/var/www/certbot
-        - /var/run/docker.sock:/var/run/docker.sock
-      entrypoint: >
-        sh -c 'while :; do
-                 if certbot renew --webroot --webroot-path=/var/www/certbot --quiet; then
-                   # reload nginx after (possible) renewal; ignore failures if nginx is down briefly
-                   docker compose exec -T postflow_nginx nginx -s reload || true
-                 fi
-                 sleep 12h;
-               done'
+  certbot-renewer:
+    image: certbot/certbot
+    container_name: certbot_renewer
+    restart: always
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: >
+      sh -c 'while :; do
+               if certbot renew --webroot --webroot-path=/var/www/certbot --quiet; then
+                 # reload nginx after (possible) renewal; ignore failures if nginx is down briefly
+                 docker compose exec -T postflow_nginx nginx -s reload || true
+               fi
+               sleep 12h;
+             done'
 
 volumes:
   static_volume:
