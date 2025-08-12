@@ -44,24 +44,8 @@ services:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
       - /var/run/docker.sock:/var/run/docker.sock
-    # Checks twice a day. If certs changed, signals NGINX (HUP) via Docker API.
-    entrypoint: >
-      sh -c 'while :; do
-               changed=0
-               before=$(find /etc/letsencrypt/live -type f \( -name fullchain.pem -o -name privkey.pem \) -printf "%T@ %p\n" 2>/dev/null | sort -n | tail -1 | cut -d" " -f1)
-               certbot renew --webroot --webroot-path=/var/www/certbot --quiet || true
-               after=$(find /etc/letsencrypt/live -type f \( -name fullchain.pem -o -name privkey.pem \) -printf "%T@ %p\n" 2>/dev/null | sort -n | tail -1 | cut -d" " -f1)
-               if [ -n "$before" ] && [ -n "$after" ] && [ "$after" != "$before" ]; then
-                 changed=1
-               fi
-               if [ "$changed" = "1" ]; then
-                 # Reload NGINX inside the postflow_nginx container without docker CLI
-                 curl --unix-socket /var/run/docker.sock -X POST http://localhost/v1.41/containers/postflow_nginx/kill?signal=HUP \
-                 || curl --unix-socket /var/run/docker.sock -X POST http://localhost/v1.24/containers/postflow_nginx/kill?signal=HUP \
-                 || true
-               fi
-               sleep 12h;
-             done'
+      - ./AWS/certbot/renewer.sh:/renewer.sh:ro
+    entrypoint: ["/bin/sh", "/renewer.sh"]
 
 volumes:
   static_volume:
