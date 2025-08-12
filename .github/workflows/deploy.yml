@@ -23,29 +23,23 @@ jobs:
         run: |
           cat <<EOF > .env
           DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
-
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_HOST=${{ secrets.DB_HOST }}
           DB_PORT=${{ secrets.DB_PORT }}
-
           S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }}
           S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}
           S3_AWS_STORAGE_BUCKET_NAME=${{ secrets.S3_AWS_STORAGE_BUCKET_NAME }}
-
           AWS_STORAGE_MEDIA_BUCKET_NAME=${{ secrets.AWS_STORAGE_MEDIA_BUCKET_NAME }}
           MEDIA_ACCESS_KEY=${{ secrets.MEDIA_ACCESS_KEY }}
           MEDIA_SECRET_ACCESS_KEY=${{ secrets.MEDIA_SECRET_ACCESS_KEY }}
-
           REDIRECT_URI=${{ secrets.REDIRECT_URI }}
           AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }}
-          
           FACEBOOK_APP_ID=${{ secrets.FACEBOOK_APP_ID }}
           FACEBOOK_APP_SECRET=${{ secrets.FACEBOOK_APP_SECRET }}
           FACEBOOK_VERIFY_TOKEN=${{ secrets.FACEBOOK_VERIFY_TOKEN }}
           INSTAGRAM_BUSINESS_REDIRECT_URI=${{ secrets.INSTAGRAM_BUSINESS_REDIRECT_URI }}
-
           DEBUG=False
           EOF
 
@@ -62,9 +56,25 @@ jobs:
           echo "🔁 Pulling latest changes..."
           git pull origin main
 
+          echo "🪵 Ensuring ACME folders exist (bind mounts for certbot/nginx)..."
+          mkdir -p certbot/conf certbot/www
+
           echo "📦 Rebuilding containers..."
           docker-compose down
+          # NOTE: do NOT use 'down -v' or you'll delete your certs (they live in ./certbot/conf)
           docker-compose up --build -d
+
+          echo "🔁 Ensure renewer is up..."
+          docker-compose up -d certbot-renewer
+
+          echo "🧪 Certbot dry-run (verifies HTTP-01 + permissions without consuming rate limits)..."
+          docker run --rm \
+            -v "$PWD/certbot/conf:/etc/letsencrypt" \
+            -v "$PWD/certbot/www:/var/www/certbot" \
+            certbot/certbot renew --webroot --webroot-path=/var/www/certbot --dry-run
+
+          echo "🔄 Reload nginx once (sanity)"
+          docker kill -s HUP postflow_nginx || true
 
           echo "📁 Ensuring log directory exists..."
           mkdir -p /home/ubuntu/logs
