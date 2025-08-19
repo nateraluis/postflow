@@ -1,7 +1,7 @@
 # management/commands/refresh_instagram_tokens.py
 from django.core.management.base import BaseCommand
 from postflow.models import InstagramBusinessAccount
-from postflow.utils.instagram import refresh_long_lived_token
+from postflow.views import refresh_long_lived_token
 
 class Command(BaseCommand):
     help = "Refresh Instagram long-lived tokens"
