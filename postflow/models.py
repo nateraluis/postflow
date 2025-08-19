@@ -122,5 +122,5 @@ class InstagramBusinessAccount(models.Model):
     def __str__(self):
         return f"{self.username} (Business)"
 
-    def is_token_expiring(self):
+    def is_token_expiring(self, days=7):
             return self.expires_at and self.expires_at <= now() + timedelta(days=days)
