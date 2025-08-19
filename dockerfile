@@ -21,23 +21,23 @@ RUN pip install -r requirements.txt
 
 # Copy the content of the local src directory to the working directory
 COPY . .
-# Specify the command to run on container start
+
 # Copy the entrypoint script
 COPY entrypoint.sh /entrypoint.sh
-
-# Make the script executable
 RUN chmod +x /entrypoint.sh
 
-# Copy and set up crontab
-# COPY cronjob /etc/cron.d/postflow-cron
-# RUN chmod 0644 /etc/cron.d/postflow-cron && \
-#     crontab /etc/cron.d/postflow-cron
-RUN echo "* * * * * root cd /app && $(which python3) manage.py run_post_scheduled >> /var/log/cron.log 2>&1" > /etc/cron.d/postflow-cron
-RUN chmod 0644 /etc/cron.d/postflow-cron && crontab /etc/cron.d/postflow-cron
+# Create cron jobs
+# 1. Run scheduled posts every minute
+# 2. Refresh Instagram tokens daily at 02:00
+RUN echo "* * * * * root cd /app && $(which python3) manage.py run_post_scheduled >> /var/log/cron.log 2>&1" > /etc/cron.d/postflow-cron \
+    && echo "0 2 * * * root cd /app && $(which python3) manage.py refresh_instagram_tokens >> /var/log/cron.log 2>&1" >> /etc/cron.d/postflow-cron \
+    && chmod 0644 /etc/cron.d/postflow-cron \
+    && crontab /etc/cron.d/postflow-cron
 
 # Use the script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
-#CMD ["python3", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# Default command runs uwsgi
 CMD [ "uwsgi", "--http", "0.0.0.0:8000", \
             "--protocol", "uwsgi", \
             "--wsgi", "core.wsgi:application" ]

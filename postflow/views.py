@@ -400,6 +400,35 @@ def disconnect_mastodon(request, account_id):
 
     return redirect("dashboard")
 
+def refresh_long_lived_token(account: InstagramBusinessAccount) -> bool:
+    """
+    Refresh a long-lived Instagram token.
+    
+    Returns True if refreshed successfully, False otherwise.
+    """
+    refresh_url = "https://graph.instagram.com/refresh_access_token"
+    resp = requests.get(refresh_url, params={
+        "grant_type": "ig_refresh_token",
+        "access_token": account.access_token,
+    })
+
+    if resp.status_code != 200:
+        print(f"Failed to refresh token: {resp.status_code} - {resp.text}")
+        return False
+
+    data = resp.json()
+    new_token = data.get("access_token")
+    expires_in = data.get("expires_in")  # seconds
+
+    if not new_token:
+        return False
+
+    account.access_token = new_token
+    if expires_in:
+        account.expires_at = now() + timedelta(seconds=expires_in)
+    account.last_refreshed_at = now()
+    account.save(update_fields=["access_token", "expires_at", "last_refreshed_at"])
+    return True
 
 @login_required
 @require_http_methods(["GET", "POST"])

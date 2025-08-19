@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.timezone import is_naive
 from django.conf import settings
+from django.utils.timezone import now, timedelta
 from .utils import _get_s3_client
 import pytz
 from io import BytesIO
@@ -115,6 +116,11 @@ class InstagramBusinessAccount(models.Model):
     instagram_id = models.CharField(max_length=255)
     username = models.CharField(max_length=255)
     access_token = models.TextField(help_text="Page access token with access to IG account")
+    expires_at = models.DateTimeField(null=True, blank=True)
+    last_refreshed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.username} (Business)"
+
+    def is_token_expiring(self):
+            return self.expires_at and self.expires_at <= now() + timedelta(days=days)
