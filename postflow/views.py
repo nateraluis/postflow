@@ -542,6 +542,7 @@ def instagram_business_callback(request):
             "instagram_id": data.get("user_id"),
             "username": data.get("username"),
             "access_token": long_lived_token,
+            "expires_at": now() + timedelta(days=80),
         }
     )
     return redirect("dashboard")
