@@ -22,6 +22,9 @@
       <script src="{% static 'ext/event-header.js' %}" defer></script>
       <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
       {% tailwind_css %}
+      <script defer data-domain="postflow.photo" src="https://plausible.io/js/script.file-downloads.hash.outbound-links.pageview-props.revenue.tagged-events.js"></script>
+<script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+
       <script>
           document.addEventListener("htmx:load", function () {
             setUserTimezone();  // Runs when HTMX loads new content
