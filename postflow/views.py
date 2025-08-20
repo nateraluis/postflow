@@ -17,7 +17,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
-from .models import Tag, TagGroup, MastodonAccount, ScheduledPost, InstagramBusinessAccount
+from .models import Tag, TagGroup, MastodonAccount, ScheduledPost, InstagramBusinessAccount, Subscriber
 from .utils import get_s3_signed_url, upload_to_s3, post_pixelfed
 import pytz
 from datetime import datetime, timedelta
@@ -84,7 +84,7 @@ def register(request):
         else:
             logger.debug("❌ Form is invalid. Errors:", form.errors)
             context["form"] = form
-    return render(request, "postflow/signup.html", context)
+    return render(request, "postflow/pages/signup_comming.html", context)
 
 
 @login_required
@@ -627,5 +627,13 @@ def privacy_policy(request):
     """Render the privacy policy page."""
     return render(request, "postflow/pages/privacy.html")
 
+@require_http_methods(["POST"])
 def subscribe(request):
-    pass
+    """Handle email subscription."""
+    email = request.POST.get("email", "").strip()
+    if not email:
+        return JsonResponse({"error": "Email is required."}, status=400)
+    subscriber, created = Subscriber.objects.get_or_create(email=email)
+    if not created:
+        return render(request, "postflow/components/partials/subscribe_already.html", {"email": email})
+    return render(request, "postflow/components/partials/subscribe_success.html", {"email": email})

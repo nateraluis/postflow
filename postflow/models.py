@@ -124,3 +124,14 @@ class InstagramBusinessAccount(models.Model):
 
     def is_token_expiring(self, days=7):
             return self.expires_at and self.expires_at <= now() + timedelta(days=days)
+
+class Subscriber(models.Model):
+    email = models.EmailField(unique=True, help_text="Email address of the subscriber")
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email
+
+    class Meta:
+        verbose_name_plural = "Subscribers"
+        ordering = ["-subscribed_at"]
