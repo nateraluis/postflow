@@ -626,3 +626,6 @@ def disconnect_instagram(request, account_id):
 def privacy_policy(request):
     """Render the privacy policy page."""
     return render(request, "postflow/pages/privacy.html")
+
+def subscribe(request):
+    pass

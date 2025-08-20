@@ -23,4 +23,5 @@ urlpatterns = [
     path("accounts/instagram/business/data-deletion/", views.instagram_data_deletion, name="instagram_business_data_deletion"),
     path("instagram/disconnect/<int:account_id>/", views.disconnect_instagram, name="disconnect_instagram"),
     path("privacy/", views.privacy_policy, name="privacy_policy"),
+    path("subscribe/", views.subscribe, name="subscribe"),
 ]
