@@ -17,12 +17,18 @@ class SubscriptionRequiredMiddleware:
             '/logout/',
             '/signup/',
             '/register/',
+            '/privacy/',
+            '/subscribe/',
             '/subscriptions/',
             '/subscriptions/pricing/',
             '/subscriptions/checkout/',
             '/subscriptions/success/',
             '/subscriptions/webhook/',
             '/subscriptions/subscription-inactive/',
+            '/accounts/instagram/business/callback/',
+            '/accounts/instagram/business/deauthorize/',
+            '/accounts/instagram/business/data-deletion/',
+            '/webhooks/facebook/',
             '/__reload__/',
         ]
 
@@ -51,9 +57,13 @@ class SubscriptionRequiredMiddleware:
         """Check if the current URL requires a subscription"""
         path = request.path
 
-        # Check if URL is exempt
+        # Check for exact matches first (landing page)
+        if path == '/':
+            return False
+
+        # Check if URL starts with exempt patterns
         for exempt_url in self.exempt_urls:
-            if path.startswith(exempt_url):
+            if exempt_url != '/' and path.startswith(exempt_url):
                 return False
 
         # All other URLs require subscription
