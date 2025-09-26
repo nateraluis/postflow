@@ -62,12 +62,12 @@ def create_checkout_session(request):
 
         # Set pricing based on plan
         if plan == 'yearly':
-            price_id = 'postflow-yearly'  # Use the Stripe price ID for yearly plan
+            price_id = 'price_1SBGgGPTgcVifYXMrK8kEsxD'  # Use the Stripe price ID for yearly plan
             unit_amount = 10000  # $100.00 in cents
             interval = 'year'
             product_name = 'PostFlow Premium (Yearly)'
         else:
-            price_id = 'postflow-monthly'  # Use the Stripe price ID for monthly plan
+            price_id = 'price_1SBGgGPTgcVifYXMSHCFXjZv'  # Use the Stripe price ID for monthly plan
             unit_amount = 1000  # $10.00 in cents
             interval = 'month'
             product_name = 'PostFlow Premium (Monthly)'
