@@ -15,6 +15,12 @@ FACEBOOK_APP_SECRET = env("FACEBOOK_APP_SECRET")
 FACEBOOK_VERIFY_TOKEN = env("FACEBOOK_VERIFY_TOKEN")
 INSTAGRAM_BUSINESS_REDIRECT_URI = env("INSTAGRAM_BUSINESS_REDIRECT_URI")
 
+# Stripe Configuration
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET")
+STRIPE_PRICE_LOOKUP_KEY = "standard_monthly"
+
 ALLOWED_HOSTS = [
     'localhost', '0.0.0.0', '127.0.0.1',
     'postflow.photo', 'www.postflow.photo', '3.70.194.91', '3.74.49.26', 'ec2-3-74-49-26.eu-central-1.compute.amazonaws.com',
@@ -40,6 +46,7 @@ INSTALLED_APPS = [
     'tailwind',
     'theme',
     'postflow',
+    'subscriptions',
     'django_browser_reload',
     'django_htmx',
 ]
@@ -53,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'subscriptions.middleware.SubscriptionRequiredMiddleware',
     "django_browser_reload.middleware.BrowserReloadMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
 ]

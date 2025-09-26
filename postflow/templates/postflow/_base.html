@@ -103,11 +103,24 @@
             </ul>
           </li>
   
+          <!-- Billing/Subscription -->
+          <li>
+            <a href="{% url 'subscriptions:customer_portal' %}" class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold text-gray-400 hover:bg-gray-800 hover:text-white">
+              <img src="{% static 'postflow/icons/calendar.svg' %}" class="size-6 shrink-0" alt="Billing icon" />
+              Billing
+              {% if user.is_subscribed %}
+                <span class="ml-auto inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">Active</span>
+              {% else %}
+                <span class="ml-auto inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">Inactive</span>
+              {% endif %}
+            </a>
+          </li>
+
           <!-- Profile & Logout -->
           <li class="-mx-6 mt-auto">
             <a href="#" class="flex items-center gap-x-4 px-6 text-sm font-semibold text-white hover:bg-gray-800">
-              <img class="size-8 rounded-full bg-gray-800" 
-                   src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" 
+              <img class="size-8 rounded-full bg-gray-800"
+                   src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
                    alt="">
               <span class="sr-only">Your profile</span>
               <span aria-hidden="true">{{ request.user.first_name }} {{ request.user.last_name }}</span>
@@ -139,6 +152,14 @@
       <a href="{% url 'dashboard' %}" class="block text-white font-semibold">Dashboard</a>
       <a href="{% url 'hashtag-groups' %}" class="block text-gray-300 hover:text-white">Hashtags</a>
       <a href="{% url 'calendar' %}" class="block text-gray-300 hover:text-white">Calendar</a>
+      <a href="{% url 'subscriptions:customer_portal' %}" class="flex items-center justify-between text-gray-300 hover:text-white">
+        <span>Billing</span>
+        {% if user.is_subscribed %}
+          <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">Active</span>
+        {% else %}
+          <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">Inactive</span>
+        {% endif %}
+      </a>
       <hr class="border-gray-700">
       <a href="#" class="flex items-center gap-3 text-white">
         <img class="w-8 h-8 rounded-full bg-gray-800" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">

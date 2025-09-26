@@ -18,6 +18,22 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.email
 
+    @property
+    def is_subscribed(self):
+        """Check if user has an active subscription"""
+        try:
+            return self.subscription.is_active
+        except AttributeError:
+            return False
+
+    @property
+    def subscription_status(self):
+        """Get user's subscription status"""
+        try:
+            return self.subscription.status
+        except AttributeError:
+            return 'none'
+
 
 class Tag(models.Model):
     name = models.CharField(max_length=255, db_index=True, help_text="Name of the hashtag (e.g., #example)")

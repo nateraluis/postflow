@@ -24,6 +24,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path("", include("postflow.urls")),
     path('admin/', admin.site.urls),
+    path('subscriptions/', include('subscriptions.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
 ]
 

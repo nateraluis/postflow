@@ -80,11 +80,11 @@ def register(request):
                 login(request, user)
             else:
                 logger.debug("❌ Authentication failed for:", username)
-            return redirect("profile", username=username)
+            return redirect("subscriptions:pricing")
         else:
             logger.debug("❌ Form is invalid. Errors:", form.errors)
             context["form"] = form
-    return render(request, "postflow/pages/signup_comming.html", context)
+    return render(request, "postflow/signup.html", context)
 
 
 @login_required
