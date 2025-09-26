@@ -1,0 +1,151 @@
+{% extends "postflow/_base_web.html" %}
+
+{% block title %}Subscription Required - PostFlow{% endblock %}
+
+{% block main %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+            <!-- Icon -->
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-6">
+                <svg class="h-8 w-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 18.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+            </div>
+
+            <!-- Title -->
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">
+                Subscription Required
+            </h1>
+
+            <!-- Subscription Status -->
+            <div class="mb-6">
+                <p class="text-lg text-gray-600 mb-2">
+                    Your subscription is currently:
+                    <span class="font-semibold
+                        {% if user.subscription_status == 'past_due' %}text-yellow-600
+                        {% elif user.subscription_status == 'canceled' %}text-red-600
+                        {% elif user.subscription_status == 'unpaid' %}text-red-600
+                        {% else %}text-gray-600{% endif %}">
+                        {{ user.subscription_status|title }}
+                    </span>
+                </p>
+
+                {% if user.subscription.current_period_end %}
+                    <p class="text-sm text-gray-500">
+                        {% if user.subscription_status == 'past_due' %}
+                            Payment was due on {{ user.subscription.current_period_end|date:"F j, Y" }}
+                        {% elif user.subscription_status == 'canceled' %}
+                            Subscription ended on {{ user.subscription.current_period_end|date:"F j, Y" }}
+                        {% else %}
+                            Subscription period ended on {{ user.subscription.current_period_end|date:"F j, Y" }}
+                        {% endif %}
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Message based on status -->
+            <div class="mb-8">
+                {% if user.subscription_status == 'past_due' %}
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                        <h3 class="text-lg font-medium text-yellow-800 mb-2">Payment Required</h3>
+                        <p class="text-yellow-700">
+                            Your subscription payment is past due. Update your payment method to restore access to all PostFlow features.
+                        </p>
+                    </div>
+                {% elif user.subscription_status == 'canceled' %}
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                        <h3 class="text-lg font-medium text-red-800 mb-2">Subscription Canceled</h3>
+                        <p class="text-red-700">
+                            Your subscription has been canceled. Subscribe again to continue scheduling posts and using all PostFlow features.
+                        </p>
+                    </div>
+                {% elif user.subscription_status == 'unpaid' %}
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                        <h3 class="text-lg font-medium text-red-800 mb-2">Payment Failed</h3>
+                        <p class="text-red-700">
+                            We couldn't process your payment. Please update your payment information to restore access.
+                        </p>
+                    </div>
+                {% else %}
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                        <h3 class="text-lg font-medium text-gray-800 mb-2">Subscription Inactive</h3>
+                        <p class="text-gray-700">
+                            Your subscription is not currently active. Subscribe to PostFlow Premium to access all features.
+                        </p>
+                    </div>
+                {% endif %}
+
+                <p class="text-gray-600 mb-4">
+                    To continue using PostFlow's scheduling features, you'll need an active subscription.
+                </p>
+
+                <!-- Features list -->
+                <div class="text-left max-w-md mx-auto mb-6">
+                    <h4 class="font-medium text-gray-900 mb-3">PostFlow Premium includes:</h4>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Schedule posts to Mastodon/Pixelfed
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Schedule posts to Instagram Business
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Hashtag groups and management
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Timezone-aware scheduling
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-4">
+                {% if user.subscription_status == 'past_due' or user.subscription_status == 'unpaid' %}
+                    <!-- For past due/unpaid, prioritize updating payment -->
+                    <a href="https://billing.stripe.com/p/login/test_00000000000000"
+                       target="_blank"
+                       class="w-full bg-blue-600 text-white py-3 px-6 rounded-md font-medium hover:bg-blue-700 transition duration-200 inline-block">
+                        Update Payment Method
+                    </a>
+                    <a href="{% url 'subscriptions:pricing' %}"
+                       class="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-md font-medium hover:bg-gray-200 transition duration-200 inline-block">
+                        View Pricing Plans
+                    </a>
+                {% else %}
+                    <!-- For canceled/other statuses, prioritize new subscription -->
+                    <a href="{% url 'subscriptions:pricing' %}"
+                       class="w-full bg-blue-600 text-white py-3 px-6 rounded-md font-medium hover:bg-blue-700 transition duration-200 inline-block">
+                        Subscribe to PostFlow Premium
+                    </a>
+                {% endif %}
+
+                <div class="text-sm text-gray-500">
+                    Questions? <a href="mailto:support@postflow.photo" class="text-blue-600 hover:text-blue-800">Contact support</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional help -->
+        <div class="mt-8 text-center">
+            <p class="text-sm text-gray-500">
+                <a href="{% url 'logout' %}" class="text-blue-600 hover:text-blue-800">Sign out</a> or
+                <a href="{% url 'home' %}" class="text-blue-600 hover:text-blue-800">return to home page</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

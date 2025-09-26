@@ -106,6 +106,25 @@ def subscription_success(request):
 
 
 @login_required
+def subscription_inactive(request):
+    """Display inactive subscription page for users with expired/canceled subscriptions"""
+    # If user has an active subscription, redirect them away
+    if request.user.is_subscribed:
+        messages.info(request, "Your subscription is active!")
+        return redirect('dashboard')
+
+    # Check if user has any subscription record (inactive)
+    try:
+        subscription = request.user.subscription
+        # If they have a subscription record but it's not active, show the inactive page
+        return render(request, 'subscriptions/subscription_inactive.html')
+    except AttributeError:
+        # If they have no subscription at all, redirect to pricing
+        messages.info(request, "Subscribe to PostFlow Premium to access all features.")
+        return redirect('subscriptions:pricing')
+
+
+@login_required
 def customer_portal(request):
     """Redirect to Stripe Customer Portal for subscription management"""
     try:

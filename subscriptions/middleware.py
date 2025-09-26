@@ -22,6 +22,7 @@ class SubscriptionRequiredMiddleware:
             '/subscriptions/checkout/',
             '/subscriptions/success/',
             '/subscriptions/webhook/',
+            '/subscriptions/subscription-inactive/',
             '/__reload__/',
         ]
 
@@ -33,9 +34,15 @@ class SubscriptionRequiredMiddleware:
                 messages.info(request, "Please sign in to access PostFlow.")
                 return redirect('login')
             elif not request.user.is_subscribed:
-                # Redirect to pricing
-                messages.info(request, "Subscribe to PostFlow Premium to access all features.")
-                return redirect('subscriptions:pricing')
+                # Check if user has an inactive subscription vs no subscription
+                if request.user.subscription_status != 'none':
+                    # User has an inactive subscription - redirect to inactive page
+                    messages.info(request, "Your subscription is inactive. Please reactivate to continue.")
+                    return redirect('subscriptions:subscription_inactive')
+                else:
+                    # User has no subscription - redirect to pricing
+                    messages.info(request, "Subscribe to PostFlow Premium to access all features.")
+                    return redirect('subscriptions:pricing')
 
         response = self.get_response(request)
         return response

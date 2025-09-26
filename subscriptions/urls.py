@@ -9,4 +9,5 @@ urlpatterns = [
     path('success/', views.subscription_success, name='success'),
     path('portal/', views.customer_portal, name='customer_portal'),
     path('webhook/', views.stripe_webhook, name='webhook'),
+    path('subscription-inactive/', views.subscription_inactive, name='subscription_inactive'),
 ]
