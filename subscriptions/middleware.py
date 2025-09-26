@@ -11,6 +11,7 @@ class SubscriptionRequiredMiddleware:
 
         # URLs that don't require subscription
         self.exempt_urls = [
+            '/',  # Landing page
             '/admin/',
             '/login/',
             '/logout/',
