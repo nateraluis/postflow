@@ -171,9 +171,10 @@ def _validate_image_url(image_url: str, timeout: int = 10) -> bool:
         return False
 
 
-def _parse_instagram_error(response) -> str:
+def _parse_instagram_error(response) -> tuple:
     """
-    Extracts detailed error message from Instagram API response.
+    Extracts error code and message from Instagram API response.
+    Returns: (error_code, error_message)
     """
     try:
         error_data = response.json()
@@ -183,12 +184,12 @@ def _parse_instagram_error(response) -> str:
                 error_msg = error.get("message", str(error))
                 error_code = error.get("code", "unknown")
                 error_type = error.get("type", "unknown")
-                return f"{error_type} ({error_code}): {error_msg}"
+                return (error_code, f"{error_type} ({error_code}): {error_msg}")
             else:
-                return str(error)
-        return response.text[:500]  # Limit response text
+                return ("unknown", str(error))
+        return ("unknown", response.text[:500])  # Limit response text
     except (ValueError, KeyError):
-        return response.text[:500]
+        return ("unknown", response.text[:500])
 
 
 def post_instagram(scheduled_post, retry_count=0, max_retries=2):
@@ -289,59 +290,82 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
 
             logger.debug(f"Created media container: {container_id}")
 
-            # Step 2: Publish the container
+            # Step 2: Publish the container (with retry logic for media availability)
             publish_url = f"https://graph.instagram.com/v22.0/{account.instagram_id}/media_publish"
             publish_payload = {
                 "creation_id": container_id,
                 "access_token": account.access_token,
             }
 
-            logger.debug(f"Publishing media container at {publish_url}")
-            publish_response = requests.post(publish_url, data=publish_payload, timeout=15)
+            # Retry publishing up to 3 times if media is not available
+            max_publish_retries = 3
+            publish_attempt = 0
 
-            # Check publish response
-            if publish_response.status_code != 200:
-                error_msg = _parse_instagram_error(publish_response)
-                logger.error(f"Failed to publish media for @{account.username}: {error_msg}")
+            while publish_attempt < max_publish_retries:
+                logger.debug(f"Publishing media container (attempt {publish_attempt + 1}/{max_publish_retries}) at {publish_url}")
+                publish_response = requests.post(publish_url, data=publish_payload, timeout=15)
 
-                # Retry on transient errors
-                if publish_response.status_code >= 500 and retry_count < max_retries:
-                    logger.warning(f"Transient error on publish. Retrying in 2 seconds (attempt {retry_count + 1}/{max_retries})")
-                    time.sleep(2)
-                    return post_instagram(scheduled_post, retry_count=retry_count + 1, max_retries=max_retries)
+                # Check publish response
+                if publish_response.status_code == 200:
+                    # Success - extract media ID
+                    try:
+                        publish_data = publish_response.json()
+                        ig_media_id = publish_data.get("id")
 
+                        if ig_media_id:
+                            logger.info(f"Successfully posted to Instagram @{account.username}, media ID: {ig_media_id}")
+                            # Mark as posted and store media ID
+                            scheduled_post.status = "posted"
+                            scheduled_post.instagram_media_id = ig_media_id
+                            scheduled_post.save(update_fields=["status", "instagram_media_id"])
+                            # Add small delay between multiple accounts to avoid rate limiting
+                            time.sleep(1)
+                            break  # Exit the retry loop on success
+                        else:
+                            logger.error(f"No media ID returned from Instagram for @{account.username}")
+                            scheduled_post.status = "failed"
+                            scheduled_post.save(update_fields=["status"])
+                            return
+                    except (ValueError, KeyError) as e:
+                        logger.error(f"Error parsing publish response: {str(e)}")
+                        scheduled_post.status = "failed"
+                        scheduled_post.save(update_fields=["status"])
+                        return
+
+                elif publish_response.status_code != 200:
+                    error_code, error_msg = _parse_instagram_error(publish_response)
+                    logger.error(f"Failed to publish media for @{account.username}: {error_msg}")
+
+                    # Special handling for error 9007: Media ID is not available (media still processing)
+                    if error_code == "9007" and publish_attempt < max_publish_retries - 1:
+                        wait_time = 2 * (publish_attempt + 1)  # 2s, 4s, 6s
+                        logger.warning(f"Media not ready yet (error 9007). Retrying in {wait_time}s (attempt {publish_attempt + 1}/{max_publish_retries})")
+                        time.sleep(wait_time)
+                        publish_attempt += 1
+                        continue
+
+                    # Retry on transient errors (5xx)
+                    if publish_response.status_code >= 500 and publish_attempt < max_publish_retries - 1:
+                        wait_time = 2 * (publish_attempt + 1)
+                        logger.warning(f"Transient server error on publish. Retrying in {wait_time}s (attempt {publish_attempt + 1}/{max_publish_retries})")
+                        time.sleep(wait_time)
+                        publish_attempt += 1
+                        continue
+
+                    # Non-retriable errors - mark as failed and return
+                    scheduled_post.status = "failed"
+                    scheduled_post.save(update_fields=["status"])
+                    return
+
+                # Increment attempt counter if we get here without break or return
+                publish_attempt += 1
+
+            # If we've exhausted retries, mark as failed
+            if publish_attempt >= max_publish_retries:
+                logger.error(f"Failed to publish media for @{account.username} after {max_publish_retries} attempts")
                 scheduled_post.status = "failed"
                 scheduled_post.save(update_fields=["status"])
                 return
-
-            try:
-                publish_response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                error_msg = _parse_instagram_error(publish_response)
-                logger.error(f"HTTP error publishing: {error_msg}")
-                scheduled_post.status = "failed"
-                scheduled_post.save(update_fields=["status"])
-                return
-
-            # Extract media ID from publish response
-            publish_data = publish_response.json()
-            ig_media_id = publish_data.get("id")
-
-            if not ig_media_id:
-                logger.error(f"No media ID returned from Instagram for @{account.username}")
-                scheduled_post.status = "failed"
-                scheduled_post.save(update_fields=["status"])
-                return
-
-            logger.info(f"Successfully posted to Instagram @{account.username}, media ID: {ig_media_id}")
-
-            # Mark as posted and store media ID
-            scheduled_post.status = "posted"
-            scheduled_post.instagram_media_id = ig_media_id
-            scheduled_post.save(update_fields=["status", "instagram_media_id"])
-
-            # Add small delay between multiple accounts to avoid rate limiting
-            time.sleep(1)
 
         except requests.exceptions.Timeout:
             logger.error(f"Timeout posting to Instagram @{account.username}")
