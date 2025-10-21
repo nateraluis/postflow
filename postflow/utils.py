@@ -123,7 +123,7 @@ def post_instagram(scheduled_post):
         try:
             print(f"Posting to Instagram Business Account @{account.username}")
             # Step 1: Create media container
-            create_url = f"https://graph.instagram.com/v22.0/{account.instagram_id}/media"
+            create_url = f"https://graph.instagram.com/v24.0/{account.instagram_id}/media"
             media_payload = {
                 "image_url": image_url,
                 "caption": full_caption,
@@ -136,6 +136,7 @@ def post_instagram(scheduled_post):
 
             if media_response.status_code != 200:
                 raise Exception(f"Instagram media container creation failed: {media_response.text}")
+
 
             if not container_id:
                 raise Exception("No container ID returned.")
