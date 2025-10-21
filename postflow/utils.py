@@ -159,5 +159,7 @@ def post_instagram(scheduled_post):
 
         except requests.RequestException as e:
             print(f"❌ Instagram post failed for @{account.username}: {e}")
+            # print more details. Not only bad request, but the full response
+            print(f"Response: {e.response.text if e.response else 'No response'}")
             scheduled_post.status = "failed"
             scheduled_post.save(update_fields=["status"])
