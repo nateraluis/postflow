@@ -92,6 +92,7 @@ class ScheduledPost(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     mastodon_media_id = models.CharField(max_length=255, blank=True, null=True)  # Stores media ID from Mastodon
     mastodon_post_id = models.CharField(max_length=255, blank=True, null=True)  # Stores the scheduled post ID
+    instagram_media_id = models.CharField(max_length=255, blank=True, null=True)  # Stores media ID from Instagram
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
