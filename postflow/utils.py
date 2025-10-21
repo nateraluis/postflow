@@ -145,12 +145,14 @@ def _validate_instagram_caption(caption: str) -> bool:
     return True
 
 
-def _validate_image_url(image_url: str, timeout: int = 5) -> bool:
+def _validate_image_url(image_url: str, timeout: int = 10) -> bool:
     """
     Validates that image URL is accessible and returns a valid image.
+    Uses GET instead of HEAD to better test Instagram's ability to download.
     """
     try:
-        response = requests.head(image_url, timeout=timeout, allow_redirects=True)
+        # Use GET with stream=True to check accessibility without downloading full file
+        response = requests.get(image_url, timeout=timeout, allow_redirects=True, stream=True)
         response.raise_for_status()
 
         content_type = response.headers.get("content-type", "")
@@ -200,7 +202,8 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
         max_retries: Maximum retry attempts for transient errors
     """
     # Generate a signed URL for Instagram to download the image
-    image_url = get_s3_signed_url(scheduled_post.image.name, expiration=7200)  # 2-hour expiration
+    # Use 24-hour expiration to ensure Instagram has plenty of time to download
+    image_url = get_s3_signed_url(scheduled_post.image.name, expiration=86400)  # 24-hour expiration
     if not image_url:
         logger.error(f"Could not generate signed URL for scheduled post ID {scheduled_post.id}")
         scheduled_post.status = "failed"
