@@ -83,6 +83,7 @@ def post_pixelfed(scheduled_post):
         files = {"file": ("image.jpg", image_file, "image/jpeg")}
 
         try:
+            print(f"Posting to Pixelfed account @{account.username} on {account.instance_url}")
             pixelfed_api_status = account.instance_url + "/api/v1.1/status/create"
             response = requests.post(pixelfed_api_status, headers=headers, files=files, data=data)
             response.raise_for_status()
@@ -92,6 +93,7 @@ def post_pixelfed(scheduled_post):
             scheduled_post.mastodon_post_id = post_response.get("id")
             scheduled_post.status = "posted"
             scheduled_post.save(update_fields=["mastodon_post_id", "status"])
+            print(f"✅ Posted to Pixelfed @{account.username}, post ID: {scheduled_post.mastodon_post_id}")
 
         except requests.RequestException as e:
             print(f"Failed to schedule post on Mastodon: {e}")
@@ -119,6 +121,7 @@ def post_instagram(scheduled_post):
 
     for account in scheduled_post.instagram_accounts.all():
         try:
+            print(f"Posting to Instagram Business Account @{account.username}")
             # Step 1: Create media container
             create_url = f"https://graph.instagram.com/v22.0/{account.instagram_id}/media"
             media_payload = {
@@ -130,6 +133,9 @@ def post_instagram(scheduled_post):
             media_response = requests.post(create_url, data=media_payload)
             media_response.raise_for_status()
             container_id = media_response.json().get("id")
+
+            if media_response.status_code != 200:
+                raise Exception(f"Instagram media container creation failed: {media_response.text}")
 
             if not container_id:
                 raise Exception("No container ID returned.")

@@ -188,9 +188,9 @@ def schedule_post(request):
         logger.error(f"Invalid date and time: {e}")
         return response
 
-    # Ensure the scheduled time is in the future (at least 5 min)
+    # Ensure the scheduled time is in the future (at least 30 seconds)
     current_utc_time = now()
-    min_allowed_time = current_utc_time + timedelta(minutes=5)
+    min_allowed_time = current_utc_time + timedelta(seconds=30)
 
     if utc_datetime < min_allowed_time:
         context["error"] = "The scheduled time must be at least 5 minutes in the future."

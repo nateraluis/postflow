@@ -6,6 +6,6 @@ class Command(BaseCommand):
     help = 'Runs the post_scheduled function from postflow.cron'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write("Running post_scheduled...")
+        # self.stdout.write("Running post_scheduled...")
         post_scheduled()
-        self.stdout.write("Done.")
+        # self.stdout.write("Done.")
