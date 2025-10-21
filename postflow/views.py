@@ -400,35 +400,97 @@ def disconnect_mastodon(request, account_id):
 
     return redirect("dashboard")
 
-def refresh_long_lived_token(account: InstagramBusinessAccount) -> bool:
+def refresh_long_lived_token(account: InstagramBusinessAccount, retry_count=0, max_retries=3) -> bool:
     """
-    Refresh a long-lived Instagram token.
-    
+    Refresh a long-lived Instagram token with retry logic.
+
+    Args:
+        account: InstagramBusinessAccount instance to refresh
+        retry_count: Current retry attempt number (internal use)
+        max_retries: Maximum number of retry attempts for transient failures
+
     Returns True if refreshed successfully, False otherwise.
     """
     refresh_url = "https://graph.instagram.com/refresh_access_token"
-    resp = requests.get(refresh_url, params={
-        "grant_type": "ig_refresh_token",
-        "access_token": account.access_token,
-    })
 
-    if resp.status_code != 200:
-        print(f"Failed to refresh token: {resp.status_code} - {resp.text}")
+    try:
+        resp = requests.get(refresh_url, params={
+            "grant_type": "ig_refresh_token",
+            "access_token": account.access_token,
+        }, timeout=10)
+    except requests.exceptions.Timeout:
+        if retry_count < max_retries:
+            logger.warning(f"Token refresh timeout for {account.username} (attempt {retry_count + 1}/{max_retries}). Retrying...")
+            # Exponential backoff: 1s, 2s, 4s
+            wait_time = 2 ** retry_count
+            __import__('time').sleep(wait_time)
+            return refresh_long_lived_token(account, retry_count=retry_count + 1, max_retries=max_retries)
+        else:
+            logger.error(f"Token refresh failed for {account.username}: Timeout after {max_retries} retries")
+            return False
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Token refresh request failed for {account.username}: {str(e)}")
         return False
 
-    data = resp.json()
+    # Handle non-200 responses
+    if resp.status_code != 200:
+        try:
+            error_data = resp.json()
+            error_msg = error_data.get("error", {})
+            error_type = error_msg.get("type") if isinstance(error_msg, dict) else str(error_msg)
+            error_message = error_msg.get("message", "Unknown error") if isinstance(error_msg, dict) else str(error_msg)
+        except (ValueError, KeyError):
+            error_type = "unknown"
+            error_message = resp.text[:200]  # Limit error text length
+
+        # Check if error is authentication-related (token revoked, invalid, etc.)
+        auth_error_indicators = ["OAuthException", "Invalid OAuth access token", "revoked", "expired"]
+        is_auth_error = any(indicator.lower() in (error_type.lower() or error_message.lower()) for indicator in auth_error_indicators)
+
+        if is_auth_error:
+            logger.error(f"Authentication error for {account.username}: {error_type} - {error_message}. Token may be revoked.")
+            # Mark account as having auth issues but don't retry
+            return False
+
+        # Transient errors: 500, 502, 503, 504 - retry these
+        if resp.status_code >= 500 and retry_count < max_retries:
+            logger.warning(f"Transient server error for {account.username} ({resp.status_code}), attempt {retry_count + 1}/{max_retries}. Retrying...")
+            wait_time = 2 ** retry_count
+            __import__('time').sleep(wait_time)
+            return refresh_long_lived_token(account, retry_count=retry_count + 1, max_retries=max_retries)
+
+        logger.error(f"Failed to refresh token for {account.username}: HTTP {resp.status_code} - {error_type}: {error_message}")
+        return False
+
+    # Parse and validate response
+    try:
+        data = resp.json()
+    except ValueError:
+        logger.error(f"Invalid JSON response from Instagram API for {account.username}")
+        return False
+
     new_token = data.get("access_token")
     expires_in = data.get("expires_in")  # seconds
 
+    # Validate token response
     if not new_token:
+        logger.error(f"No access_token in response for {account.username}")
         return False
 
-    account.access_token = new_token
-    if expires_in:
+    if not expires_in or not isinstance(expires_in, int) or expires_in < 3600:
+        logger.warning(f"Invalid or missing expires_in for {account.username}: {expires_in}. Using default 60 days.")
+        expires_in = 60 * 86400  # Default to 60 days if missing
+
+    try:
+        account.access_token = new_token
         account.expires_at = now() + timedelta(seconds=expires_in)
-    account.last_refreshed_at = now()
-    account.save(update_fields=["access_token", "expires_at", "last_refreshed_at"])
-    return True
+        account.last_refreshed_at = now()
+        account.save(update_fields=["access_token", "expires_at", "last_refreshed_at"])
+        logger.info(f"Successfully refreshed token for {account.username}. Expires in {expires_in // 86400} days.")
+        return True
+    except Exception as e:
+        logger.error(f"Database error while saving refreshed token for {account.username}: {str(e)}")
+        return False
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -515,7 +577,16 @@ def instagram_business_callback(request):
             content_type="text/html"
         )
 
-    long_lived_token = exchange_resp.json().get("access_token")
+    exchange_data = exchange_resp.json()
+    long_lived_token = exchange_data.get("access_token")
+    expires_in = exchange_data.get("expires_in")  # seconds
+
+    if not long_lived_token:
+        return HttpResponse(
+            f"⚠️ Failed to get long-lived token from exchange:<br>Response: {exchange_resp.text}",
+            status=400,
+            content_type="text/html"
+        )
 
     # Get instagram User
     ig_resp = requests.get(
@@ -533,7 +604,15 @@ def instagram_business_callback(request):
                 content_type="text/html"
                 )
     data = ig_resp.json()
-    print(data)
+    logger.info(f"Instagram user data retrieved: {data.get('username')}")
+
+    # Calculate actual token expiration - use expires_in from exchange if available, default to 60 days
+    if expires_in and isinstance(expires_in, int) and expires_in > 3600:
+        token_expires_at = now() + timedelta(seconds=expires_in)
+        logger.info(f"Token expires in {expires_in // 86400} days")
+    else:
+        token_expires_at = now() + timedelta(days=60)
+        logger.warning(f"No valid expires_in received, defaulting to 60 days")
 
     InstagramBusinessAccount.objects.update_or_create(
         user=request.user,
@@ -542,9 +621,10 @@ def instagram_business_callback(request):
             "instagram_id": data.get("user_id"),
             "username": data.get("username"),
             "access_token": long_lived_token,
-            "expires_at": now() + timedelta(days=80),
+            "expires_at": token_expires_at,
         }
     )
+    logger.info(f"Instagram account created/updated for user {request.user.email}: {data.get('username')}")
     return redirect("dashboard")
 
 

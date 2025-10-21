@@ -28,9 +28,10 @@ RUN chmod +x /entrypoint.sh
 
 # Create cron jobs
 # 1. Run scheduled posts every minute
-# 2. Refresh Instagram tokens daily at 02:00
+# 2. Refresh Instagram tokens every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+#    Checks tokens expiring within 2 days for early detection
 RUN echo "* * * * * root cd /app && $(which python3) manage.py run_post_scheduled >> /var/log/cron.log 2>&1" > /etc/cron.d/postflow-cron \
-    && echo "0 2 * * * root cd /app && $(which python3) manage.py refresh_instagram_tokens >> /var/log/cron.log 2>&1" >> /etc/cron.d/postflow-cron \
+    && echo "0 */6 * * * root cd /app && $(which python3) manage.py refresh_instagram_tokens >> /var/log/cron.log 2>&1" >> /etc/cron.d/postflow-cron \
     && chmod 0644 /etc/cron.d/postflow-cron \
     && crontab /etc/cron.d/postflow-cron
 
