@@ -337,7 +337,8 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
                     logger.error(f"Failed to publish media for @{account.username}: {error_msg}")
 
                     # Special handling for error 9007: Media ID is not available (media still processing)
-                    if error_code == "9007" and publish_attempt < max_publish_retries - 1:
+                    # error_code is a string, so compare as string
+                    if str(error_code) == "9007" and publish_attempt < max_publish_retries - 1:
                         wait_time = 2 * (publish_attempt + 1)  # 2s, 4s, 6s
                         logger.warning(f"Media not ready yet (error 9007). Retrying in {wait_time}s (attempt {publish_attempt + 1}/{max_publish_retries})")
                         time.sleep(wait_time)
@@ -352,12 +353,13 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
                         publish_attempt += 1
                         continue
 
-                    # Non-retriable errors - mark as failed and return
+                    # Non-retriable errors - mark as failed
+                    logger.error(f"Non-retriable error. Giving up on post for @{account.username}")
                     scheduled_post.status = "failed"
                     scheduled_post.save(update_fields=["status"])
                     return
 
-                # Increment attempt counter if we get here without break or return
+                # Increment attempt counter if we get here without break or return (should not reach here normally)
                 publish_attempt += 1
 
             # If we've exhausted retries, mark as failed
