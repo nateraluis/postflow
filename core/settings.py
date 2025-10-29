@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'postflow',
     'instagram',
     'pixelfed',
+    'mastodon_native',
     'mastodon_integration',
     'subscriptions',
     'django_browser_reload',

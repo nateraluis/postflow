@@ -3,6 +3,7 @@ import pytz
 import datetime
 from pixelfed.utils import post_pixelfed
 from instagram.utils import post_instagram
+from mastodon_native.utils import post_mastodon
 import logging
 
 logger = logging.getLogger("postflow")
@@ -11,7 +12,7 @@ logger = logging.getLogger("postflow")
 def post_scheduled():
     """
     Processes all pending scheduled posts that are due for publishing.
-    Attempts to post to both Pixelfed and Instagram accounts.
+    Attempts to post to Pixelfed, Mastodon, and Instagram accounts.
     """
     # Get the current UTC date time
     now = datetime.datetime.now(pytz.utc)
@@ -29,10 +30,17 @@ def post_scheduled():
         try:
             logger.info(f"Processing post ID {post.id} scheduled for {post.post_date}")
 
-            # Post to Pixelfed/Mastodon
+            # Post to Pixelfed/Mastodon-compatible instances
             if post.mastodon_accounts.exists():
-                logger.info(f"Posting to {post.mastodon_accounts.count()} Mastodon account(s)")
+                logger.info(f"Posting to {post.mastodon_accounts.count()} Pixelfed account(s)")
                 post_pixelfed(post)
+            else:
+                logger.debug(f"No Pixelfed accounts configured for post ID {post.id}")
+
+            # Post to native Mastodon instances
+            if post.mastodon_native_accounts.exists():
+                logger.info(f"Posting to {post.mastodon_native_accounts.count()} Mastodon account(s)")
+                post_mastodon(post)
             else:
                 logger.debug(f"No Mastodon accounts configured for post ID {post.id}")
 
