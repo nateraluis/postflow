@@ -100,6 +100,7 @@ def calendar_view(request):
     # Import here to avoid circular imports
     from pixelfed.models import MastodonAccount
     from instagram.models import InstagramBusinessAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
 
     today = datetime.today().date()
     scheduled_posts = ScheduledPost.objects.filter(
@@ -123,6 +124,7 @@ def calendar_view(request):
         "minutes": range(0, 60, 5),
         "hashtag_groups": TagGroup.objects.filter(user=request.user),
         "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
+        "mastodon_native_accounts": MastodonNativeAccount.objects.filter(user=request.user),
         "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
         "grouped_posts": dict(grouped_posts),  # Convert defaultdict to dict
     }
@@ -138,6 +140,7 @@ def schedule_post(request):
     # Import here to avoid circular imports
     from pixelfed.models import MastodonAccount
     from instagram.models import InstagramBusinessAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
 
     user_timezone = request.POST.get("user_timezone", "UTC")
     post_date = request.POST.get("post_date")
@@ -146,6 +149,7 @@ def schedule_post(request):
     caption = request.POST.get("caption", "")
     hashtag_group_ids = request.POST.getlist("hashtag_groups")
     mastodon_account_ids = request.POST.getlist("social_accounts")
+    mastodon_native_account_ids = request.POST.getlist("mastodon_native_accounts")
     instagram_account_ids = request.POST.get("instagram_accounts")
     image = request.FILES.get("photo")
 
@@ -154,6 +158,7 @@ def schedule_post(request):
         "minutes": range(0, 60, 5),
         "hashtag_groups": TagGroup.objects.filter(user=request.user),
         "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
+        "mastodon_native_accounts": MastodonNativeAccount.objects.filter(user=request.user),
         "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
     }
 
@@ -225,8 +230,9 @@ def schedule_post(request):
 
         scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
         scheduled_post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_account_ids))
+        scheduled_post.mastodon_native_accounts.set(MastodonNativeAccount.objects.filter(id__in=mastodon_native_account_ids))
         scheduled_post.instagram_accounts.set(InstagramBusinessAccount.objects.filter(id__in=instagram_account_ids))
-        logger.info(f"Hashtag groups and Mastodon accounts added to post: {scheduled_post}")
+        logger.info(f"Hashtag groups and social accounts added to post: {scheduled_post}")
 
         # Refresh grouped posts to update calendar component
         scheduled_posts = ScheduledPost.objects.filter(

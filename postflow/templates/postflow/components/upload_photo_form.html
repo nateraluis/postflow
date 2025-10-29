@@ -58,7 +58,7 @@
         <label class="block mt-4 mb-2 text-sm font-medium text-gray-700">Accounts to post</label>
 
         {% if mastodon_accounts %}
-            <h3 class="text-md font-semibold text-gray-600 mt-2">Fediverse accounts</h3>
+            <h3 class="text-md font-semibold text-gray-600 mt-2">Pixelfed/Mastodon-compatible accounts</h3>
             <div class="flex flex-wrap gap-2">
                 {% for account in mastodon_accounts %}
                     <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
@@ -68,6 +68,19 @@
                 {% endfor %}
             </div>
         {% endif %}
+
+        {% if mastodon_native_accounts %}
+            <h3 class="text-md font-semibold text-gray-600 mt-2">Mastodon accounts</h3>
+            <div class="flex flex-wrap gap-2">
+                {% for account in mastodon_native_accounts %}
+                    <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
+                        <input type="checkbox" name="mastodon_native_accounts" value="{{ account.id }}" class="hidden">
+                        <span class="select-box">{{ account.username }}@{{ account.instance_url|cut:"https://" }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         {% if instagram_accounts %}
             <h3 class="text-md font-semibold text-gray-600 mt-2">Instagram accounts</h3>
             <div class="flex flex-wrap gap-2">
