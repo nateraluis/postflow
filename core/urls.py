@@ -25,6 +25,9 @@ urlpatterns = [
     path("", include("postflow.urls")),
     path('admin/', admin.site.urls),
     path('subscriptions/', include('subscriptions.urls')),
+    path('instagram/', include('instagram.urls')),
+    path('pixelfed/', include('pixelfed.urls')),
+    path('mastodon/', include('mastodon_integration.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
 ]
 

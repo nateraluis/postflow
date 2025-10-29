@@ -1,7 +1,8 @@
 from .models import ScheduledPost
 import pytz
 import datetime
-from .utils import post_pixelfed, post_instagram
+from pixelfed.utils import post_pixelfed
+from instagram.utils import post_instagram
 import logging
 
 logger = logging.getLogger("postflow")

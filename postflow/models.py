@@ -38,7 +38,7 @@ class CustomUser(AbstractUser):
 class Tag(models.Model):
     name = models.CharField(max_length=255, db_index=True, help_text="Name of the hashtag (e.g., #example)")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tags", help_text="User who owns this tag", default=1)
-    
+
     class Meta:
          constraints = [
             models.UniqueConstraint(fields=["name", "user"], name="unique_tag_per_user")
@@ -63,16 +63,6 @@ class TagGroup(models.Model):
         return self.name or "Unnamed Tag Group"
 
 
-class MastodonAccount(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mastodon_accounts")
-    instance_url = models.URLField(help_text="Mastodon or Pixelfed instance URL")
-    access_token = models.TextField(help_text="OAuth access token")
-    username = models.CharField(max_length=100, help_text="Mastodon username")
-
-    def __str__(self):
-        return f"{self.username} @ {self.instance_url}"
-
-
 class ScheduledPost(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
@@ -87,8 +77,8 @@ class ScheduledPost(models.Model):
     post_date = models.DateTimeField()
     user_timezone = models.CharField(max_length=50, default="UTC")
     hashtag_groups = models.ManyToManyField("TagGroup", blank=True)
-    mastodon_accounts = models.ManyToManyField("MastodonAccount", blank=True)
-    instagram_accounts = models.ManyToManyField("InstagramBusinessAccount", blank=True)
+    mastodon_accounts = models.ManyToManyField("pixelfed.MastodonAccount", blank=True)
+    instagram_accounts = models.ManyToManyField("instagram.InstagramBusinessAccount", blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     mastodon_media_id = models.CharField(max_length=255, blank=True, null=True)  # Stores media ID from Mastodon
     mastodon_post_id = models.CharField(max_length=255, blank=True, null=True)  # Stores the scheduled post ID
@@ -127,20 +117,6 @@ class ScheduledPost(models.Model):
             print(f"❌ Error downloading image from S3: {e}")
             return None
 
-
-class InstagramBusinessAccount(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="instagram_business_accounts")
-    instagram_id = models.CharField(max_length=255)
-    username = models.CharField(max_length=255)
-    access_token = models.TextField(help_text="Page access token with access to IG account")
-    expires_at = models.DateTimeField(null=True, blank=True)
-    last_refreshed_at = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.username} (Business)"
-
-    def is_token_expiring(self, days=7):
-            return self.expires_at and self.expires_at <= now() + timedelta(days=days)
 
 class Subscriber(models.Model):
     email = models.EmailField(unique=True, help_text="Email address of the subscriber")
