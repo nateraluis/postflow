@@ -19,27 +19,27 @@ PostFlow is a Django 5.2.3 social media scheduling application that allows users
 ### Local Development
 ```bash
 # Start development server
-python manage.py runserver
+uv run manage.py runserver
 
 # Database operations
-python manage.py makemigrations
-python manage.py migrate
+uv run manage.py makemigrations
+uv run manage.py migrate
 
 # Static files
-python manage.py collectstatic
+uv run manage.py collectstatic
 
 # Custom management commands
-python manage.py run_post_scheduled    # Process scheduled posts
-python manage.py refresh_instagram_tokens  # Refresh Instagram access tokens
+uv run manage.py run_post_scheduled    # Process scheduled posts
+uv run manage.py refresh_instagram_tokens  # Refresh Instagram access tokens
 ```
 
 ### Tailwind CSS
 ```bash
 # Development (watch mode)
-python manage.py tailwind start
+uv run manage.py tailwind start
 
 # Production build
-python manage.py tailwind build
+ur run manage.py tailwind build
 ```
 
 ### Docker (Production)
@@ -76,9 +76,40 @@ The app uses a dual storage setup:
   - Media files: Private S3 bucket via `S3Boto3Storage` with signed URLs
 
 ### Social Media Integration
-- **Mastodon/Pixelfed**: Uses Mastodon.py library with OAuth tokens
+- **Pixelfed**: Uses pixelfed API endpoints with OAuth tokens
 - **Instagram Business**: Uses Facebook Graph API with page access tokens that auto-refresh
 - **Scheduling**: Timezone-aware with cron job processing via `run_post_scheduled` command
+
+## Testing
+- Use pytest for all tests (not Django's unittest)
+- Test files go in homepage/tests/ or app-specific tests/ directories
+- Run tests before committing changes
+- Aim for high test coverage on new code
+
+## Frontend development
+- Tailwind CSS integrated via django-tailwind
+- HTMX used for dynamic frontend interactions
+- Avoid using JavaScript unless absolutely necessary
+
+## Database
+
+- Always create migrations for model changes
+- Use factory-boy for test data generation
+- Be careful with data migrations in production
+
+## Important Conventions
+
+- Environment-specific settings in config/settings/
+- Use django-environ for environment variables
+- Follow Django best practices and conventions
+- Keep security in mind (never commit secrets)
+
+## Git Workflow
+- Use feature branches for new work
+- Pull requests must be reviewed before merging
+- Write clear commit messages
+- Test thoroughly before pushing changes
+- Use conventional commits if possible
 
 ## Environment Configuration
 
