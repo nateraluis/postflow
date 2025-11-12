@@ -150,7 +150,7 @@ def schedule_post(request):
     hashtag_group_ids = request.POST.getlist("hashtag_groups")
     mastodon_account_ids = request.POST.getlist("social_accounts")
     mastodon_native_account_ids = request.POST.getlist("mastodon_native_accounts")
-    instagram_account_ids = request.POST.get("instagram_accounts")
+    instagram_account_ids = request.POST.getlist("instagram_accounts")
     image = request.FILES.get("photo")
 
     context = {
