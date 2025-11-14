@@ -1,7 +1,22 @@
-<div class="w-full bg-gray-100 p-4 rounded-lg shadow-md flex flex-col sm:flex-row items-center gap-4">
-    {% if post.image_url %}
-        <div class="w-40 h-full flex-shrink-10 mx-auto sm:mx-0">
-            <img src="{{ post.image_url }}" alt="Scheduled Post Image" class="w-full h-full object-cover rounded-lg">
+<div class="w-full bg-gray-100 p-4 rounded-lg shadow-md flex flex-col sm:flex-row items-start gap-4">
+    {% if post.image_urls %}
+        <div class="flex-shrink-0 mx-auto sm:mx-0">
+            {% if post.image_urls|length == 1 %}
+                <!-- Single image display -->
+                <div class="w-40">
+                    <img src="{{ post.image_urls.0 }}" alt="Scheduled Post Image" class="w-full h-full object-cover rounded-lg">
+                </div>
+            {% else %}
+                <!-- Multiple images gallery -->
+                <div class="flex gap-2 overflow-x-auto max-w-md">
+                    {% for image_url in post.image_urls %}
+                        <div class="w-32 h-32 flex-shrink-0">
+                            <img src="{{ image_url }}" alt="Post Image {{ forloop.counter }}" class="w-full h-full object-cover rounded-lg">
+                        </div>
+                    {% endfor %}
+                </div>
+                <p class="text-xs text-gray-500 mt-1 text-center">{{ post.image_urls|length }} images</p>
+            {% endif %}
         </div>
     {% endif %}
 

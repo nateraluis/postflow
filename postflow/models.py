@@ -72,7 +72,7 @@ class ScheduledPost(models.Model):
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    image = models.ImageField(upload_to="scheduled_posts/", blank=False, null=False)
+    image = models.ImageField(upload_to="scheduled_posts/", blank=True, null=True)  # Kept for backward compatibility
     caption = models.TextField(blank=True, null=True)
     post_date = models.DateTimeField()
     user_timezone = models.CharField(max_length=50, default="UTC")
@@ -101,6 +101,83 @@ class ScheduledPost(models.Model):
         """
         Downloads the image file from S3 and returns it as a file-like object (BytesIO).
         Works only when DEBUG=False and image is stored in private S3.
+        Legacy method for backward compatibility with single image posts.
+        """
+        if settings.DEBUG:
+            return self.image.file if self.image else None
+
+        if not self.image:
+            return None
+
+        s3_client = _get_s3_client()
+        bucket_name = settings.AWS_STORAGE_MEDIA_BUCKET_NAME
+        object_key = self.image.name  # This is the path/key in S3
+
+        try:
+            file_stream = BytesIO()
+            s3_client.download_fileobj(bucket_name, object_key, file_stream)
+            file_stream.seek(0)
+            return file_stream
+        except Exception as e:
+            print(f"❌ Error downloading image from S3: {e}")
+            return None
+
+    def get_all_images(self):
+        """
+        Returns a list of all images for this post.
+        Checks both the new PostImage model and legacy single image field.
+        Returns list of image file objects.
+        """
+        images = []
+
+        # Get images from PostImage model (new multi-image posts)
+        if self.images.exists():
+            for post_image in self.images.all():
+                img_file = post_image.get_image_file()
+                if img_file:
+                    images.append(img_file)
+        # Fallback to legacy single image field
+        elif self.image:
+            img_file = self.get_image_file()
+            if img_file:
+                images.append(img_file)
+
+        return images
+
+
+class PostImage(models.Model):
+    """
+    Model for storing multiple images per scheduled post.
+    Allows posts to have image carousels/galleries.
+    """
+    scheduled_post = models.ForeignKey(
+        ScheduledPost,
+        on_delete=models.CASCADE,
+        related_name="images",
+        help_text="The scheduled post this image belongs to"
+    )
+    image = models.ImageField(
+        upload_to="scheduled_posts/",
+        help_text="Image file for this post"
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Order of this image in the post (0-indexed)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Post Image"
+        verbose_name_plural = "Post Images"
+
+    def __str__(self):
+        return f"Image {self.order + 1} for {self.scheduled_post}"
+
+    def get_image_file(self):
+        """
+        Downloads the image file from S3 and returns it as a file-like object (BytesIO).
+        Works for both DEBUG and production (S3) modes.
         """
         if settings.DEBUG:
             return self.image.file

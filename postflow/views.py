@@ -105,14 +105,21 @@ def calendar_view(request):
     today = datetime.today().date()
     scheduled_posts = ScheduledPost.objects.filter(
         user=request.user, post_date__date__gte=today
-    ).prefetch_related("hashtag_groups__tags").order_by("post_date")
+    ).prefetch_related("hashtag_groups__tags", "images").order_by("post_date")
 
 
     # Generate signed URLs for images
     for post in scheduled_posts:
-        post.image_url = get_s3_signed_url(post.image.name)
+        # Handle multiple images via PostImage model
+        if post.images.exists():
+            post.image_urls = [get_s3_signed_url(img.image.name) for img in post.images.all()]
+        # Fallback to legacy single image field
+        elif post.image:
+            post.image_urls = [get_s3_signed_url(post.image.name)]
+        else:
+            post.image_urls = []
+
         post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
-        # update the post date to the user timezone
 
     # Group posts by date
     grouped_posts = defaultdict(list)
@@ -151,7 +158,7 @@ def schedule_post(request):
     mastodon_account_ids = request.POST.getlist("social_accounts")
     mastodon_native_account_ids = request.POST.getlist("mastodon_native_accounts")
     instagram_account_ids = request.POST.getlist("instagram_accounts")
-    image = request.FILES.get("photo")
+    images = request.FILES.getlist("photos")
 
     context = {
         "hours": range(0, 24),
@@ -162,9 +169,16 @@ def schedule_post(request):
         "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
     }
 
-    # Validation: Ensure an image is uploaded
-    if not image:
-        context["error"] = "Please select an image to post."
+    # Validation: Ensure at least one image is uploaded
+    if not images or len(images) == 0:
+        context["error"] = "Please select at least one image to post."
+        response = render(request, "postflow/components/upload_photo_form.html", context)
+        response['HX-Retarget'] = '#form-container'
+        return response
+
+    # Validation: Ensure no more than 10 images (Instagram carousel limit)
+    if len(images) > 10:
+        context["error"] = "You can upload a maximum of 10 images per post."
         response = render(request, "postflow/components/upload_photo_form.html", context)
         response['HX-Retarget'] = '#form-container'
         return response
@@ -204,28 +218,42 @@ def schedule_post(request):
         logger.error(f"Invalid scheduled time: {utc_datetime}")
         return response
 
-    # Save the uploaded image and create the ScheduledPost
+    # Save the uploaded images and create the ScheduledPost
     try:
-        filename, file_extension = os.path.splitext(image.name)
-        unique_filename = f"user_{request.user.id}_{int(datetime.utcnow().timestamp())}{file_extension}"
-        file_path = os.path.join("scheduled_posts", unique_filename)
-
-        saved_path = upload_to_s3(image, file_path)
-        if not saved_path:
-            context["error"] = "Failed to upload the image to S3."
-            response = render(request, "postflow/components/upload_photo_form.html", context)
-            response['HX-Retarget'] = '#form-container'
-            logger.error("Failed to upload the image to S3.")
-            return response
-
+        # First create the ScheduledPost without images
         scheduled_post = ScheduledPost.objects.create(
             user=request.user,
-            image=saved_path,
             caption=caption,
             post_date=utc_datetime,
             user_timezone=user_timezone,
         )
         logger.info(f"New Scheduled Post created: {scheduled_post}")
+
+        # Upload and create PostImage records for each image
+        from postflow.models import PostImage
+
+        for index, image in enumerate(images):
+            filename, file_extension = os.path.splitext(image.name)
+            unique_filename = f"user_{request.user.id}_{int(datetime.utcnow().timestamp())}_{index}{file_extension}"
+            file_path = os.path.join("scheduled_posts", unique_filename)
+
+            saved_path = upload_to_s3(image, file_path)
+            if not saved_path:
+                # If any image fails to upload, delete the post and return error
+                scheduled_post.delete()
+                context["error"] = f"Failed to upload image {index + 1} to S3."
+                response = render(request, "postflow/components/upload_photo_form.html", context)
+                response['HX-Retarget'] = '#form-container'
+                logger.error(f"Failed to upload image {index + 1} to S3.")
+                return response
+
+            # Create PostImage record
+            PostImage.objects.create(
+                scheduled_post=scheduled_post,
+                image=saved_path,
+                order=index
+            )
+            logger.info(f"Image {index + 1}/{len(images)} uploaded for post {scheduled_post.id}")
 
 
         scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
@@ -237,13 +265,21 @@ def schedule_post(request):
         # Refresh grouped posts to update calendar component
         scheduled_posts = ScheduledPost.objects.filter(
             user=request.user, post_date__date__gte=current_utc_time.date()
-        ).prefetch_related("hashtag_groups__tags", "mastodon_accounts").order_by("post_date")
+        ).prefetch_related("hashtag_groups__tags", "mastodon_accounts", "images").order_by("post_date")
         logger.info(f"Refreshing grouped posts for calendar view: {scheduled_posts}")
 
         # Group posts by date
         grouped_posts = defaultdict(list)
         for post in scheduled_posts:
-            post.image_url = get_s3_signed_url(post.image.name)
+            # Handle multiple images via PostImage model
+            if post.images.exists():
+                post.image_urls = [get_s3_signed_url(img.image.name) for img in post.images.all()]
+            # Fallback to legacy single image field
+            elif post.image:
+                post.image_urls = [get_s3_signed_url(post.image.name)]
+            else:
+                post.image_urls = []
+
             post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
             grouped_posts[post.post_date.date()].append(post)
 

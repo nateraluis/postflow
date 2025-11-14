@@ -70,7 +70,8 @@ def _parse_instagram_error(response) -> tuple:
 
 def post_instagram(scheduled_post, retry_count=0, max_retries=2):
     """
-    Publishes a scheduled post image to all linked Instagram Business Accounts.
+    Publishes a scheduled post image(s) to all linked Instagram Business Accounts.
+    Supports both single images and carousels (up to 10 images).
     Includes validation, error parsing, and retry logic.
 
     Args:
@@ -81,11 +82,23 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
     from postflow.utils import get_s3_signed_url
     from postflow.models import Tag
 
-    # Generate a signed URL for Instagram to download the image
-    # Use 24-hour expiration to ensure Instagram has plenty of time to download
-    image_url = get_s3_signed_url(scheduled_post.image.name, expiration=86400)  # 24-hour expiration
-    if not image_url:
-        logger.error(f"Could not generate signed URL for scheduled post ID {scheduled_post.id}")
+    # Get all images for this post
+    image_urls = []
+
+    # Check for PostImage records (new multi-image posts)
+    if scheduled_post.images.exists():
+        for post_image in scheduled_post.images.all():
+            image_url = get_s3_signed_url(post_image.image.name, expiration=86400)  # 24-hour expiration
+            if image_url:
+                image_urls.append(image_url)
+    # Fallback to legacy single image field
+    elif scheduled_post.image:
+        image_url = get_s3_signed_url(scheduled_post.image.name, expiration=86400)
+        if image_url:
+            image_urls.append(image_url)
+
+    if not image_urls:
+        logger.error(f"Could not generate signed URLs for scheduled post ID {scheduled_post.id}")
         scheduled_post.status = "failed"
         scheduled_post.save(update_fields=["status"])
         return
@@ -106,12 +119,16 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
         scheduled_post.save(update_fields=["status"])
         return
 
-    # Validate image URL is accessible
-    if not _validate_image_url(image_url):
-        logger.error(f"Image URL validation failed for post ID {scheduled_post.id}")
-        scheduled_post.status = "failed"
-        scheduled_post.save(update_fields=["status"])
-        return
+    # Validate all image URLs are accessible
+    for idx, img_url in enumerate(image_urls):
+        if not _validate_image_url(img_url):
+            logger.error(f"Image URL validation failed for image {idx + 1} in post ID {scheduled_post.id}")
+            scheduled_post.status = "failed"
+            scheduled_post.save(update_fields=["status"])
+            return
+
+    is_carousel = len(image_urls) > 1
+    logger.info(f"Posting {'carousel with ' + str(len(image_urls)) + ' images' if is_carousel else 'single image'} to Instagram")
 
     for account in scheduled_post.instagram_accounts.all():
         try:
@@ -122,16 +139,61 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
 
             logger.info(f"Posting to Instagram Business Account @{account.username}")
 
-            # Step 1: Create media container
+            # Step 1: Create media container(s)
             create_url = f"https://graph.instagram.com/v22.0/{account.instagram_id}/media"
-            media_payload = {
-                "image_url": image_url,
-                "caption": full_caption,
-                "access_token": account.access_token,
-            }
 
-            logger.debug(f"Creating media container at {create_url}")
-            media_response = requests.post(create_url, data=media_payload, timeout=15)
+            if is_carousel:
+                # Create child containers for each image in carousel
+                child_container_ids = []
+
+                for idx, img_url in enumerate(image_urls):
+                    child_payload = {
+                        "image_url": img_url,
+                        "is_carousel_item": "true",
+                        "access_token": account.access_token,
+                    }
+
+                    logger.debug(f"Creating carousel child container {idx + 1}/{len(image_urls)}")
+                    child_response = requests.post(create_url, data=child_payload, timeout=15)
+
+                    if child_response.status_code != 200:
+                        error_msg = _parse_instagram_error(child_response)
+                        logger.error(f"Failed to create child container {idx + 1}: {error_msg}")
+                        scheduled_post.status = "failed"
+                        scheduled_post.save(update_fields=["status"])
+                        return
+
+                    child_data = child_response.json()
+                    child_id = child_data.get("id")
+                    if not child_id:
+                        logger.error(f"No container ID in response for child {idx + 1}")
+                        scheduled_post.status = "failed"
+                        scheduled_post.save(update_fields=["status"])
+                        return
+
+                    child_container_ids.append(child_id)
+                    logger.debug(f"Created child container {idx + 1}: {child_id}")
+
+                # Create parent carousel container
+                carousel_payload = {
+                    "media_type": "CAROUSEL",
+                    "children": ",".join(child_container_ids),
+                    "caption": full_caption,
+                    "access_token": account.access_token,
+                }
+
+                logger.debug(f"Creating carousel parent container with {len(child_container_ids)} children")
+                media_response = requests.post(create_url, data=carousel_payload, timeout=15)
+            else:
+                # Single image post
+                media_payload = {
+                    "image_url": image_urls[0],
+                    "caption": full_caption,
+                    "access_token": account.access_token,
+                }
+
+                logger.debug(f"Creating single image container at {create_url}")
+                media_response = requests.post(create_url, data=media_payload, timeout=15)
 
             # Check status before parsing
             if media_response.status_code != 200:

@@ -19,9 +19,10 @@
       hx-on::after-request="if(event.detail.successful) { resetForm(); htmx.trigger('#calendar', 'refresh') }">
         {% csrf_token %}
 
-        <!-- Upload Photo -->
-        <label class="block mb-2 text-sm font-medium text-gray-700">Upload Photo</label>
-        <input type="file" name="photo" accept="image/*" class="w-full p-2 border rounded-md">
+        <!-- Upload Photos -->
+        <label class="block mb-2 text-sm font-medium text-gray-700">Upload Photos (up to 10 images)</label>
+        <input type="file" name="photos" accept="image/*" multiple class="w-full p-2 border rounded-md" id="photoInput">
+        <p class="text-xs text-gray-500 mt-1">Select one or more images to upload</p>
 
         <!-- Select Date -->
         <label class="block mt-4 mb-2 text-sm font-medium text-gray-700">Select Date & Time</label>

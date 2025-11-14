@@ -6,12 +6,13 @@ logger = logging.getLogger("postflow")
 
 def post_mastodon(scheduled_post):
     """
-    Posts to Mastodon accounts using Mastodon.py library.
-    Handles image upload and status creation.
+    Posts to Mastodon accounts using Mastodon.py library with support for multiple images.
+    Handles multiple image uploads and status creation.
     """
-    image_file = scheduled_post.get_image_file()
-    if not image_file:
-        logger.error(f"Could not get image file for scheduled post ID {scheduled_post.id}")
+    # Get all images for this post
+    image_files = scheduled_post.get_all_images()
+    if not image_files:
+        logger.error(f"Could not get image files for scheduled post ID {scheduled_post.id}")
         scheduled_post.status = "failed"
         scheduled_post.save(update_fields=["status"])
         return
@@ -24,10 +25,15 @@ def post_mastodon(scheduled_post):
                 api_base_url=account.instance_url,
             )
 
-            # Upload image and get media object
-            logger.info(f"Uploading image to Mastodon @{account.username} on {account.instance_url}")
-            image_file.seek(0)  # Reset file pointer to beginning
-            media = mastodon.media_post(image_file, mime_type="image/jpeg")
+            # Upload all images and collect media IDs
+            media_ids = []
+            logger.info(f"Uploading {len(image_files)} image(s) to Mastodon @{account.username} on {account.instance_url}")
+
+            for idx, image_file in enumerate(image_files):
+                image_file.seek(0)  # Reset file pointer to beginning
+                media = mastodon.media_post(image_file, mime_type="image/jpeg")
+                media_ids.append(media["id"])
+                logger.info(f"Uploaded image {idx + 1}/{len(image_files)} - Media ID: {media['id']}")
 
             # Prepare status text with hashtags
             hashtags = " ".join(
@@ -39,11 +45,11 @@ def post_mastodon(scheduled_post):
             if hashtags:
                 status_text = f"{status_text}\n{hashtags}".strip()
 
-            # Post status
-            logger.info(f"Posting status to Mastodon @{account.username}")
+            # Post status with all media IDs
+            logger.info(f"Posting status to Mastodon @{account.username} with {len(media_ids)} image(s)")
             post_response = mastodon.status_post(
                 status=status_text,
-                media_ids=[media["id"]],
+                media_ids=media_ids,
                 visibility="public",
             )
 

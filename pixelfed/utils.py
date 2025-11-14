@@ -6,11 +6,13 @@ logger = logging.getLogger("postflow")
 
 def post_pixelfed(scheduled_post):
     """
-    Posts to Pixelfed/Mastodon accounts. Uses logging for visibility.
+    Posts to Pixelfed/Mastodon accounts with support for multiple images.
+    Uses logging for visibility.
     """
-    image_file = scheduled_post.get_image_file()
-    if not image_file:
-        logger.error(f"Could not get image file for scheduled post ID {scheduled_post.id}")
+    # Get all images for this post
+    image_files = scheduled_post.get_all_images()
+    if not image_files:
+        logger.error(f"Could not get image files for scheduled post ID {scheduled_post.id}")
         return
 
     for account in scheduled_post.mastodon_accounts.all():
@@ -32,9 +34,18 @@ def post_pixelfed(scheduled_post):
                 "status": status_text,
                 "visibility": "public",
             }
-            files = {"file": ("image.jpg", image_file, "image/jpeg")}
 
-            logger.info(f"Posting to Pixelfed account @{account.username} on {account.instance_url}")
+            # Prepare multiple files for upload
+            # Reset file pointers for all images
+            for img in image_files:
+                img.seek(0)
+
+            # Build files list for multiple images
+            files = []
+            for idx, image_file in enumerate(image_files):
+                files.append(("file[]", (f"image{idx}.jpg", image_file, "image/jpeg")))
+
+            logger.info(f"Posting {len(image_files)} image(s) to Pixelfed account @{account.username} on {account.instance_url}")
             pixelfed_api_status = account.instance_url + "/api/v1.1/status/create"
 
             response = requests.post(
@@ -42,7 +53,7 @@ def post_pixelfed(scheduled_post):
                 headers=headers,
                 files=files,
                 data=data,
-                timeout=15
+                timeout=30  # Increased timeout for multiple images
             )
             response.raise_for_status()
             post_response = response.json()
