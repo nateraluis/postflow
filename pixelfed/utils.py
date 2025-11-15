@@ -7,7 +7,7 @@ logger = logging.getLogger("postflow")
 def post_pixelfed(scheduled_post):
     """
     Posts to Pixelfed/Mastodon accounts with support for multiple images.
-    Uses logging for visibility.
+    Uses Mastodon-compatible API with media upload then status post.
     """
     # Get all images for this post
     image_files = scheduled_post.get_all_images()
@@ -21,6 +21,39 @@ def post_pixelfed(scheduled_post):
                 "Authorization": f"Bearer {account.access_token}",
                 "Accept": "application/json",
             }
+
+            logger.info(f"Posting {len(image_files)} image(s) to Pixelfed account @{account.username} on {account.instance_url}")
+
+            # Step 1: Upload media files and collect media IDs
+            media_ids = []
+            media_upload_url = account.instance_url + "/api/v1/media"
+
+            for idx, image_file in enumerate(image_files):
+                image_file.seek(0)  # Reset file pointer
+
+                files = {"file": (f"image{idx}.jpg", image_file, "image/jpeg")}
+
+                logger.debug(f"Uploading image {idx + 1}/{len(image_files)} to Pixelfed")
+                media_response = requests.post(
+                    media_upload_url,
+                    headers=headers,
+                    files=files,
+                    timeout=30
+                )
+                media_response.raise_for_status()
+                media_data = media_response.json()
+                media_id = media_data.get("id")
+
+                if not media_id:
+                    logger.error(f"No media ID returned for image {idx + 1}")
+                    scheduled_post.status = "failed"
+                    scheduled_post.save(update_fields=["status"])
+                    return
+
+                media_ids.append(media_id)
+                logger.debug(f"Uploaded image {idx + 1}/{len(image_files)} - Media ID: {media_id}")
+
+            # Step 2: Create status with all media IDs
             hashtags = " ".join(
                 tag.name
                 for tag_group in scheduled_post.hashtag_groups.all()
@@ -30,30 +63,19 @@ def post_pixelfed(scheduled_post):
             if hashtags:
                 status_text = f"{status_text}\n{hashtags}".strip()
 
-            data = {
+            status_url = account.instance_url + "/api/v1/statuses"
+            status_data = {
                 "status": status_text,
                 "visibility": "public",
+                "media_ids[]": media_ids,
             }
 
-            # Prepare multiple files for upload
-            # Reset file pointers for all images
-            for img in image_files:
-                img.seek(0)
-
-            # Build files list for multiple images
-            files = []
-            for idx, image_file in enumerate(image_files):
-                files.append(("file[]", (f"image{idx}.jpg", image_file, "image/jpeg")))
-
-            logger.info(f"Posting {len(image_files)} image(s) to Pixelfed account @{account.username} on {account.instance_url}")
-            pixelfed_api_status = account.instance_url + "/api/v1.1/status/create"
-
+            logger.debug(f"Creating status with {len(media_ids)} media attachment(s)")
             response = requests.post(
-                pixelfed_api_status,
+                status_url,
                 headers=headers,
-                files=files,
-                data=data,
-                timeout=30  # Increased timeout for multiple images
+                data=status_data,
+                timeout=15
             )
             response.raise_for_status()
             post_response = response.json()
