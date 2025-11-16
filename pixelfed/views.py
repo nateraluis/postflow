@@ -44,7 +44,7 @@ def connect_mastodon(request):
             logger.debug(auth_url)
             return redirect(auth_url)
 
-    return redirect("dashboard")
+    return redirect("accounts")
 
 
 @login_required
@@ -56,7 +56,7 @@ def mastodon_callback(request):
     code = request.GET.get("code")
 
     if not instance_url or not code:
-        return redirect("dashboard")
+        return redirect("accounts")
 
     # Define the correct redirect URI again
     # REDIRECT_URI = request.build_absolute_uri("/mastodon/callback/")
@@ -87,7 +87,7 @@ def mastodon_callback(request):
             username=user_info["username"]
         )
 
-    return redirect("dashboard")
+    return redirect("accounts")
 
 
 @login_required
@@ -104,4 +104,4 @@ def disconnect_mastodon(request, account_id):
         if "HX-Request" in request.headers:
             return HttpResponse("", status=204)
 
-    return redirect("dashboard")
+    return redirect("accounts")

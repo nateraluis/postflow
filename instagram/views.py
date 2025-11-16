@@ -136,7 +136,7 @@ def connect_instagram(request):
         url = f"https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=1370425837536915&redirect_uri={settings.INSTAGRAM_BUSINESS_REDIRECT_URI}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights"
         return redirect(url)
 
-    return redirect("dashboard")
+    return redirect("accounts")
 
 
 @csrf_exempt
@@ -245,7 +245,7 @@ def instagram_business_callback(request):
         }
     )
     logger.info(f"Instagram account created/updated for user {request.user.email}: {data.get('username')}")
-    return redirect("dashboard")
+    return redirect("accounts")
 
 
 def parse_signed_request(signed_request, app_secret):
@@ -319,4 +319,4 @@ def disconnect_instagram(request, account_id):
         if "HX-Request" in request.headers:
             return HttpResponse("", status=204)
 
-    return redirect("dashboard")
+    return redirect("accounts")

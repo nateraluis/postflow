@@ -41,7 +41,7 @@ def connect_mastodon(request):
         except Exception as e:
             logger.error(f"Error initiating Mastodon OAuth: {str(e)}")
 
-    return redirect("dashboard")
+    return redirect("accounts")
 
 
 @login_required
@@ -55,7 +55,7 @@ def mastodon_callback(request):
 
     if not all([code, instance_url, client_id, client_secret]):
         logger.error("Missing OAuth parameters in Mastodon callback")
-        return redirect("dashboard")
+        return redirect("accounts")
 
     try:
         # Exchange code for access token
@@ -98,7 +98,7 @@ def mastodon_callback(request):
     request.session.pop("mastodon_client_id", None)
     request.session.pop("mastodon_client_secret", None)
 
-    return redirect("dashboard")
+    return redirect("accounts")
 
 
 @login_required

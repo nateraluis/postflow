@@ -100,9 +100,9 @@ def create_checkout_session(request):
 
 @login_required
 def subscription_success(request):
-    """Success page after subscription - redirect to dashboard"""
+    """Success page after subscription - redirect to accounts"""
     messages.success(request, "Welcome to PostFlow Premium! Your subscription is now active.")
-    return redirect('dashboard')
+    return redirect('accounts')
 
 
 @login_required
@@ -111,7 +111,7 @@ def subscription_inactive(request):
     # If user has an active subscription, redirect them away
     if request.user.is_subscribed:
         messages.info(request, "Your subscription is active!")
-        return redirect('dashboard')
+        return redirect('accounts')
 
     # Check if user has any subscription record (inactive)
     try:
@@ -134,7 +134,7 @@ def customer_portal(request):
         # Create customer portal session
         portal_session = stripe.billing_portal.Session.create(
             customer=stripe_customer.stripe_customer_id,
-            return_url=request.build_absolute_uri(reverse('dashboard'))
+            return_url=request.build_absolute_uri(reverse('accounts'))
         )
 
         return redirect(portal_session.url)
