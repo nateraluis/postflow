@@ -70,15 +70,16 @@
     <button @click="mobileOpen = !mobileOpen" class="text-gray-300 hover:text-white">
       <img src="{% static 'postflow/icons/home.svg' %}" class="size-6" alt="Menu icon">
     </button>
-    <div class="font-semibold text-lg">Dashboard</div>
+    <div class="font-semibold text-lg">Accounts</div>
     <img class="size-8 rounded-full bg-gray-800" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Profile" />
   </div>
   <!-- Mobile Menu -->
   <div class="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50" x-show="mobileOpen" @click.away="mobileOpen = false" x-transition>
     <div class="w-64 bg-gray-900 h-full p-6 space-y-6" @click.stop>
-      <a href="{% url 'dashboard' %}" class="block text-white font-semibold">Dashboard</a>
+      <a href="{% url 'accounts' %}" class="block text-white font-semibold">Accounts</a>
       <a href="{% url 'hashtag-groups' %}" class="block text-gray-300 hover:text-white">Hashtags</a>
       <a href="{% url 'calendar' %}" class="block text-gray-300 hover:text-white">Calendar</a>
+      <a href="{% url 'feedback' %}" class="block text-gray-300 hover:text-white">Feedback</a>
       <hr class="border-gray-700">
       <a href="{% url 'profile' %}" class="flex items-center gap-3 text-white hover:text-gray-300">
         <img class="w-8 h-8 rounded-full bg-gray-800" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">

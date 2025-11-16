@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import CustomUserCreationForm, CustomUserChangeForm
-from .models import CustomUser, Tag, TagGroup
+from .models import CustomUser, Tag, TagGroup, Feedback
 
 
 class CustomUserAdmin(UserAdmin):
@@ -42,6 +42,20 @@ class TagGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('tags',)           # For better UI when selecting many-to-many tags
 
 
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'category', 'status', 'created_at')
+    list_filter = ('category', 'status', 'created_at')
+    search_fields = ('user__email', 'message')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        (None, {'fields': ('user', 'category', 'status')}),
+        ('Feedback', {'fields': ('message',)}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+    )
+
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(TagGroup, TagGroupAdmin)
+admin.site.register(Feedback, FeedbackAdmin)

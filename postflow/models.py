@@ -200,6 +200,51 @@ class PostImage(models.Model):
             return None
 
 
+class Feedback(models.Model):
+    CATEGORY_CHOICES = [
+        ('improvement', 'Improvement'),
+        ('bug', 'Bug Report'),
+        ('other', 'Other'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('reviewed', 'Reviewed'),
+        ('resolved', 'Resolved'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='feedback_submissions',
+        help_text="User who submitted the feedback"
+    )
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        help_text="Type of feedback"
+    )
+    message = models.TextField(
+        help_text="Feedback message"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text="Current status of the feedback"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Feedback'
+        verbose_name_plural = 'Feedback'
+
+    def __str__(self):
+        return f"{self.get_category_display()} from {self.user.email} - {self.created_at.strftime('%Y-%m-%d')}"
+
+
 class Subscriber(models.Model):
     email = models.EmailField(unique=True, help_text="Email address of the subscriber")
     subscribed_at = models.DateTimeField(auto_now_add=True)

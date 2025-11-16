@@ -73,9 +73,9 @@ def register(request):
             else:
                 logger.debug("❌ Authentication failed for:", username)
 
-            # In DEBUG mode, redirect to dashboard instead of pricing
+            # In DEBUG mode, redirect to accounts instead of pricing
             if settings.DEBUG:
-                return redirect("dashboard")
+                return redirect("accounts")
             else:
                 return redirect("subscriptions:pricing")
         else:
@@ -139,15 +139,15 @@ def profile_view(request):
 
 @login_required
 @require_http_methods(["GET"])
-def dashboard(request):
-    context = {'active_page': 'dashboard'}
+def accounts_view(request):
+    context = {'active_page': 'accounts'}
     if request.headers.get("HX-Request"):
         # Return both the content and sidebar with OOB swap
         sidebar_context = {**context, 'is_htmx_request': True}
-        content = render(request, 'postflow/components/dashboard.html', context).content.decode('utf-8')
+        content = render(request, 'postflow/components/accounts.html', context).content.decode('utf-8')
         sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
         return HttpResponse(content + sidebar)
-    return render(request, 'postflow/pages/dashboard.html', context)
+    return render(request, 'postflow/pages/accounts.html', context)
 
 
 @login_required
@@ -432,6 +432,53 @@ def subscribe(request):
     if not created:
         return render(request, "postflow/components/partials/subscribe_already.html", {"email": email})
     return render(request, "postflow/components/partials/subscribe_success.html", {"email": email})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def feedback_view(request):
+    """Handle feedback submission and display feedback form."""
+    from .models import Feedback
+
+    success = False
+    error_message = None
+
+    if request.method == "POST":
+        category = request.POST.get("category", "").strip()
+        message = request.POST.get("message", "").strip()
+
+        # Validation
+        if not category or category not in ['improvement', 'bug', 'other']:
+            error_message = "Please select a valid feedback category."
+        elif not message or len(message) < 10:
+            error_message = "Please provide feedback with at least 10 characters."
+        else:
+            # Save feedback
+            try:
+                Feedback.objects.create(
+                    user=request.user,
+                    category=category,
+                    message=message
+                )
+                success = True
+            except Exception as e:
+                logger.error(f"Error saving feedback: {e}")
+                error_message = "An error occurred while saving your feedback. Please try again."
+
+    context = {
+        'active_page': 'feedback',
+        'success': success,
+        'error_message': error_message,
+    }
+
+    if request.headers.get("HX-Request"):
+        # Return both the content and sidebar with OOB swap
+        sidebar_context = {**context, 'is_htmx_request': True}
+        content = render(request, 'postflow/components/feedback.html', context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
+
+    return render(request, 'postflow/pages/feedback.html', context)
 
 
 @login_required
