@@ -142,6 +142,11 @@ def calendar_view(request):
     }
 
     if "HX-Request" in request.headers:
+        # Check if this is a toggle request (from the toggle buttons)
+        # Toggle buttons target #calendar-view-container, so return only calendar.html
+        if request.headers.get("HX-Target") == "calendar-view-container":
+            return render(request, "postflow/components/calendar.html", context)
+        # Otherwise return full schedule_posts component (for sidebar navigation)
         return render(request, "postflow/components/schedule_posts.html", context)
 
     return render(request, "postflow/pages/calendar.html", context)
