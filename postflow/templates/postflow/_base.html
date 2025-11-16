@@ -15,7 +15,25 @@
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
       <link rel="apple-touch-icon" href="{% static 'postflow/icons/apple-touch-icon.png' %}">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>PostFlow</title>
+      <title>PostFlow - Automate Your Photography Sharing Workflow</title>
+      <meta name="description" content="Simplify social media with tools made for photographers by photographers. Schedule and cross-post to Instagram, Pixelfed or any Mastodon instance. No AI. Just your creativity, your photos, your vision.">
+
+      <!-- Open Graph / Facebook -->
+      <meta property="og:type" content="website">
+      <meta property="og:url" content="https://postflow.photo/">
+      <meta property="og:title" content="PostFlow - Automate Your Photography Sharing Workflow">
+      <meta property="og:description" content="Simplify social media with tools made for photographers by photographers. Schedule and cross-post to Instagram, Pixelfed or any Mastodon instance. No AI. Just your creativity, your photos, your vision.">
+      <meta property="og:image" content="https://postflow.photo{% static 'postflow/images/sea_color.png' %}">
+      <meta property="og:image:width" content="1200">
+      <meta property="og:image:height" content="630">
+      <meta property="og:site_name" content="PostFlow">
+
+      <!-- Twitter Card -->
+      <meta name="twitter:card" content="summary_large_image">
+      <meta name="twitter:url" content="https://postflow.photo/">
+      <meta name="twitter:title" content="PostFlow - Automate Your Photography Sharing Workflow">
+      <meta name="twitter:description" content="Simplify social media with tools made for photographers by photographers. Schedule and cross-post to Instagram, Pixelfed or any Mastodon instance.">
+      <meta name="twitter:image" content="https://postflow.photo{% static 'postflow/images/sea_color.png' %}">
       <meta name="htmx-config" content='{"historyCacheSize": 15}'>
       <script src="{% static 'postflow/htmx.min.js' %}" defer></script>
       <script src="{% static 'ext/debug.js' %}" defer></script>
