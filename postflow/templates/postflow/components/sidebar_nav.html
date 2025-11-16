@@ -1,5 +1,5 @@
 {% load static %}
-<nav class="flex flex-1 flex-col" id="sidebar-nav" {% if request.headers.HX-Request %}hx-swap-oob="true"{% endif %}>
+<nav class="flex flex-1 flex-col" id="sidebar-nav" {% if is_htmx_request %}hx-swap-oob="true"{% endif %}>
   <ul role="list" class="flex flex-1 flex-col gap-y-7">
     <li>
       <ul role="list" class="-mx-2 space-y-1">

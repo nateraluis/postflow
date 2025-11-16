@@ -97,8 +97,9 @@ def dashboard(request):
     context = {'active_page': 'dashboard'}
     if request.headers.get("HX-Request"):
         # Return both the content and sidebar with OOB swap
+        sidebar_context = {**context, 'is_htmx_request': True}
         content = render(request, 'postflow/components/dashboard.html', context).content.decode('utf-8')
-        sidebar = render(request, 'postflow/components/sidebar_nav.html', context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
         return HttpResponse(content + sidebar)
     return render(request, 'postflow/pages/dashboard.html', context)
 
@@ -152,8 +153,9 @@ def calendar_view(request):
         if request.headers.get("HX-Target") == "calendar-view-container":
             return render(request, "postflow/components/calendar.html", context)
         # Otherwise return full schedule_posts component (for sidebar navigation) + sidebar OOB
+        sidebar_context = {**context, 'is_htmx_request': True}
         content = render(request, "postflow/components/schedule_posts.html", context).content.decode('utf-8')
-        sidebar = render(request, 'postflow/components/sidebar_nav.html', context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
         return HttpResponse(content + sidebar)
 
     return render(request, "postflow/pages/calendar.html", context)
@@ -351,8 +353,9 @@ def hashtag_groups_view(request):
 
     # **HTMX Fix: Load Full Hashtags Component Instead of Just Groups**
     if "HX-Request" in request.headers:
+        sidebar_context = {**context, 'is_htmx_request': True}
         content = render(request, "postflow/components/hashtags.html", context).content.decode('utf-8')
-        sidebar = render(request, 'postflow/components/sidebar_nav.html', context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
         return HttpResponse(content + sidebar)
 
     # **Normal Request: Render Full Page with Sidebar**
