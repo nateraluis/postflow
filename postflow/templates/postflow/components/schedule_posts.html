@@ -10,10 +10,31 @@
   </div>
 
   <div class="mt-6">
-    <h2 class="text-xl font-semibold mb-4">Scheduled Posts</h2>
-      <div id="calendar" class="border p-4 rounded-lg shadow-md">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Your Posts</h2>
+
+      <!-- Toggle buttons -->
+      <div class="flex gap-2">
+        <button hx-get="{% url 'calendar' %}"
+                hx-target="#calendar-view-container"
+                hx-swap="innerHTML"
+                class="btn btn-sm btn-primary">
+          📅 Upcoming Posts
+        </button>
+        <button hx-get="{% url 'posted_history' %}"
+                hx-target="#calendar-view-container"
+                hx-swap="innerHTML"
+                class="btn btn-sm btn-secondary">
+          ✓ Posted History
+        </button>
+      </div>
+    </div>
+
+    <div id="calendar" class="border p-4 rounded-lg shadow-md">
+      <div id="calendar-view-container">
         {% include 'postflow/components/calendar.html' with scheduled_posts=scheduled_posts %}
       </div>
+    </div>
   </div>
 </div>
 {% endblock %}

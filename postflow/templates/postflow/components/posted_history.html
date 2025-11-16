@@ -1,0 +1,42 @@
+<div id="posted-history-container" class="space-y-6">
+    {% if total_count > 0 %}
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+            <p class="text-green-700 font-semibold">✓ Showing {{ total_count }} posted image{{ total_count|pluralize }}</p>
+        </div>
+
+        <div id="posted-history-content" class="space-y-6">
+            {% for date, posts in grouped_posts.items %}
+                <div class="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
+                    <h3 class="text-lg font-semibold text-green-900">✓ {{ date|date:"F j, Y" }}</h3>
+
+                    <!-- Stack posts inside each date card -->
+                    <div class="flex flex-col space-y-4 mt-2">
+                        {% for post in posts %}
+                            {% include 'postflow/components/partials/scheduled_post.html' with post=post %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Infinite scroll trigger -->
+        {% if has_more %}
+        <div hx-get="{% url 'posted_history' %}?page={{ next_page }}"
+             hx-trigger="revealed"
+             hx-swap="afterend"
+             class="text-center py-8">
+            <span class="loading loading-spinner loading-md text-green-600"></span>
+            <p class="text-sm text-gray-500 mt-2">Loading more posts...</p>
+        </div>
+        {% endif %}
+    {% else %}
+        <!-- Empty state -->
+        <div class="bg-gray-50 p-8 rounded-lg text-center">
+            <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Posted History</h3>
+            <p class="text-gray-600">You haven't posted any images yet.</p>
+        </div>
+    {% endif %}
+</div>

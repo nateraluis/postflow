@@ -1,17 +1,28 @@
-<div id="calendar-container" class="mt-6">
-    <div id="calendar-content" class="space-y-6">
-        {% for date, posts in grouped_posts.items %}
-            <div class="bg-white p-4 rounded-lg shadow-md">
-                <h3 class="text-lg font-semibold text-gray-900">{{ date|date:"F j, Y" }}</h3>
+<div id="calendar-container" class="space-y-6">
+    {% if grouped_posts %}
+        <div id="calendar-content" class="space-y-6">
+            {% for date, posts in grouped_posts.items %}
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-900">📅 {{ date|date:"F j, Y" }}</h3>
 
-                <!-- Stack posts inside each date card -->
-                <div class="flex flex-col space-y-4 mt-2">
-                    {% for post in posts %}
-                        {% include 'postflow/components/partials/scheduled_post.html' with post=post %}
-                    {% endfor %}
+                    <!-- Stack posts inside each date card -->
+                    <div class="flex flex-col space-y-4 mt-2">
+                        {% for post in posts %}
+                            {% include 'postflow/components/partials/scheduled_post.html' with post=post %}
+                        {% endfor %}
+                    </div>
                 </div>
-            </div>
-        {% endfor %}
-    </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty state for upcoming posts -->
+        <div class="bg-gray-50 p-8 rounded-lg text-center">
+            <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Upcoming Posts</h3>
+            <p class="text-gray-600">Schedule your first post using the form above.</p>
+        </div>
+    {% endif %}
 </div>
 

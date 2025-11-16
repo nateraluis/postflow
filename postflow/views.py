@@ -72,7 +72,12 @@ def register(request):
                 login(request, user)
             else:
                 logger.debug("❌ Authentication failed for:", username)
-            return redirect("subscriptions:pricing")
+
+            # In DEBUG mode, redirect to dashboard instead of pricing
+            if settings.DEBUG:
+                return redirect("dashboard")
+            else:
+                return redirect("subscriptions:pricing")
         else:
             logger.debug("❌ Form is invalid. Errors:", form.errors)
             context["form"] = form
@@ -363,3 +368,79 @@ def subscribe(request):
     if not created:
         return render(request, "postflow/components/partials/subscribe_already.html", {"email": email})
     return render(request, "postflow/components/partials/subscribe_success.html", {"email": email})
+
+
+@login_required
+@require_http_methods(["GET"])
+def posted_history_view(request):
+    """Display previously posted images with infinite scroll pagination."""
+
+    # Get current month date range (1st of month to today)
+    current_time = now()
+    first_of_month = current_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # Pagination settings
+    page = int(request.GET.get('page', 1))
+    per_page = 25
+    start = (page - 1) * per_page
+    end = start + per_page
+
+    # Query posted posts in reverse chronological order
+    all_posted_posts = ScheduledPost.objects.filter(
+        user=request.user,
+        status='posted',
+        post_date__lte=current_time
+    ).prefetch_related(
+        'images',
+        'hashtag_groups__tags',
+        'mastodon_accounts',
+        'mastodon_native_accounts',
+        'instagram_accounts'
+    ).order_by('-post_date')
+
+    # Get total count for pagination
+    total_count = all_posted_posts.count()
+
+    # Get paginated slice
+    posted_posts = all_posted_posts[start:end]
+
+    # Generate signed URLs for images
+    for post in posted_posts:
+        # Handle multiple images via PostImage model
+        if post.images.exists():
+            post.image_urls = [get_s3_signed_url(img.image.name) for img in post.images.all()]
+        # Fallback to legacy single image field
+        elif post.image:
+            post.image_urls = [get_s3_signed_url(post.image.name)]
+        else:
+            post.image_urls = []
+
+        post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
+
+    # Group posts by date
+    grouped_posts = defaultdict(list)
+    for post in posted_posts:
+        grouped_posts[post.post_date.date()].append(post)
+
+    # Check if there are more posts to load
+    has_more = end < total_count
+    next_page = page + 1 if has_more else None
+
+    context = {
+        'grouped_posts': dict(grouped_posts),
+        'page': page,
+        'has_more': has_more,
+        'next_page': next_page,
+        'total_count': total_count,
+    }
+
+    # Handle HTMX requests
+    if "HX-Request" in request.headers:
+        # If it's page > 1, return only the posts (for infinite scroll)
+        if page > 1:
+            return render(request, "postflow/components/posted_history_items.html", context)
+        # If it's page 1 HTMX (toggle button), return full component
+        return render(request, "postflow/components/posted_history.html", context)
+
+    # Regular page load (full page)
+    return render(request, "postflow/pages/calendar.html", context)
