@@ -85,11 +85,57 @@ def register(request):
 
 
 @login_required
-@require_http_methods(["GET", "POST"])
-def profile_view(request, username):
-    user = _validate_user(request, username)
-    context = {"profile_user": user}
-    return render(request, "postflow/pages/dashboard.html", context)
+@require_http_methods(["GET"])
+def profile_view(request):
+    """Display user profile with account details and statistics."""
+    from pixelfed.models import MastodonAccount
+    from instagram.models import InstagramBusinessAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+
+    user = request.user
+
+    # Get social account counts
+    mastodon_count = MastodonAccount.objects.filter(user=user).count()
+    mastodon_native_count = MastodonNativeAccount.objects.filter(user=user).count()
+    instagram_count = InstagramBusinessAccount.objects.filter(user=user).count()
+    total_connected_accounts = mastodon_count + mastodon_native_count + instagram_count
+
+    # Get post statistics
+    total_scheduled = ScheduledPost.objects.filter(user=user, status__in=['pending', 'scheduled']).count()
+    total_posted = ScheduledPost.objects.filter(user=user, status='posted').count()
+    total_failed = ScheduledPost.objects.filter(user=user, status='failed').count()
+
+    # Get subscription information
+    subscription = None
+    has_subscription = False
+    try:
+        subscription = user.subscription
+        has_subscription = True
+    except AttributeError:
+        pass
+
+    context = {
+        'active_page': 'profile',
+        'user': user,
+        'mastodon_count': mastodon_count,
+        'mastodon_native_count': mastodon_native_count,
+        'instagram_count': instagram_count,
+        'total_connected_accounts': total_connected_accounts,
+        'total_scheduled': total_scheduled,
+        'total_posted': total_posted,
+        'total_failed': total_failed,
+        'subscription': subscription,
+        'has_subscription': has_subscription,
+    }
+
+    if request.headers.get("HX-Request"):
+        # Return both the content and sidebar with OOB swap
+        sidebar_context = {**context, 'is_htmx_request': True}
+        content = render(request, 'postflow/components/profile.html', context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
+
+    return render(request, 'postflow/pages/profile.html', context)
 
 @login_required
 @require_http_methods(["GET"])

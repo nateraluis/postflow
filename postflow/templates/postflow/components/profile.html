@@ -1,0 +1,232 @@
+{% load static %}
+
+<div class="max-w-4xl mx-auto">
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Profile</h1>
+    <p class="text-gray-600 mt-2">View your account details and statistics</p>
+  </div>
+
+  <!-- Account Information Card -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Account Information</h2>
+
+    <div class="space-y-4">
+      <!-- Email -->
+      <div class="flex items-start">
+        <div class="flex-shrink-0 w-32">
+          <span class="text-sm font-medium text-gray-500">Email</span>
+        </div>
+        <div class="flex-1">
+          <span class="text-sm text-gray-900">{{ user.email }}</span>
+        </div>
+      </div>
+
+      <!-- Full Name -->
+      <div class="flex items-start">
+        <div class="flex-shrink-0 w-32">
+          <span class="text-sm font-medium text-gray-500">Full Name</span>
+        </div>
+        <div class="flex-1">
+          {% if user.first_name or user.last_name %}
+            <span class="text-sm text-gray-900">{{ user.first_name }} {{ user.last_name }}</span>
+          {% else %}
+            <span class="text-sm text-gray-400 italic">Not set</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Account Created -->
+      <div class="flex items-start">
+        <div class="flex-shrink-0 w-32">
+          <span class="text-sm font-medium text-gray-500">Member Since</span>
+        </div>
+        <div class="flex-1">
+          <span class="text-sm text-gray-900">{{ user.date_joined|date:"F j, Y" }}</span>
+        </div>
+      </div>
+
+      <!-- Last Login -->
+      <div class="flex items-start">
+        <div class="flex-shrink-0 w-32">
+          <span class="text-sm font-medium text-gray-500">Last Login</span>
+        </div>
+        <div class="flex-1">
+          {% if user.last_login %}
+            <span class="text-sm text-gray-900">{{ user.last_login|date:"F j, Y g:i A" }}</span>
+          {% else %}
+            <span class="text-sm text-gray-400 italic">Never</span>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Billing & Subscription Card -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold text-gray-900">Billing & Subscription</h2>
+      {% if has_subscription %}
+        <a href="{% url 'subscriptions:customer_portal' %}"
+           class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Manage Billing
+        </a>
+      {% endif %}
+    </div>
+
+    {% if has_subscription %}
+      <div class="space-y-4">
+        <!-- Status -->
+        <div class="flex items-start">
+          <div class="flex-shrink-0 w-40">
+            <span class="text-sm font-medium text-gray-500">Status</span>
+          </div>
+          <div class="flex-1">
+            {% if subscription.is_active %}
+              <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
+                ✓ {{ subscription.get_status_display }}
+              </span>
+            {% elif subscription.is_past_due %}
+              <span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-700">
+                ⚠ {{ subscription.get_status_display }}
+              </span>
+            {% else %}
+              <span class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
+                {{ subscription.get_status_display }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Current Period Start -->
+        <div class="flex items-start">
+          <div class="flex-shrink-0 w-40">
+            <span class="text-sm font-medium text-gray-500">Current Period Start</span>
+          </div>
+          <div class="flex-1">
+            <span class="text-sm text-gray-900">{{ subscription.current_period_start|date:"F j, Y" }}</span>
+          </div>
+        </div>
+
+        <!-- Current Period End / Renewal -->
+        <div class="flex items-start">
+          <div class="flex-shrink-0 w-40">
+            <span class="text-sm font-medium text-gray-500">
+              {% if subscription.is_active %}Next Renewal{% else %}Period Ends{% endif %}
+            </span>
+          </div>
+          <div class="flex-1">
+            <span class="text-sm text-gray-900">{{ subscription.current_period_end|date:"F j, Y" }}</span>
+            {% if subscription.is_active %}
+              <span class="text-xs text-gray-500 ml-2">({{ subscription.days_until_renewal }} day{{ subscription.days_until_renewal|pluralize }} remaining)</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Subscription Created -->
+        <div class="flex items-start">
+          <div class="flex-shrink-0 w-40">
+            <span class="text-sm font-medium text-gray-500">Subscribed Since</span>
+          </div>
+          <div class="flex-1">
+            <span class="text-sm text-gray-900">{{ subscription.created_at|date:"F j, Y" }}</span>
+          </div>
+        </div>
+
+        <!-- Stripe Customer ID (for reference) -->
+        <div class="flex items-start">
+          <div class="flex-shrink-0 w-40">
+            <span class="text-sm font-medium text-gray-500">Customer ID</span>
+          </div>
+          <div class="flex-1">
+            <span class="text-xs text-gray-600 font-mono">{{ subscription.stripe_customer.stripe_customer_id }}</span>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <!-- No subscription -->
+      <div class="bg-gray-50 rounded-lg p-6 text-center">
+        <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">No Active Subscription</h3>
+        <p class="text-sm text-gray-600 mb-4">Subscribe to unlock all features and start scheduling your posts.</p>
+        <a href="{% url 'subscriptions:pricing' %}"
+           class="inline-flex items-center px-6 py-3 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">
+          View Pricing Plans
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Statistics Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- Connected Accounts Card -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Connected Accounts</h3>
+
+      <div class="space-y-3">
+        <!-- Total -->
+        <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+          <span class="text-sm font-medium text-gray-700">Total Connected</span>
+          <span class="text-2xl font-bold text-indigo-600">{{ total_connected_accounts }}</span>
+        </div>
+
+        <!-- Pixelfed/Mastodon -->
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-gray-600">Pixelfed Accounts</span>
+          <span class="text-sm font-semibold text-gray-900">{{ mastodon_count }}</span>
+        </div>
+
+        <!-- Mastodon Native -->
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-gray-600">Mastodon Accounts</span>
+          <span class="text-sm font-semibold text-gray-900">{{ mastodon_native_count }}</span>
+        </div>
+
+        <!-- Instagram -->
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-gray-600">Instagram Accounts</span>
+          <span class="text-sm font-semibold text-gray-900">{{ instagram_count }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Post Statistics Card -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Post Statistics</h3>
+
+      <div class="space-y-3">
+        <!-- Total Posted -->
+        <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+          <span class="text-sm font-medium text-gray-700">Total Posted</span>
+          <span class="text-2xl font-bold text-green-600">{{ total_posted }}</span>
+        </div>
+
+        <!-- Scheduled -->
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-gray-600">Scheduled/Pending</span>
+          <span class="text-sm font-semibold text-gray-900">{{ total_scheduled }}</span>
+        </div>
+
+        <!-- Failed -->
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-gray-600">Failed</span>
+          <span class="text-sm font-semibold text-red-600">{{ total_failed }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions (placeholder for future edit functionality) -->
+  <div class="bg-gray-50 rounded-lg p-6 text-center">
+    <p class="text-sm text-gray-600">
+      Need to update your information? Contact support or check back later for profile editing features.
+    </p>
+  </div>
+</div>

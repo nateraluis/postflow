@@ -79,16 +79,8 @@
       <a href="{% url 'dashboard' %}" class="block text-white font-semibold">Dashboard</a>
       <a href="{% url 'hashtag-groups' %}" class="block text-gray-300 hover:text-white">Hashtags</a>
       <a href="{% url 'calendar' %}" class="block text-gray-300 hover:text-white">Calendar</a>
-      <a href="{% url 'subscriptions:customer_portal' %}" class="flex items-center justify-between text-gray-300 hover:text-white">
-        <span>Billing</span>
-        {% if user.is_subscribed %}
-          <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">Active</span>
-        {% else %}
-          <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">Inactive</span>
-        {% endif %}
-      </a>
       <hr class="border-gray-700">
-      <a href="#" class="flex items-center gap-3 text-white">
+      <a href="{% url 'profile' %}" class="flex items-center gap-3 text-white hover:text-gray-300">
         <img class="w-8 h-8 rounded-full bg-gray-800" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
         {{ request.user.first_name }} {{ request.user.last_name }}
       </a>
