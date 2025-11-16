@@ -1,0 +1,75 @@
+{% load static %}
+<nav class="flex flex-1 flex-col" id="sidebar-nav" {% if request.headers.HX-Request %}hx-swap-oob="true"{% endif %}>
+  <ul role="list" class="flex flex-1 flex-col gap-y-7">
+    <li>
+      <ul role="list" class="-mx-2 space-y-1">
+        <!-- Dashboard Link -->
+        <li>
+          <a href="{% url 'dashboard' %}"
+             hx-get="{% url 'dashboard' %}"
+             hx-target="#content-area"
+             hx-swap="innerHTML"
+             class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold {% if active_page == 'dashboard' %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+            <img src="{% static 'postflow/icons/home.svg' %}" class="size-6 shrink-0" alt="Home icon" />
+            Dashboard
+          </a>
+        </li>
+
+        <!-- Hashtags Link -->
+        <li>
+          <a href="{% url 'hashtag-groups' %}"
+             hx-get="{% url 'hashtag-groups' %}"
+             hx-target="#content-area"
+             hx-swap="innerHTML"
+             class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold {% if active_page == 'hashtags' %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+            <img src="{% static 'postflow/icons/hashtag.svg' %}" class="size-6 shrink-0" alt="Hashtag icon" />
+            Hashtags
+          </a>
+        </li>
+
+        <!-- Calendar Link -->
+        <li>
+          <a href="{% url 'calendar' %}"
+             hx-get="{% url 'calendar' %}"
+             hx-target="#content-area"
+             hx-swap="innerHTML"
+             class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold {% if active_page == 'calendar' %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+            <img src="{% static 'postflow/icons/calendar.svg' %}" class="size-6 shrink-0" alt="Calendar icon" />
+            Calendar
+          </a>
+        </li>
+      </ul>
+    </li>
+
+    <!-- Billing/Subscription -->
+    <li>
+      <a href="{% url 'subscriptions:customer_portal' %}" class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold text-gray-400 hover:bg-gray-800 hover:text-white">
+        <img src="{% static 'postflow/icons/calendar.svg' %}" class="size-6 shrink-0" alt="Billing icon" />
+        Billing
+        {% if user.is_subscribed %}
+          <span class="ml-auto inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">Active</span>
+        {% else %}
+          <span class="ml-auto inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">Inactive</span>
+        {% endif %}
+      </a>
+    </li>
+
+    <!-- Profile & Logout -->
+    <li class="-mx-6 mt-auto">
+      <a href="#" class="flex items-center gap-x-4 px-6 text-sm font-semibold text-white hover:bg-gray-800">
+        <img class="size-8 rounded-full bg-gray-800"
+             src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+             alt="">
+        <span class="sr-only">Your profile</span>
+        <span aria-hidden="true">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+      </a>
+    </li>
+    <!-- Logout -->
+    <li>
+      <a href="{% url 'logout' %}" class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold text-gray-400 hover:bg-gray-800 hover:text-white">
+        <img src="{% static 'postflow/icons/logout.svg' %}" class="size-6 shrink-0" alt="Log out icon" />
+        Log out
+      </a>
+    </li>
+  </ul>
+</nav>

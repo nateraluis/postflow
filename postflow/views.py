@@ -94,9 +94,13 @@ def profile_view(request, username):
 @login_required
 @require_http_methods(["GET"])
 def dashboard(request):
+    context = {'active_page': 'dashboard'}
     if request.headers.get("HX-Request"):
-        return render(request, 'postflow/components/dashboard.html')
-    return render(request, 'postflow/pages/dashboard.html')
+        # Return both the content and sidebar with OOB swap
+        content = render(request, 'postflow/components/dashboard.html', context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
+    return render(request, 'postflow/pages/dashboard.html', context)
 
 
 @login_required
@@ -139,6 +143,7 @@ def calendar_view(request):
         "mastodon_native_accounts": MastodonNativeAccount.objects.filter(user=request.user),
         "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
         "grouped_posts": dict(grouped_posts),  # Convert defaultdict to dict
+        "active_page": "calendar",
     }
 
     if "HX-Request" in request.headers:
@@ -146,8 +151,10 @@ def calendar_view(request):
         # Toggle buttons target #calendar-view-container, so return only calendar.html
         if request.headers.get("HX-Target") == "calendar-view-container":
             return render(request, "postflow/components/calendar.html", context)
-        # Otherwise return full schedule_posts component (for sidebar navigation)
-        return render(request, "postflow/components/schedule_posts.html", context)
+        # Otherwise return full schedule_posts component (for sidebar navigation) + sidebar OOB
+        content = render(request, "postflow/components/schedule_posts.html", context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
 
     return render(request, "postflow/pages/calendar.html", context)
 
@@ -340,13 +347,16 @@ def hashtag_groups_view(request):
 
     # Fetch hashtag groups for the logged-in user
     hashtag_groups = TagGroup.objects.filter(user=user).prefetch_related("tags")
+    context = {"hashtag_groups": hashtag_groups, "active_page": "hashtags"}
 
     # **HTMX Fix: Load Full Hashtags Component Instead of Just Groups**
     if "HX-Request" in request.headers:
-        return render(request, "postflow/components/hashtags.html", {"hashtag_groups": hashtag_groups})
+        content = render(request, "postflow/components/hashtags.html", context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
 
     # **Normal Request: Render Full Page with Sidebar**
-    return render(request, "postflow/pages/hashtags.html", {"hashtag_groups": hashtag_groups})
+    return render(request, "postflow/pages/hashtags.html", context)
 
 
 @login_required
