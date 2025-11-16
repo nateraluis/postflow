@@ -21,6 +21,10 @@ class CustomUser(AbstractUser):
     @property
     def is_subscribed(self):
         """Check if user has an active subscription"""
+        # In DEBUG mode (development), all users are considered subscribed
+        if settings.DEBUG:
+            return True
+
         try:
             return self.subscription.is_active
         except AttributeError:

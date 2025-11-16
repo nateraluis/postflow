@@ -1,6 +1,7 @@
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
+from django.conf import settings
 
 
 class SubscriptionRequiredMiddleware:
@@ -33,6 +34,11 @@ class SubscriptionRequiredMiddleware:
         ]
 
     def __call__(self, request):
+        # Skip subscription checks in DEBUG mode (development)
+        if settings.DEBUG:
+            response = self.get_response(request)
+            return response
+
         # Check if user needs subscription for this URL
         if self.requires_subscription(request):
             if not request.user.is_authenticated:
