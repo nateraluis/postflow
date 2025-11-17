@@ -40,7 +40,7 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                return redirect("profile", username=username)
+                return redirect("accounts")
             else:
                 form.add_error("username", "Invalid email or password")
     else:
