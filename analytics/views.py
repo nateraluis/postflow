@@ -72,6 +72,11 @@ def refresh_analytics(request):
 
     Returns JSON response with status.
     """
+    import logging
+    logger = logging.getLogger('postflow')
+
+    logger.info(f"Analytics refresh requested by user {request.user.email}")
+
     # Get post_id if provided
     post_id = request.POST.get('post_id')
 
@@ -79,9 +84,12 @@ def refresh_analytics(request):
         # Refresh specific post (raises 404 if not found)
         post = get_object_or_404(ScheduledPost, id=post_id, user=request.user)
         try:
+            logger.info(f"Fetching analytics for post {post_id}")
             call_command('fetch_analytics', post_id=post_id, force=True)
             message = f'Analytics refreshed for post {post_id}'
+            logger.info(f"Successfully refreshed analytics for post {post_id}")
         except Exception as e:
+            logger.exception(f"Error refreshing analytics for post {post_id}: {e}")
             return JsonResponse({
                 'status': 'error',
                 'message': str(e)
@@ -89,9 +97,12 @@ def refresh_analytics(request):
     else:
         # Refresh all recent posts (last 7 days)
         try:
+            logger.info("Fetching analytics for last 7 days")
             call_command('fetch_analytics', days=7, force=True)
             message = 'Analytics refreshed for recent posts'
+            logger.info("Successfully refreshed analytics for recent posts")
         except Exception as e:
+            logger.exception(f"Error refreshing analytics: {e}")
             return JsonResponse({
                 'status': 'error',
                 'message': str(e)
