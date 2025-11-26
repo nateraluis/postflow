@@ -89,7 +89,11 @@
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <!-- Post Image (1/4 width on large screens) -->
               <div class="lg:col-span-1">
-                {% if post.image %}
+                {% if post.images.first %}
+                  <div class="aspect-square bg-gray-900">
+                    <img src="{{ post.images.first.image.url }}" alt="Post image" class="w-full h-full object-cover">
+                  </div>
+                {% elif post.image %}
                   <div class="aspect-square bg-gray-900">
                     <img src="{{ post.image.url }}" alt="Post image" class="w-full h-full object-cover">
                   </div>

@@ -37,6 +37,7 @@ def analytics_dashboard(request):
         'instagram_accounts',
         'mastodon_accounts',
         'mastodon_native_accounts',
+        'images',  # Prefetch PostImage for multi-image posts
     ).order_by('-post_date')
 
     # Apply platform filter
