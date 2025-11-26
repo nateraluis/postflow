@@ -81,10 +81,12 @@ def post_pixelfed(scheduled_post):
             post_response = response.json()
 
             # Update ScheduledPost with post ID and status
-            scheduled_post.mastodon_post_id = post_response.get("id")
+            post_id = post_response.get("id")
+            scheduled_post.mastodon_post_id = post_id
+            scheduled_post.pixelfed_post_id = post_id  # Also set for analytics
             scheduled_post.status = "posted"
-            scheduled_post.save(update_fields=["mastodon_post_id", "status"])
-            logger.info(f"Successfully posted to Pixelfed @{account.username}, post ID: {scheduled_post.mastodon_post_id}")
+            scheduled_post.save(update_fields=["mastodon_post_id", "pixelfed_post_id", "status"])
+            logger.info(f"Successfully posted to Pixelfed @{account.username}, post ID: {post_id}")
 
         except requests.exceptions.Timeout:
             logger.error(f"Timeout posting to Pixelfed @{account.username}")

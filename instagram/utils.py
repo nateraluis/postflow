@@ -258,7 +258,8 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
                             # Mark as posted and store media ID
                             scheduled_post.status = "posted"
                             scheduled_post.instagram_media_id = ig_media_id
-                            scheduled_post.save(update_fields=["status", "instagram_media_id"])
+                            scheduled_post.instagram_post_id = ig_media_id  # Also set for analytics
+                            scheduled_post.save(update_fields=["status", "instagram_media_id", "instagram_post_id"])
                             # Add small delay between multiple accounts to avoid rate limiting
                             time.sleep(1)
                             break  # Exit the retry loop on success
