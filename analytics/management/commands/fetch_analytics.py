@@ -211,11 +211,11 @@ class Command(BaseCommand):
 
         except AnalyticsFetchError as e:
             self.stdout.write(
-                self.style.ERROR(f'  ❌ {platform.title()} API error: {e}')
+                self.style.WARNING(f'  ⚠️  {platform.title()} API error: {e}')
             )
-            raise
+            # Don't raise - just log and continue with other platforms
         except Exception as e:
             self.stdout.write(
-                self.style.ERROR(f'  ❌ {platform.title()} error: {e}')
+                self.style.WARNING(f'  ⚠️  {platform.title()} error: {e}')
             )
-            raise
+            # Don't raise - just log and continue with other platforms

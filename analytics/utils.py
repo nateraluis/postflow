@@ -35,19 +35,18 @@ def fetch_instagram_analytics(post_id: str, access_token: str) -> Dict[str, int]
     Raises:
         AnalyticsFetchError: If API request fails
     """
+    # Initialize metrics with defaults
+    metrics = {
+        'likes': 0,
+        'comments': 0,
+        'shares': 0,  # Instagram doesn't provide share count via API
+        'impressions': None,
+        'reach': None,
+        'saved': 0,
+    }
+
     try:
-        # Fetch post insights
-        insights_url = f"https://graph.facebook.com/v18.0/{post_id}/insights"
-        params = {
-            'metric': 'impressions,reach,saved',
-            'access_token': access_token
-        }
-
-        insights_response = requests.get(insights_url, params=params, timeout=10)
-        insights_response.raise_for_status()
-        insights_data = insights_response.json()
-
-        # Fetch basic post data (likes, comments)
+        # First, try to fetch basic post data (likes, comments) - always available
         post_url = f"https://graph.facebook.com/v18.0/{post_id}"
         post_params = {
             'fields': 'like_count,comments_count',
@@ -58,28 +57,57 @@ def fetch_instagram_analytics(post_id: str, access_token: str) -> Dict[str, int]
         post_response.raise_for_status()
         post_data = post_response.json()
 
-        # Parse insights
-        metrics = {
-            'likes': post_data.get('like_count', 0),
-            'comments': post_data.get('comments_count', 0),
-            'shares': 0,  # Instagram doesn't provide share count via API
-            'impressions': 0,
-            'reach': 0,
-            'saved': 0,
-        }
+        metrics['likes'] = post_data.get('like_count', 0)
+        metrics['comments'] = post_data.get('comments_count', 0)
 
-        # Extract insights data
-        for insight in insights_data.get('data', []):
-            metric_name = insight.get('name')
-            values = insight.get('values', [])
-            if values:
-                value = values[0].get('value', 0)
-                if metric_name == 'impressions':
-                    metrics['impressions'] = value
-                elif metric_name == 'reach':
-                    metrics['reach'] = value
-                elif metric_name == 'saved':
-                    metrics['saved'] = value
+        # Now try to fetch insights (may fail for recent posts or certain post types)
+        try:
+            insights_url = f"https://graph.facebook.com/v18.0/{post_id}/insights"
+            params = {
+                'metric': 'impressions,reach,saved',
+                'access_token': access_token
+            }
+
+            insights_response = requests.get(insights_url, params=params, timeout=10)
+
+            # Check if we got an error response
+            if insights_response.status_code == 400:
+                # Parse the error to see if it's an expected issue
+                try:
+                    error_data = insights_response.json()
+                    error_message = error_data.get('error', {}).get('message', '')
+
+                    # Common cases where insights aren't available
+                    if 'Insights data is not available' in error_message or \
+                       'Unsupported request' in error_message or \
+                       'does not support this' in error_message:
+                        logger.warning(f"Instagram insights not available for post {post_id}: {error_message}")
+                        logger.info(f"Returning basic metrics only for post {post_id}: {metrics}")
+                        return metrics  # Return basic metrics without insights
+                except:
+                    pass
+
+            insights_response.raise_for_status()
+            insights_data = insights_response.json()
+
+            # Extract insights data
+            for insight in insights_data.get('data', []):
+                metric_name = insight.get('name')
+                values = insight.get('values', [])
+                if values:
+                    value = values[0].get('value', 0)
+                    if metric_name == 'impressions':
+                        metrics['impressions'] = value
+                    elif metric_name == 'reach':
+                        metrics['reach'] = value
+                    elif metric_name == 'saved':
+                        metrics['saved'] = value
+
+        except requests.exceptions.RequestException as insights_error:
+            # Insights failed but we have basic metrics
+            logger.warning(f"Could not fetch insights for Instagram post {post_id}: {insights_error}")
+            logger.info(f"Returning basic metrics only: {metrics}")
+            # Continue with basic metrics
 
         logger.info(f"Fetched Instagram analytics for post {post_id}: {metrics}")
         return metrics

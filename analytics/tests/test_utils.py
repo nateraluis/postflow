@@ -21,7 +21,18 @@ class TestFetchInstagramAnalytics:
         post_id = '123456'
         access_token = 'test_token'
 
-        # Mock insights API response
+        # Mock post data API response (fetched first)
+        responses.add(
+            responses.GET,
+            f'https://graph.facebook.com/v18.0/{post_id}',
+            json={
+                'like_count': 100,
+                'comments_count': 20
+            },
+            status=200
+        )
+
+        # Mock insights API response (fetched second)
         responses.add(
             responses.GET,
             f'https://graph.facebook.com/v18.0/{post_id}/insights',
@@ -31,17 +42,6 @@ class TestFetchInstagramAnalytics:
                     {'name': 'reach', 'values': [{'value': 1500}]},
                     {'name': 'saved', 'values': [{'value': 50}]},
                 ]
-            },
-            status=200
-        )
-
-        # Mock post data API response
-        responses.add(
-            responses.GET,
-            f'https://graph.facebook.com/v18.0/{post_id}',
-            json={
-                'like_count': 100,
-                'comments_count': 20
             },
             status=200
         )
@@ -61,10 +61,10 @@ class TestFetchInstagramAnalytics:
         post_id = '123456'
         access_token = 'test_token'
 
-        # Mock API error
+        # Mock basic post data endpoint error (total failure)
         responses.add(
             responses.GET,
-            f'https://graph.facebook.com/v18.0/{post_id}/insights',
+            f'https://graph.facebook.com/v18.0/{post_id}',
             json={'error': {'message': 'Invalid OAuth token'}},
             status=400
         )
@@ -78,18 +78,19 @@ class TestFetchInstagramAnalytics:
         post_id = '123456'
         access_token = 'test_token'
 
-        # Mock minimal response
-        responses.add(
-            responses.GET,
-            f'https://graph.facebook.com/v18.0/{post_id}/insights',
-            json={'data': []},
-            status=200
-        )
-
+        # Mock basic post data (always fetched first)
         responses.add(
             responses.GET,
             f'https://graph.facebook.com/v18.0/{post_id}',
             json={},
+            status=200
+        )
+
+        # Mock insights with minimal response
+        responses.add(
+            responses.GET,
+            f'https://graph.facebook.com/v18.0/{post_id}/insights',
+            json={'data': []},
             status=200
         )
 
@@ -98,8 +99,43 @@ class TestFetchInstagramAnalytics:
         # Should have default values
         assert metrics['likes'] == 0
         assert metrics['comments'] == 0
-        assert metrics['impressions'] == 0
-        assert metrics['reach'] == 0
+        assert metrics['impressions'] == None  # No insights data
+        assert metrics['reach'] == None  # No insights data
+        assert metrics['saved'] == 0
+
+    @responses.activate
+    def test_fetch_instagram_analytics_insights_not_available(self):
+        """Test Instagram analytics when insights are not available but basic metrics are."""
+        post_id = '123456'
+        access_token = 'test_token'
+
+        # Mock basic post data (succeeds)
+        responses.add(
+            responses.GET,
+            f'https://graph.facebook.com/v18.0/{post_id}',
+            json={
+                'like_count': 150,
+                'comments_count': 30
+            },
+            status=200
+        )
+
+        # Mock insights error (insights not available for this post type)
+        responses.add(
+            responses.GET,
+            f'https://graph.facebook.com/v18.0/{post_id}/insights',
+            json={'error': {'message': 'Insights data is not available for this media'}},
+            status=400
+        )
+
+        metrics = fetch_instagram_analytics(post_id, access_token)
+
+        # Should have basic metrics even though insights failed
+        assert metrics['likes'] == 150
+        assert metrics['comments'] == 30
+        assert metrics['shares'] == 0
+        assert metrics['impressions'] == None
+        assert metrics['reach'] == None
         assert metrics['saved'] == 0
 
 
