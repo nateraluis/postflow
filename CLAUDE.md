@@ -28,9 +28,12 @@ uv run manage.py migrate
 # Static files
 uv run manage.py collectstatic
 
-# Custom management commands
-uv run manage.py run_post_scheduled    # Process scheduled posts
-uv run manage.py refresh_instagram_tokens  # Refresh Instagram access tokens
+# Scheduler commands
+uv run manage.py run_scheduler           # Start APScheduler (runs in production automatically)
+
+# Manual job execution (for testing)
+uv run manage.py run_post_scheduled      # Manually process scheduled posts
+uv run manage.py refresh_instagram_tokens  # Manually refresh Instagram tokens
 ```
 
 ### Tailwind CSS
@@ -50,6 +53,10 @@ docker-compose up --build -d
 # View logs
 docker-compose logs -f django
 docker-compose logs -f nginx
+
+# Check scheduler status
+docker exec postflow_django pgrep -f "manage.py run_scheduler"  # Should return PID if running
+docker-compose logs django | grep -i "scheduler"  # View scheduler logs
 ```
 
 ## Architecture Overview
@@ -78,13 +85,47 @@ The app uses a dual storage setup:
 ### Social Media Integration
 - **Pixelfed**: Uses pixelfed API endpoints with OAuth tokens
 - **Instagram Business**: Uses Facebook Graph API with page access tokens that auto-refresh
-- **Scheduling**: Timezone-aware with cron job processing via `run_post_scheduled` command
+- **Scheduling**: Timezone-aware with APScheduler processing posts every minute and refreshing tokens every 6 hours
+
+### Task Scheduling (APScheduler)
+PostFlow uses **APScheduler** (not system cron) for reliable task scheduling:
+- **Scheduler Module**: `postflow/scheduler.py` - Background scheduler with file locking
+- **Auto-Start**: Scheduler launches automatically in `entrypoint.sh` on container startup
+- **Jobs**:
+  - `post_scheduled`: Runs every minute to process pending posts
+  - `refresh_instagram_tokens`: Runs every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+- **Lock File**: `/tmp/postflow_scheduler.lock` prevents duplicate instances
+- **Logging**: All scheduler activity logs to Django's `postflow` logger
+- **Health Check**: Docker monitors scheduler process; restarts container if it dies
+- **Documentation**: See `docs/scheduler.md` for complete details
 
 ## Testing
 - Use pytest for all tests (not Django's unittest)
-- Test files go in homepage/tests/ or app-specific tests/ directories
+- Test files go in app-specific tests/ directories (e.g., `postflow/tests/`)
+- Use pytest fixtures instead of Django's TestCase
 - Run tests before committing changes
 - Aim for high test coverage on new code
+
+### Running Tests
+```bash
+# Install test dependencies
+uv sync --extra test
+
+# Run all tests
+uv run pytest
+
+# Run specific test file
+uv run pytest postflow/tests/test_scheduler.py
+
+# Run with coverage
+uv run pytest --cov=postflow --cov-report=html
+
+# Run specific test class
+uv run pytest postflow/tests/test_scheduler.py::TestSchedulerLock
+
+# Run specific test function
+uv run pytest postflow/tests/test_scheduler.py::TestSchedulerLock::test_acquire_lock_success
+```
 
 ## Frontend development
 - Tailwind CSS integrated via django-tailwind

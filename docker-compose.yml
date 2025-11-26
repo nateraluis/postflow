@@ -6,7 +6,7 @@ services:
     container_name: postflow_django
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pgrep cron && pgrep uwsgi"]
+      test: ["CMD-SHELL", "pgrep -f 'manage.py run_scheduler' && pgrep uwsgi"]
       interval: 30s
       timeout: 5s
       retries: 3
