@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'mastodon_native',
     'mastodon_integration',
     'subscriptions',
+    'analytics',
     'django_browser_reload',
     'django_htmx',
 ]

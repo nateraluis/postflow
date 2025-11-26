@@ -144,8 +144,8 @@ class TestSchedulerInitialization:
         # Verify scheduler was initialized
         assert scheduler.scheduler is not None
 
-        # Verify jobs were added
-        assert mock_background_scheduler.add_job.call_count == 2
+        # Verify jobs were added (3 jobs: post_scheduled, refresh_instagram_tokens, fetch_analytics)
+        assert mock_background_scheduler.add_job.call_count == 3
 
         # Verify scheduler was started
         mock_background_scheduler.start.assert_called_once()

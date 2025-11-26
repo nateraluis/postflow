@@ -64,6 +64,7 @@ docker-compose logs django | grep -i "scheduler"  # View scheduler logs
 ### Core Django Structure
 - **postflow/** - Main Django app containing core functionality
 - **subscriptions/** - Subscription management (basic structure, unused models)
+- **analytics/** - Post analytics tracking and dashboard
 - **theme/** - Tailwind CSS integration with django-tailwind
 - **core/** - Django project settings and configuration
 
@@ -94,10 +95,24 @@ PostFlow uses **APScheduler** (not system cron) for reliable task scheduling:
 - **Jobs**:
   - `post_scheduled`: Runs every minute to process pending posts
   - `refresh_instagram_tokens`: Runs every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+  - `fetch_analytics`: Runs every 6 hours (01:00, 07:00, 13:00, 19:00 UTC) to fetch post engagement metrics
 - **Lock File**: `/tmp/postflow_scheduler.lock` prevents duplicate instances
 - **Logging**: All scheduler activity logs to Django's `postflow` logger
 - **Health Check**: Docker monitors scheduler process; restarts container if it dies
 - **Documentation**: See `docs/scheduler.md` for complete details
+
+### Analytics Module
+PostFlow tracks engagement metrics for published posts across all platforms:
+- **Models**: `PostAnalytics` - Stores likes, comments, shares, impressions, reach
+- **API Integration**: Fetches data from Instagram Graph API, Mastodon API, Pixelfed API
+- **Auto-Collection**: Scheduled job runs every 6 hours to fetch latest analytics
+- **Dashboard**: View post performance at `/analytics/` with filters by platform
+- **Manual Refresh**: Users can trigger on-demand analytics refresh
+- **Platform-Specific Metrics**:
+  - Instagram: likes, comments, impressions, reach, saved
+  - Mastodon: favorites, replies, reblogs
+  - Pixelfed: favorites, replies, shares
+- **Management Command**: `python manage.py fetch_analytics` for manual fetching
 
 ## Testing
 - Use pytest for all tests (not Django's unittest)
