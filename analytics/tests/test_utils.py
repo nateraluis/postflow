@@ -270,6 +270,31 @@ class TestFetchPixelfedAnalytics:
         assert metrics['shares'] == 12
 
     @responses.activate
+    def test_fetch_pixelfed_analytics_with_likes_count(self):
+        """Test Pixelfed analytics with likes_count instead of favourites_count."""
+        post_id = '111222'
+        instance_url = 'https://pixelfed.social'
+        access_token = 'test_token'
+
+        # Mock response with likes_count (alternative field name)
+        responses.add(
+            responses.GET,
+            f'{instance_url}/api/v1/statuses/{post_id}',
+            json={
+                'likes_count': 85,  # Alternative field name
+                'replies_count': 20,
+                'reblogs_count': 10
+            },
+            status=200
+        )
+
+        metrics = fetch_pixelfed_analytics(post_id, instance_url, access_token)
+
+        assert metrics['likes'] == 85
+        assert metrics['comments'] == 20
+        assert metrics['shares'] == 10
+
+    @responses.activate
     def test_fetch_pixelfed_analytics_api_error(self):
         """Test Pixelfed analytics fetch with API error."""
         post_id = '111222'

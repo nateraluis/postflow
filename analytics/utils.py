@@ -210,28 +210,46 @@ def fetch_pixelfed_analytics(post_id: str, instance_url: str, access_token: str)
         status_url = f"{instance_url}/api/v1/statuses/{post_id}"
         headers = {'Authorization': f'Bearer {access_token}'}
 
+        logger.debug(f"Fetching Pixelfed analytics from {status_url}")
         response = requests.get(status_url, headers=headers, timeout=10)
         response.raise_for_status()
         data = response.json()
 
+        # Log the raw response for debugging
+        logger.debug(f"Pixelfed API response for post {post_id}: {data.keys() if isinstance(data, dict) else 'not a dict'}")
+
+        # Pixelfed may use either favourites_count or likes_count
+        likes = data.get('favourites_count', data.get('likes_count', 0))
+
+        # Comments field
+        comments = data.get('replies_count', 0)
+
+        # Shares - prefer shares_count over reblogs_count if both exist
+        shares = data.get('shares_count', data.get('reblogs_count', 0))
+
         metrics = {
-            'likes': data.get('favourites_count', 0),
-            'comments': data.get('replies_count', 0),
-            'shares': data.get('reblogs_count', 0),  # Pixelfed may use 'shares_count'
+            'likes': likes,
+            'comments': comments,
+            'shares': shares,
             'impressions': None,  # Not available on Pixelfed
             'reach': None,  # Not available on Pixelfed
             'saved': 0,  # Not available on Pixelfed
         }
 
-        # Pixelfed might use 'shares_count' instead of 'reblogs_count'
-        if 'shares_count' in data:
-            metrics['shares'] = data.get('shares_count', 0)
-
         logger.info(f"Fetched Pixelfed analytics for post {post_id}: {metrics}")
         return metrics
 
+    except requests.exceptions.HTTPError as e:
+        # Log the response content for debugging
+        error_detail = ""
+        try:
+            error_detail = f" - Response: {e.response.text[:200]}"
+        except:
+            pass
+        logger.error(f"HTTP error fetching Pixelfed analytics for post {post_id}: {e}{error_detail}")
+        raise AnalyticsFetchError(f"Pixelfed API error: {e}")
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to fetch Pixelfed analytics for post {post_id}: {e}")
+        logger.error(f"Request error fetching Pixelfed analytics for post {post_id}: {e}")
         raise AnalyticsFetchError(f"Pixelfed API error: {e}")
     except Exception as e:
         logger.error(f"Unexpected error fetching Pixelfed analytics: {e}")
