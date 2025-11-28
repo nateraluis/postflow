@@ -1,8 +1,8 @@
 # management/commands/refresh_instagram_tokens.py
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now
-from postflow.models import InstagramBusinessAccount
-from postflow.views import refresh_long_lived_token
+from instagram.models import InstagramBusinessAccount
+from instagram.views import refresh_long_lived_token
 import logging
 
 logger = logging.getLogger("postflow")
