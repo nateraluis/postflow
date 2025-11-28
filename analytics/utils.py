@@ -47,7 +47,8 @@ def fetch_instagram_analytics(post_id: str, access_token: str) -> Dict[str, int]
 
     try:
         # First, try to fetch basic post data (likes, comments) - always available
-        post_url = f"https://graph.facebook.com/v18.0/{post_id}"
+        # Use Instagram Graph API (not Facebook Graph API) for Instagram Business posts
+        post_url = f"https://graph.instagram.com/v22.0/{post_id}"
         post_params = {
             'fields': 'like_count,comments_count',
             'access_token': access_token
@@ -62,7 +63,8 @@ def fetch_instagram_analytics(post_id: str, access_token: str) -> Dict[str, int]
 
         # Now try to fetch insights (may fail for recent posts or certain post types)
         try:
-            insights_url = f"https://graph.facebook.com/v18.0/{post_id}/insights"
+            # Use Instagram Graph API for insights as well
+            insights_url = f"https://graph.instagram.com/v22.0/{post_id}/insights"
             params = {
                 'metric': 'impressions,reach,saved',
                 'access_token': access_token
