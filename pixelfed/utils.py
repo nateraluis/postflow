@@ -82,11 +82,23 @@ def post_pixelfed(scheduled_post):
 
             # Update ScheduledPost with post ID and status
             post_id = post_response.get("id")
-            scheduled_post.mastodon_post_id = post_id
-            scheduled_post.pixelfed_post_id = post_id  # Also set for analytics
-            scheduled_post.status = "posted"
-            scheduled_post.save(update_fields=["mastodon_post_id", "pixelfed_post_id", "status"])
-            logger.info(f"Successfully posted to Pixelfed @{account.username}, post ID: {post_id}")
+
+            # Check if this is actually a Pixelfed instance (not just Mastodon-compatible)
+            is_pixelfed = "pixelfed" in account.instance_url.lower()
+
+            if is_pixelfed:
+                # Set both mastodon_post_id and pixelfed_post_id for Pixelfed instances
+                scheduled_post.pixelfed_post_id = post_id
+                scheduled_post.mastodon_post_id = post_id
+                scheduled_post.status = "posted"
+                scheduled_post.save(update_fields=["mastodon_post_id", "pixelfed_post_id", "status"])
+                logger.info(f"Successfully posted to Pixelfed @{account.username}, post ID: {post_id}")
+            else:
+                # Set only mastodon_post_id for non-Pixelfed Mastodon-compatible instances
+                scheduled_post.mastodon_post_id = post_id
+                scheduled_post.status = "posted"
+                scheduled_post.save(update_fields=["mastodon_post_id", "status"])
+                logger.info(f"Successfully posted to Mastodon-compatible instance @{account.username}, post ID: {post_id}")
 
         except requests.exceptions.Timeout:
             logger.error(f"Timeout posting to Pixelfed @{account.username}")
