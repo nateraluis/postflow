@@ -179,8 +179,8 @@ def fetch_pixelfed_analytics(post_id: str, instance_url: str, access_token: str)
     """
     Fetch analytics for a Pixelfed post.
 
-    Pixelfed uses the same API structure as Mastodon, so this function
-    is essentially the same as fetch_mastodon_analytics.
+    Pixelfed uses its own API endpoint structure (/api/pixelfed/v1/) rather than
+    the standard Mastodon-compatible endpoint (/api/v1/).
 
     Args:
         post_id: Pixelfed status ID
@@ -202,12 +202,12 @@ def fetch_pixelfed_analytics(post_id: str, instance_url: str, access_token: str)
         AnalyticsFetchError: If API request fails
     """
     try:
-        # Pixelfed uses the same API as Mastodon
+        # Pixelfed uses /api/pixelfed/v1/ instead of /api/v1/
         # Ensure instance_url doesn't end with /
         instance_url = instance_url.rstrip('/')
 
-        # Fetch status data
-        status_url = f"{instance_url}/api/v1/statuses/{post_id}"
+        # Fetch status data using Pixelfed-specific endpoint
+        status_url = f"{instance_url}/api/pixelfed/v1/statuses/{post_id}"
         headers = {'Authorization': f'Bearer {access_token}'}
 
         logger.debug(f"Fetching Pixelfed analytics from {status_url}")
@@ -221,8 +221,8 @@ def fetch_pixelfed_analytics(post_id: str, instance_url: str, access_token: str)
         # Pixelfed may use either favourites_count or likes_count
         likes = data.get('favourites_count', data.get('likes_count', 0))
 
-        # Comments field
-        comments = data.get('replies_count', 0)
+        # Comments field - Pixelfed uses reply_count (singular) not replies_count (plural)
+        comments = data.get('reply_count', data.get('replies_count', 0))
 
         # Shares - prefer shares_count over reblogs_count if both exist
         shares = data.get('shares_count', data.get('reblogs_count', 0))

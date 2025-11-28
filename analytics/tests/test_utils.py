@@ -223,13 +223,13 @@ class TestFetchPixelfedAnalytics:
         instance_url = 'https://pixelfed.social'
         access_token = 'test_token'
 
-        # Mock Pixelfed API response
+        # Mock Pixelfed API response (uses /api/pixelfed/v1/ endpoint)
         responses.add(
             responses.GET,
-            f'{instance_url}/api/v1/statuses/{post_id}',
+            f'{instance_url}/api/pixelfed/v1/statuses/{post_id}',
             json={
                 'favourites_count': 75,
-                'replies_count': 15,
+                'reply_count': 15,  # Pixelfed uses singular reply_count
                 'reblogs_count': 8
             },
             status=200
@@ -254,10 +254,10 @@ class TestFetchPixelfedAnalytics:
         # Mock response with shares_count
         responses.add(
             responses.GET,
-            f'{instance_url}/api/v1/statuses/{post_id}',
+            f'{instance_url}/api/pixelfed/v1/statuses/{post_id}',
             json={
                 'favourites_count': 75,
-                'replies_count': 15,
+                'reply_count': 15,
                 'reblogs_count': 8,
                 'shares_count': 12  # Pixelfed-specific field
             },
@@ -279,10 +279,10 @@ class TestFetchPixelfedAnalytics:
         # Mock response with likes_count (alternative field name)
         responses.add(
             responses.GET,
-            f'{instance_url}/api/v1/statuses/{post_id}',
+            f'{instance_url}/api/pixelfed/v1/statuses/{post_id}',
             json={
                 'likes_count': 85,  # Alternative field name
-                'replies_count': 20,
+                'reply_count': 20,
                 'reblogs_count': 10
             },
             status=200
@@ -304,7 +304,7 @@ class TestFetchPixelfedAnalytics:
         # Mock API error
         responses.add(
             responses.GET,
-            f'{instance_url}/api/v1/statuses/{post_id}',
+            f'{instance_url}/api/pixelfed/v1/statuses/{post_id}',
             json={'error': 'Unauthorized'},
             status=401
         )
