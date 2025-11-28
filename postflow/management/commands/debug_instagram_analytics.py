@@ -53,9 +53,9 @@ class Command(BaseCommand):
 
         for account in instagram_accounts:
             self.stdout.write(f'\n  Account: @{account.username}')
-            self.stdout.write(f'  Business Account ID: {account.instagram_business_account_id}')
-            self.stdout.write(f'  Page ID: {account.page_id}')
+            self.stdout.write(f'  Instagram ID: {account.instagram_id}')
             self.stdout.write(f'  Token expires: {account.expires_at}')
+            self.stdout.write(f'  Last refreshed: {account.last_refreshed_at}')
 
             # Test the access token
             self.stdout.write(f'\n  {self.style.SUCCESS("Testing Access Token:")}')
