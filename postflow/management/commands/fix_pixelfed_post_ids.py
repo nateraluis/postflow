@@ -60,33 +60,52 @@ class Command(BaseCommand):
             has_non_pixelfed = False
             has_pixelfed = False
 
+            pixelfed_accounts = []
+            non_pixelfed_accounts = []
+
             for account in post.mastodon_accounts.all():
                 is_pixelfed = "pixelfed" in account.instance_url.lower()
                 if is_pixelfed:
                     has_pixelfed = True
+                    pixelfed_accounts.append(account.instance_url)
                 else:
                     has_non_pixelfed = True
+                    non_pixelfed_accounts.append(account.instance_url)
 
-            # If the post was posted to a non-Pixelfed instance and the
-            # pixelfed_post_id matches mastodon_post_id, it's likely incorrect
-            if has_non_pixelfed and post.pixelfed_post_id == post.mastodon_post_id:
-                if has_pixelfed:
-                    # Post was sent to BOTH Pixelfed and non-Pixelfed instances
-                    # We can't determine the correct Pixelfed ID, so clear it
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f'  Post {post.id}: Posted to both Pixelfed and non-Pixelfed instances. '
-                            f'Clearing pixelfed_post_id={post.pixelfed_post_id}'
-                        )
+            # Debug output for first few posts
+            if dry_run and fixed_count < 5:
+                self.stdout.write(
+                    f'\n  Post {post.id}:'
+                    f'\n    pixelfed_post_id: {post.pixelfed_post_id}'
+                    f'\n    mastodon_post_id: {post.mastodon_post_id}'
+                    f'\n    Pixelfed accounts: {pixelfed_accounts}'
+                    f'\n    Non-Pixelfed accounts: {non_pixelfed_accounts}'
+                    f'\n    has_pixelfed: {has_pixelfed}, has_non_pixelfed: {has_non_pixelfed}'
+                    f'\n    IDs match: {post.pixelfed_post_id == post.mastodon_post_id}'
+                )
+
+            # If pixelfed_post_id is set but post was only sent to non-Pixelfed instances,
+            # or if pixelfed_post_id matches mastodon_post_id (indicating wrong ID),
+            # clear it
+            should_fix = False
+            reason = ""
+
+            if not has_pixelfed and post.pixelfed_post_id:
+                # Post only went to non-Pixelfed instances
+                should_fix = True
+                reason = "Post only sent to non-Pixelfed instances"
+            elif has_pixelfed and has_non_pixelfed and post.pixelfed_post_id == post.mastodon_post_id:
+                # Post sent to both, but IDs are the same (one overwrote the other)
+                should_fix = True
+                reason = "Sent to both but pixelfed_post_id matches mastodon_post_id"
+
+            if should_fix:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'  Post {post.id}: {reason}. '
+                        f'Clearing pixelfed_post_id={post.pixelfed_post_id}'
                     )
-                else:
-                    # Post was only sent to non-Pixelfed instances
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f'  Post {post.id}: Only posted to non-Pixelfed instances. '
-                            f'Clearing pixelfed_post_id={post.pixelfed_post_id}'
-                        )
-                    )
+                )
 
                 if not dry_run:
                     post.pixelfed_post_id = None
