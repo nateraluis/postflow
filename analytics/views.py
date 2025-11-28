@@ -21,6 +21,8 @@ def analytics_dashboard(request):
     - platform: Filter by platform (instagram, mastodon, pixelfed)
     - days: Show posts from last N days (7, 30, 90)
     """
+    from postflow.utils import get_s3_signed_url
+
     # Get filter parameters
     platform_filter = request.GET.get('platform', 'all')
     days_filter = request.GET.get('days', '30')
@@ -48,6 +50,18 @@ def analytics_dashboard(request):
 
     # Apply days filter (optional date range filtering)
     # This can be added later if needed
+
+    # Generate signed URLs for images in each post
+    for post in posts:
+        # Check for PostImage records (new multi-image posts)
+        if post.images.exists():
+            first_image = post.images.first()
+            post.image_url = get_s3_signed_url(first_image.image.name, expiration=7200)  # 2 hour expiration
+        # Fallback to legacy single image field
+        elif post.image:
+            post.image_url = get_s3_signed_url(post.image.name, expiration=7200)
+        else:
+            post.image_url = None
 
     # Prepare context
     context = {
