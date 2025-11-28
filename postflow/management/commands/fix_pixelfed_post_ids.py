@@ -63,6 +63,7 @@ class Command(BaseCommand):
             pixelfed_accounts = []
             non_pixelfed_accounts = []
 
+            # Check mastodon_accounts (Pixelfed/Mastodon-compatible)
             for account in post.mastodon_accounts.all():
                 is_pixelfed = "pixelfed" in account.instance_url.lower()
                 if is_pixelfed:
@@ -71,6 +72,11 @@ class Command(BaseCommand):
                 else:
                     has_non_pixelfed = True
                     non_pixelfed_accounts.append(account.instance_url)
+
+            # Check mastodon_native_accounts (native Mastodon)
+            for account in post.mastodon_native_accounts.all():
+                has_non_pixelfed = True
+                non_pixelfed_accounts.append(account.instance_url)
 
             # Debug output for first few posts
             if dry_run and fixed_count < 5:
