@@ -80,12 +80,26 @@ def mastodon_callback(request):
             "Authorization": f"Bearer {access_token}"
         }).json()
 
-        MastodonAccount.objects.create(
+        account = MastodonAccount.objects.create(
             user=request.user,
             instance_url=instance_url,
             access_token=access_token,
             username=user_info["username"]
         )
+
+        # Auto-sync historical posts for new accounts
+        # Check if it's a Pixelfed instance (not just Mastodon-compatible)
+        is_pixelfed = "pixelfed" in instance_url.lower()
+
+        if is_pixelfed:
+            logger.info(f"New Pixelfed account connected, syncing historical posts for @{account.username}")
+            try:
+                from django.core.management import call_command
+                call_command('sync_pixelfed_posts', account_id=account.id, limit=40)
+                logger.info(f"Successfully synced Pixelfed posts for @{account.username}")
+            except Exception as e:
+                logger.error(f"Error syncing Pixelfed posts: {e}")
+                # Don't fail the connection if sync fails
 
     return redirect("accounts")
 

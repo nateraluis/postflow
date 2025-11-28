@@ -234,7 +234,7 @@ def instagram_business_callback(request):
         token_expires_at = now() + timedelta(days=60)
         logger.warning(f"No valid expires_in received, defaulting to 60 days")
 
-    InstagramBusinessAccount.objects.update_or_create(
+    account, created = InstagramBusinessAccount.objects.update_or_create(
         user=request.user,
         instagram_id=data.get("user_id"),
         defaults={
@@ -244,7 +244,19 @@ def instagram_business_callback(request):
             "expires_at": token_expires_at,
         }
     )
-    logger.info(f"Instagram account created/updated for user {request.user.email}: {data.get('username')}")
+    logger.info(f"Instagram account {'created' if created else 'updated'} for user {request.user.email}: {data.get('username')}")
+
+    # Auto-sync historical posts for new accounts
+    if created:
+        logger.info(f"New Instagram account connected, syncing historical posts for @{account.username}")
+        try:
+            from django.core.management import call_command
+            call_command('sync_instagram_posts', account_id=account.id, limit=50)
+            logger.info(f"Successfully synced Instagram posts for @{account.username}")
+        except Exception as e:
+            logger.error(f"Error syncing Instagram posts: {e}")
+            # Don't fail the connection if sync fails
+
     return redirect("accounts")
 
 
