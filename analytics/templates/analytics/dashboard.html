@@ -156,8 +156,45 @@
                       <h3 class="text-sm font-semibold text-pink-200">Instagram</h3>
                     </div>
 
-                    {% for analytics in post.analytics.all %}
-                      {% if analytics.platform == 'instagram' %}
+                    {% if post.analytics_list %}
+                      {% for analytics in post.analytics_list %}
+                        {% if analytics.platform == 'instagram' %}
+                          <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Likes</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.likes }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Comments</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.comments }}</span>
+                            </div>
+                            {% if analytics.impressions %}
+                              <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-400">Impressions</span>
+                                <span class="text-sm font-medium text-white">{{ analytics.impressions }}</span>
+                              </div>
+                            {% endif %}
+                            {% if analytics.reach %}
+                              <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-400">Reach</span>
+                                <span class="text-sm font-medium text-white">{{ analytics.reach }}</span>
+                              </div>
+                            {% endif %}
+                            {% if analytics.saved %}
+                              <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-400">Saved</span>
+                                <span class="text-sm font-medium text-white">{{ analytics.saved }}</span>
+                              </div>
+                            {% endif %}
+                            <p class="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700">
+                              Updated {{ analytics.last_updated|timesince }} ago
+                            </p>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    {% else %}
+                      {% for analytics in post.analytics.all %}
+                        {% if analytics.platform == 'instagram' %}
                         <div class="space-y-3">
                           <div class="flex justify-between items-center">
                             <span class="text-xs text-gray-400">Likes</span>
@@ -219,27 +256,51 @@
                       <h3 class="text-sm font-semibold text-purple-200">Mastodon</h3>
                     </div>
 
-                    {% for analytics in post.analytics.all %}
-                      {% if analytics.platform == 'mastodon' %}
-                        <div class="space-y-3">
-                          <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-400">Likes</span>
-                            <span class="text-lg font-semibold text-white">{{ analytics.likes }}</span>
+                    {% if post.analytics_list %}
+                      {% for analytics in post.analytics_list %}
+                        {% if analytics.platform == 'mastodon' %}
+                          <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Likes</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.likes }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Comments</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.comments }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Boosts</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.shares }}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700">
+                              Updated {{ analytics.last_updated|timesince }} ago
+                            </p>
                           </div>
-                          <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-400">Comments</span>
-                            <span class="text-lg font-semibold text-white">{{ analytics.comments }}</span>
+                        {% endif %}
+                      {% endfor %}
+                    {% else %}
+                      {% for analytics in post.analytics.all %}
+                        {% if analytics.platform == 'mastodon' %}
+                          <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Likes</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.likes }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Comments</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.comments }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Boosts</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.shares }}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700">
+                              Updated {{ analytics.last_updated|timesince }} ago
+                            </p>
                           </div>
-                          <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-400">Boosts</span>
-                            <span class="text-lg font-semibold text-white">{{ analytics.shares }}</span>
-                          </div>
-                          <p class="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700">
-                            Updated {{ analytics.last_updated|timesince }} ago
-                          </p>
-                        </div>
-                      {% endif %}
-                    {% endfor %}
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
 
                     {% if post.mastodon_native_accounts.exists %}
                       {% if not post.analytics.all %}
@@ -257,27 +318,51 @@
                       <h3 class="text-sm font-semibold text-blue-200">Pixelfed</h3>
                     </div>
 
-                    {% for analytics in post.analytics.all %}
-                      {% if analytics.platform == 'pixelfed' %}
-                        <div class="space-y-3">
-                          <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-400">Likes</span>
-                            <span class="text-lg font-semibold text-white">{{ analytics.likes }}</span>
+                    {% if post.analytics_list %}
+                      {% for analytics in post.analytics_list %}
+                        {% if analytics.platform == 'pixelfed' %}
+                          <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Likes</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.likes }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Comments</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.comments }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Shares</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.shares }}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700">
+                              Updated {{ analytics.last_updated|timesince }} ago
+                            </p>
                           </div>
-                          <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-400">Comments</span>
-                            <span class="text-lg font-semibold text-white">{{ analytics.comments }}</span>
+                        {% endif %}
+                      {% endfor %}
+                    {% else %}
+                      {% for analytics in post.analytics.all %}
+                        {% if analytics.platform == 'pixelfed' %}
+                          <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Likes</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.likes }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Comments</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.comments }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-xs text-gray-400">Shares</span>
+                              <span class="text-lg font-semibold text-white">{{ analytics.shares }}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700">
+                              Updated {{ analytics.last_updated|timesince }} ago
+                            </p>
                           </div>
-                          <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-400">Shares</span>
-                            <span class="text-lg font-semibold text-white">{{ analytics.shares }}</span>
-                          </div>
-                          <p class="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700">
-                            Updated {{ analytics.last_updated|timesince }} ago
-                          </p>
-                        </div>
-                      {% endif %}
-                    {% endfor %}
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
 
                     {% if post.mastodon_accounts.exists %}
                       {% if not post.analytics.all %}

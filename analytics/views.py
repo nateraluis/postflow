@@ -51,6 +51,50 @@ def analytics_dashboard(request):
     # Apply days filter (optional date range filtering)
     # This can be added later if needed
 
+    # Deduplicate posts with the same caption and similar post date (within 1 hour)
+    # This handles synced posts that are the same content across platforms
+    from datetime import timedelta
+    deduplicated_posts = []
+    seen_captions = {}
+
+    for post in posts:
+        caption_key = (post.caption or '').strip()[:100]  # Use first 100 chars as key
+
+        if not caption_key:
+            # Posts without captions are always included
+            deduplicated_posts.append(post)
+            continue
+
+        # Check if we've seen a similar post
+        found_duplicate = False
+        for seen_caption, (seen_post, seen_date) in seen_captions.items():
+            # Check if captions match and dates are within 1 hour
+            time_diff = abs((post.post_date - seen_date).total_seconds())
+            if caption_key == seen_caption and time_diff < 3600:
+                # Merge this post's accounts into the existing post
+                seen_post.instagram_accounts_list = list(seen_post.instagram_accounts.all())
+                seen_post.mastodon_accounts_list = list(seen_post.mastodon_accounts.all())
+                seen_post.mastodon_native_accounts_list = list(seen_post.mastodon_native_accounts.all())
+
+                # Add new accounts from duplicate post
+                seen_post.instagram_accounts_list.extend(list(post.instagram_accounts.all()))
+                seen_post.mastodon_accounts_list.extend(list(post.mastodon_accounts.all()))
+                seen_post.mastodon_native_accounts_list.extend(list(post.mastodon_native_accounts.all()))
+
+                # Merge analytics
+                seen_post.analytics_list = list(seen_post.analytics.all())
+                seen_post.analytics_list.extend(list(post.analytics.all()))
+
+                found_duplicate = True
+                break
+
+        if not found_duplicate:
+            # First time seeing this caption
+            seen_captions[caption_key] = (post, post.post_date)
+            deduplicated_posts.append(post)
+
+    posts = deduplicated_posts
+
     # Generate signed URLs for images in each post
     for post in posts:
         # Check for PostImage records (new multi-image posts)
