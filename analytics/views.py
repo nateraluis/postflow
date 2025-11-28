@@ -130,6 +130,37 @@ def refresh_analytics(request):
 
 
 @login_required
+@require_http_methods(["POST"])
+def sync_posts(request):
+    """
+    Manually trigger sync of posts from all connected social media accounts.
+
+    Returns JSON response with status.
+    """
+    import logging
+    logger = logging.getLogger('postflow')
+
+    logger.info(f"Post sync requested by user {request.user.email}")
+
+    try:
+        logger.info("Starting sync of all social media posts")
+        call_command('sync_all_posts', limit=50)
+        message = 'Successfully synced posts from all connected accounts'
+        logger.info(f"Successfully synced posts for user {request.user.email}")
+    except Exception as e:
+        logger.exception(f"Error syncing posts: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+    return JsonResponse({
+        'status': 'success',
+        'message': message
+    })
+
+
+@login_required
 def post_detail(request, post_id):
     """
     Display detailed analytics for a single post.
