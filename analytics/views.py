@@ -113,7 +113,7 @@ def analytics_dashboard(request):
         'posts': posts,
         'platform_filter': platform_filter,
         'days_filter': days_filter,
-        'total_posts': posts.count(),
+        'total_posts': len(posts),
     }
 
     # Check if HTMX request
