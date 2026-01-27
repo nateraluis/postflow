@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'mastodon_integration',
     'subscriptions',
     'analytics',
+    'django_tasks',  # Django 6.0 background tasks
+    'django_tasks.backends.database',  # Database backend for django-tasks
     'django_browser_reload',
     'django_htmx',
 ]
@@ -97,8 +99,10 @@ LOGIN_URL = "/login/"
 # 🐘 Mastodon configuration
 if DEBUG:
     REDIRECT_URI = "http://localhost:8000/mastodon/callback"
+    PIXELFED_REDIRECT_URI = "http://localhost:8000/pixelfed/callback"
 else:
     REDIRECT_URI = env("REDIRECT_URI")
+    PIXELFED_REDIRECT_URI = env("PIXELFED_REDIRECT_URI", default=env("REDIRECT_URI"))  # Fallback to REDIRECT_URI if not set
 MASTODON_API_BASE = "https://mastodon.example.com/api/v1"
 MEDIA_UPLOAD_ENDPOINT = "/api/compose/v0/media/upload"
 POST_STATUS_ENDPOINT = "/api/v1/statuses"
@@ -242,4 +246,11 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+# ✅ Django 6.0 Background Tasks Configuration
+TASKS = {
+    "default": {
+        "BACKEND": "django_tasks.backends.database.DatabaseBackend",
+    }
 }
