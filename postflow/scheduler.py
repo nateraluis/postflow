@@ -144,17 +144,6 @@ class PostFlowScheduler:
         )
         logger.info("Added job: refresh_instagram_tokens (every 6 hours at :00)")
 
-        # Add job: Fetch analytics every 6 hours
-        # Runs at 01:00, 07:00, 13:00, 19:00 UTC (offset from token refresh)
-        self.scheduler.add_job(
-            func=self._fetch_analytics,
-            trigger=CronTrigger(hour='1,7,13,19', minute=0),
-            id='fetch_analytics',
-            name='Fetch post analytics',
-            replace_existing=True,
-        )
-        logger.info("Added job: fetch_analytics (every 6 hours at :00)")
-
         # Start the scheduler
         self.scheduler.start()
         logger.info("PostFlow scheduler started successfully")
@@ -187,17 +176,6 @@ class PostFlowScheduler:
             call_command('refresh_instagram_tokens')
         except Exception as e:
             logger.exception(f"Error in refresh_instagram_tokens job: {e}")
-
-    def _fetch_analytics(self):
-        """
-        Execute the fetch_analytics task.
-        Fetches analytics for posts from the last 7 days.
-        """
-        try:
-            logger.debug("Running fetch_analytics job...")
-            call_command('fetch_analytics', days=7)
-        except Exception as e:
-            logger.exception(f"Error in fetch_analytics job: {e}")
 
     def shutdown(self):
         """Gracefully shut down the scheduler and release lock."""

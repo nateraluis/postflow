@@ -22,7 +22,7 @@ def connect_mastodon(request):
         client_id, client_secret = Mastodon.create_app(
                 client_name="PostFlow",
                 scopes=["read", "write"],
-                redirect_uris=settings.REDIRECT_URI,
+                redirect_uris=settings.PIXELFED_REDIRECT_URI,
                 website="https://postflow.photo",
                 api_base_url=f"{instance_url}",
                 )
@@ -35,12 +35,12 @@ def connect_mastodon(request):
             query_params = {
                 "client_id": client_id,
                 "scope": "read write write:media",
-                "redirect_uri": settings.REDIRECT_URI,  # Keep this unchanged
+                "redirect_uri": settings.PIXELFED_REDIRECT_URI,
                 "response_type": "code",
             }
             logger.debug(query_params)
-            logger.debug(settings.REDIRECT_URI)
-            auth_url = f"{instance_url}/oauth/authorize?client_id={client_id}&scope=read+write&redirect_uri={settings.REDIRECT_URI}&response_type=code"
+            logger.debug(settings.PIXELFED_REDIRECT_URI)
+            auth_url = f"{instance_url}/oauth/authorize?client_id={client_id}&scope=read+write&redirect_uri={settings.PIXELFED_REDIRECT_URI}&response_type=code"
             logger.debug(auth_url)
             return redirect(auth_url)
 
@@ -58,14 +58,11 @@ def mastodon_callback(request):
     if not instance_url or not code:
         return redirect("accounts")
 
-    # Define the correct redirect URI again
-    # REDIRECT_URI = request.build_absolute_uri("/mastodon/callback/")
-
     # Step 3: Exchange code for access token
     token_response = requests.post(f"{instance_url}/oauth/token", data={
         "client_id": client_id,
         "client_secret": client_secret,
-        "redirect_uri": settings.REDIRECT_URI,
+        "redirect_uri": settings.PIXELFED_REDIRECT_URI,
         "grant_type": "authorization_code",
         "code": code
     })

@@ -102,17 +102,37 @@ PostFlow uses **APScheduler** (not system cron) for reliable task scheduling:
 - **Documentation**: See `docs/scheduler.md` for complete details
 
 ### Analytics Module
-PostFlow tracks engagement metrics for published posts across all platforms:
-- **Models**: `PostAnalytics` - Stores likes, comments, shares, impressions, reach
-- **API Integration**: Fetches data from Instagram Graph API, Mastodon API, Pixelfed API
-- **Auto-Collection**: Scheduled job runs every 6 hours to fetch latest analytics
-- **Dashboard**: View post performance at `/analytics/` with filters by platform
-- **Manual Refresh**: Users can trigger on-demand analytics refresh
-- **Platform-Specific Metrics**:
-  - Instagram: likes, comments, impressions, reach, saved
-  - Mastodon: favorites, replies, reblogs
-  - Pixelfed: favorites, replies, shares
-- **Management Command**: `python manage.py fetch_analytics` for manual fetching
+PostFlow uses a **platform-independent analytics architecture** built on Django 6.0 with django-tasks:
+
+#### Pixelfed Analytics (`analytics_pixelfed/`)
+- **Architecture**: Fetches ALL posts with media from connected Pixelfed accounts (not just PostFlow-created posts)
+- **Models**:
+  - `PixelfedPost`: Stores post metadata independently of ScheduledPost
+  - `PixelfedLike`: Individual likes with timestamps and usernames
+  - `PixelfedComment`: Comments with threading support (in_reply_to_id)
+  - `PixelfedShare`: Share/boost tracking
+  - `PixelfedEngagementSummary`: Cached metrics for fast dashboard queries
+- **API Client** (`pixelfed_client.py`): Robust Pixelfed API integration with retry logic and rate limiting
+- **Fetcher Service** (`fetcher.py`): `PixelfedAnalyticsFetcher` class for syncing posts and fetching engagement
+- **Background Tasks** (django-tasks):
+  - `fetch_all_pixelfed_engagement()`: Hourly engagement fetching (likes, comments, shares)
+  - `sync_all_pixelfed_posts()`: Daily post syncing from Pixelfed
+- **Management Commands**:
+  - `uv run manage.py sync_pixelfed_posts --account-id <id> --limit 50`
+  - `uv run manage.py fetch_pixelfed_engagement --account-id <id> --post-id <id> --limit 20`
+- **Dashboard**: View at `/analytics/pixelfed/` with engagement timelines and top posts
+- **Manual Actions**: Refresh individual posts or sync entire accounts via AJAX endpoints
+
+#### Legacy Analytics Module (`analytics/`)
+- **Status**: Deprecated and removed in favor of platform-specific apps
+- Old PostAnalytics model has been removed
+- Views and templates cleared for future cross-platform dashboard
+
+#### Django 6.0 Background Tasks
+- **Framework**: Using Django 6.0's built-in tasks with django-tasks database backend
+- **Configuration**: `TASKS` setting in `core/settings.py` with DatabaseBackend
+- **Task Execution**: Tasks stored in PostgreSQL and executed via worker process
+- **Management**: `uv run python manage.py db_worker` to start task worker (future)
 
 ## Testing
 - Use pytest for all tests (not Django's unittest)
