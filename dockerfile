@@ -7,14 +7,18 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV DEBUG=False
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 # Set working directory
 WORKDIR /app
 
-# Copy the dependencies file to the working directory
-COPY requirements.txt .
+# Copy pyproject.toml and uv.lock for dependency installation
+COPY pyproject.toml uv.lock ./
 
-# Install any dependencies
-RUN pip install -r requirements.txt
+# Install dependencies using uv
+# The --system flag installs packages into the system Python
+RUN uv sync --frozen --no-dev --system
 
 # Copy the content of the local src directory to the working directory
 COPY . .

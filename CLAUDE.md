@@ -222,8 +222,15 @@ REDIRECT_URI=http://localhost:8000/mastodon/callback  # Mastodon OAuth
 ### Production Deployment
 - Deployed on AWS EC2 via GitHub Actions on push to `main` branch
 - Uses Docker Compose with Django + nginx + certbot setup
+- **Dependency Management**: Uses `uv` for fast, reliable dependency installation (migrated from pip/requirements.txt)
+- Dependencies defined in `pyproject.toml` with locked versions in `uv.lock`
 - SSL certificates managed via Let's Encrypt with automatic renewal
 - Environment variables injected via GitHub Secrets during deployment
+
+### Docker Configuration
+- **Dockerfile**: Uses `uv sync --frozen --no-dev --system` to install dependencies
+- Copies `pyproject.toml` and `uv.lock` for reproducible builds
+- Installs packages directly into system Python for production use
 
 ### GitHub Actions Workflow
 - Builds Docker containers on EC2
