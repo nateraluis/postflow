@@ -8,7 +8,6 @@ render correctly with the new templates.
 import pytest
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from django.test import Client
 from pixelfed.models import MastodonAccount
 
 
@@ -24,12 +23,6 @@ def user(db):
         first_name='Test',
         last_name='User'
     )
-
-
-@pytest.fixture
-def client():
-    """Create a test client."""
-    return Client()
 
 
 @pytest.fixture
