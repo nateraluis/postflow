@@ -21,8 +21,7 @@ ENV UV_LINK_MODE=copy
 
 # Install dependencies (without dev dependencies and without the project itself)
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy the application code
 COPY . .
