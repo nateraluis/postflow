@@ -30,11 +30,11 @@ COPY . .
 # This allows Python commands to find the installed dependencies
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Make entrypoint executable
-RUN chmod +x /entrypoint.sh
+# Make entrypoint executable (it's in /app/ from COPY . .)
+RUN chmod +x entrypoint.sh
 
 # Use the script as the entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
 
 # Default command runs uwsgi
 CMD [ "uwsgi", "--http", "0.0.0.0:8000", \
