@@ -66,7 +66,12 @@ def dashboard(request):
         'top_posts': top_posts,
     }
 
-    return render(request, 'analytics_pixelfed/dashboard.html', context)
+    # For HTMX requests, return just the content without the base template
+    template = 'analytics_pixelfed/dashboard.html'
+    if request.htmx:
+        template = 'analytics_pixelfed/dashboard_content.html'
+
+    return render(request, template, context)
 
 
 @login_required
@@ -98,7 +103,12 @@ def post_detail(request, post_id):
         'engagement_timeline': engagement_timeline,
     }
 
-    return render(request, 'analytics_pixelfed/post_detail.html', context)
+    # For HTMX requests, return just the content without the base template
+    template = 'analytics_pixelfed/post_detail.html'
+    if request.htmx:
+        template = 'analytics_pixelfed/post_detail_content.html'
+
+    return render(request, template, context)
 
 
 @login_required
@@ -106,7 +116,9 @@ def post_detail(request, post_id):
 def refresh_post(request, post_id):
     """
     Manually refresh engagement metrics for a specific post.
+    Triggers a page reload via HX-Redirect to show updated data.
     """
+    from django.http import HttpResponse
     from .fetcher import PixelfedAnalyticsFetcher
     import logging
 
@@ -125,18 +137,17 @@ def refresh_post(request, post_id):
 
         logger.info(f"Refreshed engagement for post {post_id}: {stats}")
 
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Engagement metrics refreshed successfully',
-            'stats': stats
-        })
+        # Return HX-Redirect header to reload the page with HTMX
+        response = HttpResponse()
+        response['HX-Redirect'] = request.path
+        return response
 
     except Exception as e:
         logger.error(f"Error refreshing post {post_id}: {e}", exc_info=True)
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
+
+        # Return error toast partial
+        context = {'message': f'Error refreshing post: {str(e)}'}
+        return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
 
 
 @login_required
@@ -144,6 +155,7 @@ def refresh_post(request, post_id):
 def sync_account(request, account_id):
     """
     Manually sync posts from a Pixelfed account.
+    Returns a toast notification partial.
     """
     from .fetcher import PixelfedAnalyticsFetcher
     import logging
@@ -158,25 +170,60 @@ def sync_account(request, account_id):
             instance_url__icontains='pixelfed'
         )
 
-        # Sync posts
+        # Sync posts (no engagement fetching - that's done separately)
         fetcher = PixelfedAnalyticsFetcher(account)
-        created, updated = fetcher.sync_account_posts(limit=50)
+        created, updated = fetcher.sync_account_posts(limit=100)  # Fetch up to 100 posts (3 API calls)
 
         logger.info(f"Synced account {account_id}: {created} created, {updated} updated")
 
-        return JsonResponse({
-            'status': 'success',
-            'message': f'Synced {created + updated} posts ({created} new, {updated} updated)',
-            'created': created,
-            'updated': updated
-        })
+        # Return success toast partial
+        context = {'message': f'Synced {created + updated} posts ({created} new, {updated} updated)'}
+        return render(request, 'analytics_pixelfed/partials/toast.html#toast-success', context)
 
     except Exception as e:
         logger.error(f"Error syncing account {account_id}: {e}", exc_info=True)
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
+
+        # Return error toast partial
+        context = {'message': f'Error syncing posts: {str(e)}'}
+        return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def fetch_engagement(request, account_id):
+    """
+    Trigger background task to fetch engagement for an account's posts.
+    """
+    from .tasks import fetch_account_engagement
+    import logging
+
+    logger = logging.getLogger('postflow')
+
+    try:
+        account = get_object_or_404(
+            MastodonAccount,
+            pk=account_id,
+            user=request.user,
+            instance_url__icontains='pixelfed'
+        )
+
+        # Enqueue background task to fetch engagement
+        task = fetch_account_engagement.enqueue(account_id=account_id, limit_posts=50)
+
+        logger.info(f"Enqueued engagement fetch task for account {account_id}: task_id={task.id}")
+
+        # Return success toast partial
+        context = {
+            'message': f'Engagement fetch started for @{account.username}. This may take a few minutes...'
+        }
+        return render(request, 'analytics_pixelfed/partials/toast.html#toast-info', context)
+
+    except Exception as e:
+        logger.error(f"Error enqueueing engagement fetch for account {account_id}: {e}", exc_info=True)
+
+        # Return error toast partial
+        context = {'message': f'Error starting engagement fetch: {str(e)}'}
+        return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
 
 
 def _get_engagement_timeline(post):

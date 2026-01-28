@@ -1,31 +1,36 @@
-# PostFlow Scheduler Documentation
+# PostFlow Background Processes Documentation
 
 ## Overview
 
-PostFlow uses **APScheduler** (Advanced Python Scheduler) to reliably process scheduled social media posts and refresh Instagram access tokens. This Python-based scheduler replaces the previous system cron implementation, providing better reliability, error handling, and integration with Django.
+PostFlow uses two background processes for reliable task execution:
+
+1. **APScheduler** - Processes scheduled social media posts and refreshes Instagram tokens
+2. **Django Tasks Worker** - Handles background analytics tasks (engagement fetching, post syncing)
+
+Both processes run continuously in the background and are automatically started on container deployment.
 
 ## Architecture
 
 ### Components
 
 ```
-┌─────────────────────────────────────────────────┐
-│              Docker Container                    │
-│                                                  │
-│  ┌────────────────┐      ┌──────────────────┐  │
-│  │  uWSGI Server  │      │   APScheduler    │  │
-│  │  (Django App)  │      │   Background     │  │
-│  └────────────────┘      │   Process        │  │
-│                          └──────────────────┘  │
-│                                 │               │
-│                          ┌──────▼──────┐       │
-│                          │   Jobs:      │       │
-│                          │  - Post      │       │
-│                          │  - Tokens    │       │
-│                          └─────────────┘       │
-│                                                  │
-│  Lock File: /tmp/postflow_scheduler.lock       │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                      Docker Container                          │
+│                                                                │
+│  ┌────────────────┐   ┌──────────────────┐   ┌─────────────┐ │
+│  │  uWSGI Server  │   │   APScheduler    │   │  DB Worker  │ │
+│  │  (Django App)  │   │   Background     │   │  (Django    │ │
+│  └────────────────┘   │   Process        │   │   Tasks)    │ │
+│                       └──────────────────┘   └─────────────┘ │
+│                              │                      │          │
+│                       ┌──────▼──────┐        ┌─────▼──────┐  │
+│                       │   Jobs:      │        │   Tasks:    │  │
+│                       │  - Post      │        │  - Analytics│  │
+│                       │  - Tokens    │        │  - Syncing  │  │
+│                       └─────────────┘        └────────────┘  │
+│                                                                │
+│  Lock File: /tmp/postflow_scheduler.lock                     │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Files
@@ -34,9 +39,11 @@ PostFlow uses **APScheduler** (Advanced Python Scheduler) to reliably process sc
 |------|---------|
 | `postflow/scheduler.py` | Core scheduler implementation with APScheduler |
 | `postflow/management/commands/run_scheduler.py` | Django management command to start scheduler |
+| `analytics_pixelfed/management/commands/run_db_worker.py` | Django management command to start tasks worker |
 | `postflow/cron.py` | Business logic for processing posts (unchanged) |
-| `entrypoint.sh` | Docker startup script that launches scheduler |
-| `dockerfile` | Container configuration (cron removed) |
+| `analytics_pixelfed/tasks.py` | Background tasks for analytics (engagement, syncing) |
+| `entrypoint.sh` | Docker startup script that launches both background processes |
+| `dockerfile` | Container configuration |
 
 ## How It Works
 
@@ -62,6 +69,39 @@ The scheduler runs two jobs:
 - **Frequency**: Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
 - **Function**: Django management command `refresh_instagram_tokens`
 - **Purpose**: Refreshes Instagram Business API access tokens before they expire
+
+#### 3. Sync Pixelfed Posts
+- **Frequency**: Every hour at :15 (00:15, 01:15, 02:15, ... UTC)
+- **Function**: Enqueues `sync_all_pixelfed_posts` Django task
+- **Purpose**: Syncs recent posts from all connected Pixelfed accounts
+
+#### 4. Fetch Pixelfed Engagement
+- **Frequency**: Every hour at :45 (00:45, 01:45, 02:45, ... UTC)
+- **Function**: Enqueues `fetch_all_pixelfed_engagement` Django task
+- **Purpose**: Fetches likes, comments, and shares for Pixelfed posts
+
+### Django Tasks Worker
+
+The Django Tasks worker processes background tasks from the database queue:
+
+#### Background Tasks
+1. **Fetch Account Engagement** (`fetch_account_engagement`)
+   - **Trigger**: Manual via dashboard "Fetch Engagement" button
+   - **Function**: Fetches likes, comments, and shares for a specific account's recent posts
+   - **Priority**: 10 (high priority)
+   - **Queue**: default
+
+2. **Fetch All Pixelfed Engagement** (`fetch_all_pixelfed_engagement`)
+   - **Trigger**: Scheduled hourly by APScheduler (every hour at :45)
+   - **Function**: Fetches engagement for all connected Pixelfed accounts
+   - **Priority**: 5
+   - **Queue**: default
+
+3. **Sync All Pixelfed Posts** (`sync_all_pixelfed_posts`)
+   - **Trigger**: Scheduled hourly by APScheduler (every hour at :15)
+   - **Function**: Syncs recent posts from all Pixelfed accounts
+   - **Priority**: 5
+   - **Queue**: default
 
 ### APScheduler Configuration
 
@@ -93,7 +133,7 @@ The scheduler handles shutdown signals properly:
 
 ### Docker Integration
 
-The scheduler starts automatically when the Django container starts:
+Both background processes start automatically when the Django container starts:
 
 **entrypoint.sh:**
 ```bash
@@ -101,8 +141,18 @@ The scheduler starts automatically when the Django container starts:
 python manage.py run_scheduler &
 SCHEDULER_PID=$!
 
+# Start Django tasks database worker in background
+python manage.py run_db_worker &
+DB_WORKER_PID=$!
+
 # Trap signals for graceful shutdown
-trap "kill -TERM $SCHEDULER_PID; wait $SCHEDULER_PID" SIGTERM SIGINT
+cleanup() {
+    kill -TERM $SCHEDULER_PID 2>/dev/null || true
+    kill -TERM $DB_WORKER_PID 2>/dev/null || true
+    wait $SCHEDULER_PID 2>/dev/null || true
+    wait $DB_WORKER_PID 2>/dev/null || true
+}
+trap cleanup SIGTERM SIGINT
 
 # Start Django server
 exec uwsgi ...
@@ -110,40 +160,50 @@ exec uwsgi ...
 
 ### Health Checks
 
-Docker Compose monitors both the scheduler and Django server:
+Docker Compose monitors all three critical processes:
 
 ```yaml
 healthcheck:
-  test: ["CMD-SHELL", "pgrep -f 'manage.py run_scheduler' && pgrep uwsgi"]
+  test: ["CMD-SHELL", "pgrep -f 'manage.py run_scheduler' && pgrep -f 'manage.py db_worker' && pgrep uwsgi"]
   interval: 30s
   timeout: 5s
   retries: 3
 ```
 
-If either process dies, Docker automatically restarts the container.
+If any process dies, Docker automatically restarts the container.
 
 ## Operations
 
-### Starting the Scheduler (Development)
+### Starting Background Processes (Development)
 
 ```bash
-# Start in foreground (blocks)
+# Start scheduler in foreground (blocks)
 uv run manage.py run_scheduler
 
-# Start in background
+# Start db_worker in foreground (blocks)
+uv run manage.py run_db_worker
+
+# Start both in background
 uv run manage.py run_scheduler &
+uv run manage.py run_db_worker &
 ```
 
-### Checking Scheduler Status
+### Checking Process Status
 
 ```bash
 # Check if scheduler is running
 docker exec postflow_django pgrep -f "manage.py run_scheduler"
 
+# Check if db_worker is running
+docker exec postflow_django pgrep -f "manage.py db_worker"
+
 # View scheduler logs
 docker-compose logs -f django | grep -i "scheduler\|postflow"
 
-# Check lock file
+# View db_worker logs
+docker-compose logs -f django | grep -i "db_worker\|django tasks"
+
+# Check scheduler lock file
 docker exec postflow_django cat /tmp/postflow_scheduler.lock
 ```
 
@@ -153,21 +213,59 @@ The scheduler logs all scheduled jobs at startup:
 
 ```
 INFO PostFlow scheduler started successfully
-INFO Scheduled 2 job(s):
-INFO   - Process scheduled posts (ID: post_scheduled, Next run: 2025-01-15 10:23:00+00:00)
-INFO   - Refresh Instagram access tokens (ID: refresh_instagram_tokens, Next run: 2025-01-15 12:00:00+00:00)
+INFO Scheduled 4 job(s):
+INFO   - Process scheduled posts (ID: post_scheduled, Next run: 2025-01-28 10:23:00+00:00)
+INFO   - Refresh Instagram access tokens (ID: refresh_instagram_tokens, Next run: 2025-01-28 12:00:00+00:00)
+INFO   - Sync Pixelfed posts (ID: sync_pixelfed_posts, Next run: 2025-01-28 10:15:00+00:00)
+INFO   - Fetch Pixelfed engagement (ID: fetch_pixelfed_engagement, Next run: 2025-01-28 10:45:00+00:00)
 ```
 
-### Manual Job Execution
+### Viewing Background Tasks
 
-You can still run jobs manually for testing:
+Check task status in Django shell:
 
 ```bash
-# Manually process scheduled posts
+docker exec -it postflow_django python manage.py shell
+```
+
+```python
+from django_tasks.models import TaskResult
+
+# View all tasks
+TaskResult.objects.all().values('id', 'status', 'task_path', 'enqueued_at')
+
+# View pending tasks
+TaskResult.objects.filter(status='pending').count()
+
+# View completed tasks
+TaskResult.objects.filter(status='complete').count()
+
+# View failed tasks
+TaskResult.objects.filter(status='failed')
+
+# View specific task details
+task = TaskResult.objects.get(id='c31d5827-4760-41b3-8a76-a95376d97c66')
+print(f"Status: {task.status}")
+print(f"Result: {task.result}")
+print(f"Error: {task.error}")
+```
+
+### Manual Task Execution
+
+You can trigger tasks manually for testing:
+
+```bash
+# Manually process scheduled posts (APScheduler)
 docker exec postflow_django python manage.py run_post_scheduled
 
-# Manually refresh Instagram tokens
+# Manually refresh Instagram tokens (APScheduler)
 docker exec postflow_django python manage.py refresh_instagram_tokens
+
+# Manually sync Pixelfed posts (Django Tasks)
+docker exec postflow_django python manage.py sync_pixelfed_posts --account-id 1
+
+# Manually fetch engagement (Django Tasks)
+docker exec postflow_django python manage.py fetch_pixelfed_engagement --account-id 1
 ```
 
 ### Restarting the Scheduler
@@ -182,21 +280,28 @@ docker-compose up --build -d django
 
 ## Troubleshooting
 
-### Scheduler Not Starting
+### Background Processes Not Starting
 
-**Symptom**: Health check fails, no scheduler logs
+**Symptom**: Health check fails, no process logs
 
 **Solutions:**
 ```bash
-# Check for lock file from crashed process
+# Check for scheduler lock file from crashed process
 docker exec postflow_django ls -la /tmp/postflow_scheduler.lock
 docker exec postflow_django rm /tmp/postflow_scheduler.lock
 
 # Check entrypoint.sh logs
-docker-compose logs django | grep -i "scheduler"
+docker-compose logs django | grep -i "scheduler\|db_worker"
 
 # Verify APScheduler is installed
 docker exec postflow_django python -c "import apscheduler; print(apscheduler.__version__)"
+
+# Verify django-tasks is installed
+docker exec postflow_django python -c "import django_tasks; print('django-tasks installed')"
+
+# Check if processes are running
+docker exec postflow_django pgrep -f "run_scheduler"
+docker exec postflow_django pgrep -f "db_worker"
 ```
 
 ### Posts Not Being Processed
@@ -219,6 +324,33 @@ docker-compose logs django | grep -i "error\|exception"
 
 # Manually trigger job
 docker exec postflow_django python manage.py run_post_scheduled
+```
+
+### Background Tasks Not Processing
+
+**Symptom**: Tasks remain in "pending" status, engagement not updating
+
+**Debug steps:**
+```bash
+# Check if db_worker is running
+docker exec postflow_django pgrep -f "db_worker"
+
+# Check task queue
+docker exec postflow_django python manage.py shell
+>>> from django_tasks.models import TaskResult
+>>> TaskResult.objects.filter(status='pending').count()
+
+# View recent task failures
+>>> failed_tasks = TaskResult.objects.filter(status='failed').order_by('-enqueued_at')[:5]
+>>> for task in failed_tasks:
+...     print(f"Task: {task.task_path}")
+...     print(f"Error: {task.error}")
+
+# Check worker logs for errors
+docker-compose logs django | grep -i "db_worker\|task error"
+
+# Restart db_worker
+docker-compose restart django
 ```
 
 ### Lock File Issues

@@ -109,6 +109,8 @@ class PostFlowScheduler:
         Jobs:
         - post_scheduled: Runs every minute to process pending posts
         - refresh_instagram_tokens: Runs every 6 hours to refresh Instagram tokens
+        - sync_pixelfed_posts: Runs every hour to sync posts from Pixelfed accounts
+        - fetch_pixelfed_engagement: Runs every hour to fetch engagement metrics
         """
         # Acquire lock first
         self.acquire_lock()
@@ -144,6 +146,28 @@ class PostFlowScheduler:
         )
         logger.info("Added job: refresh_instagram_tokens (every 6 hours at :00)")
 
+        # Add job: Sync Pixelfed posts every hour
+        # Runs at :15 past every hour (offset to avoid collision with token refresh)
+        self.scheduler.add_job(
+            func=self._sync_pixelfed_posts,
+            trigger=CronTrigger(hour='*', minute=15),
+            id='sync_pixelfed_posts',
+            name='Sync Pixelfed posts',
+            replace_existing=True,
+        )
+        logger.info("Added job: sync_pixelfed_posts (every hour at :15)")
+
+        # Add job: Fetch Pixelfed engagement every hour
+        # Runs at :45 past every hour (offset from post sync)
+        self.scheduler.add_job(
+            func=self._fetch_pixelfed_engagement,
+            trigger=CronTrigger(hour='*', minute=45),
+            id='fetch_pixelfed_engagement',
+            name='Fetch Pixelfed engagement',
+            replace_existing=True,
+        )
+        logger.info("Added job: fetch_pixelfed_engagement (every hour at :45)")
+
         # Start the scheduler
         self.scheduler.start()
         logger.info("PostFlow scheduler started successfully")
@@ -176,6 +200,32 @@ class PostFlowScheduler:
             call_command('refresh_instagram_tokens')
         except Exception as e:
             logger.exception(f"Error in refresh_instagram_tokens job: {e}")
+
+    def _sync_pixelfed_posts(self):
+        """
+        Sync posts from all Pixelfed accounts.
+        Enqueues a Django task to run in the background.
+        """
+        try:
+            from analytics_pixelfed.tasks import sync_all_pixelfed_posts
+            logger.debug("Enqueuing sync_all_pixelfed_posts task...")
+            task = sync_all_pixelfed_posts.enqueue()
+            logger.info(f"Enqueued sync_all_pixelfed_posts task: {task.id}")
+        except Exception as e:
+            logger.exception(f"Error enqueueing sync_all_pixelfed_posts: {e}")
+
+    def _fetch_pixelfed_engagement(self):
+        """
+        Fetch engagement metrics for all Pixelfed accounts.
+        Enqueues a Django task to run in the background.
+        """
+        try:
+            from analytics_pixelfed.tasks import fetch_all_pixelfed_engagement
+            logger.debug("Enqueuing fetch_all_pixelfed_engagement task...")
+            task = fetch_all_pixelfed_engagement.enqueue()
+            logger.info(f"Enqueued fetch_all_pixelfed_engagement task: {task.id}")
+        except Exception as e:
+            logger.exception(f"Error enqueueing fetch_all_pixelfed_engagement: {e}")
 
     def shutdown(self):
         """Gracefully shut down the scheduler and release lock."""

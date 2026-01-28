@@ -12,7 +12,7 @@ from .fetcher import PixelfedAnalyticsFetcher
 logger = logging.getLogger('postflow')
 
 
-@task(queue_name='default', priority=5, max_retries=2, retry_delay=300)
+@task(queue_name='default', priority=5)
 def fetch_all_pixelfed_engagement():
     """
     Background task to fetch engagement for all Pixelfed accounts.
@@ -89,7 +89,7 @@ def fetch_all_pixelfed_engagement():
     return total_stats
 
 
-@task(queue_name='default', priority=5, max_retries=2, retry_delay=300)
+@task(queue_name='default', priority=5)
 def sync_all_pixelfed_posts():
     """
     Background task to sync posts from all Pixelfed accounts.
@@ -152,3 +152,49 @@ def sync_all_pixelfed_posts():
     )
 
     return total_stats
+
+
+@task(queue_name='default', priority=10)
+def fetch_account_engagement(account_id: int, limit_posts: int = 50):
+    """
+    Background task to fetch engagement for a specific Pixelfed account.
+
+    This task is triggered manually by users from the dashboard to immediately
+    fetch engagement metrics for their posts without waiting for the hourly task.
+
+    Args:
+        account_id: MastodonAccount ID to fetch engagement for
+        limit_posts: Number of recent posts to process (default 50)
+
+    Returns:
+        dict: Statistics including posts_processed, likes, comments, shares
+    """
+    logger.info(f"Starting manual engagement fetch for account {account_id}")
+
+    try:
+        account = MastodonAccount.objects.get(
+            pk=account_id,
+            instance_url__icontains='pixelfed'
+        )
+
+        logger.info(f"Fetching engagement for @{account.username} on {account.instance_url}")
+
+        fetcher = PixelfedAnalyticsFetcher(account)
+        stats = fetcher.fetch_all_engagement(limit_posts=limit_posts)
+
+        logger.info(
+            f"Manual fetch complete for @{account.username}: "
+            f"{stats.get('posts_processed', 0)} posts, "
+            f"{stats.get('total_likes', 0)} likes, "
+            f"{stats.get('total_comments', 0)} comments, "
+            f"{stats.get('total_shares', 0)} shares"
+        )
+
+        return stats
+
+    except MastodonAccount.DoesNotExist:
+        logger.error(f"Pixelfed account {account_id} not found")
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching engagement for account {account_id}: {e}", exc_info=True)
+        raise

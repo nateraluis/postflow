@@ -139,28 +139,59 @@ class PixelfedAPIClient:
 
     def get_user_posts(self, account_id: str, limit: int = 40) -> List[Dict]:
         """
-        Fetch user's posts from Pixelfed.
+        Fetch user's posts from Pixelfed with pagination support.
 
         Args:
             account_id: Pixelfed account ID
-            limit: Maximum number of posts to fetch (default 40)
+            limit: Maximum number of posts to fetch (default 40, no upper limit)
 
         Returns:
             List of post dictionaries with media
         """
         endpoint = f"/api/v1/accounts/{account_id}/statuses"
-        params = {
-            'limit': min(limit, 40),  # Pixelfed typically limits to 40
+        base_params = {
             'only_media': 'true',  # Only fetch posts with media
             'exclude_replies': 'true',  # Exclude replies to focus on original content
         }
 
         logger.info(f"Fetching up to {limit} posts for account {account_id}")
 
+        all_posts = []
+        max_id = None
+        page = 1
+
         try:
-            posts = self._make_request(endpoint, params=params)
-            logger.info(f"Successfully fetched {len(posts)} posts")
-            return posts
+            while len(all_posts) < limit:
+                # Pixelfed API limits each request to 40 posts
+                batch_limit = min(40, limit - len(all_posts))
+
+                params = {**base_params, 'limit': batch_limit}
+                if max_id:
+                    params['max_id'] = max_id
+
+                logger.debug(f"Fetching page {page}, batch_limit={batch_limit}, max_id={max_id}")
+
+                posts_batch = self._make_request(endpoint, params=params)
+
+                if not posts_batch:
+                    logger.info(f"No more posts available after page {page}")
+                    break
+
+                all_posts.extend(posts_batch)
+                logger.debug(f"Fetched {len(posts_batch)} posts on page {page}, total: {len(all_posts)}")
+
+                # If we got fewer posts than requested, we've reached the end
+                if len(posts_batch) < batch_limit:
+                    logger.info(f"Reached end of posts at page {page}")
+                    break
+
+                # Use the last post's ID for pagination
+                max_id = posts_batch[-1]['id']
+                page += 1
+
+            logger.info(f"Successfully fetched {len(all_posts)} posts across {page} page(s)")
+            return all_posts
+
         except PixelfedAPIError as e:
             logger.error(f"Failed to fetch posts for account {account_id}: {e}")
             raise
