@@ -13,18 +13,15 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Set working directory
 WORKDIR /app
 
-# Copy pyproject.toml and uv.lock for dependency installation
-COPY pyproject.toml uv.lock ./
-
-# Install dependencies using uv
-# uv automatically detects Docker and installs system-wide
-RUN uv sync --frozen --no-dev
-
 # Copy the content of the local src directory to the working directory
 COPY . .
 
-# Copy the entrypoint script
-COPY entrypoint.sh /entrypoint.sh
+# Install dependencies using uv into system Python
+# Use --system flag to install directly into system Python (no venv)
+# This installs all dependencies defined in pyproject.toml
+RUN uv pip install --system --no-cache .
+
+# Make entrypoint executable
 RUN chmod +x /entrypoint.sh
 
 # Use the script as the entrypoint
