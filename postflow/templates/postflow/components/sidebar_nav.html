@@ -1,16 +1,17 @@
 {% load static %}
-<nav class="flex flex-1 flex-col" id="sidebar-nav" {% if is_htmx_request %}hx-swap-oob="true"{% endif %}>
-  <ul role="list" class="flex flex-1 flex-col gap-y-7">
+<nav class="{% if mobile_view %}space-y-6{% else %}flex flex-1 flex-col{% endif %}" id="sidebar-nav" {% if is_htmx_request %}hx-swap-oob="true"{% endif %}>
+  <ul role="list" class="{% if mobile_view %}space-y-4{% else %}flex flex-1 flex-col gap-y-7{% endif %}">
     <li>
-      <ul role="list" class="-mx-2 space-y-1">
+      <ul role="list" class="{% if mobile_view %}space-y-3{% else %}-mx-2 space-y-1{% endif %}">
         <!-- Accounts Link -->
         <li>
           <a href="{% url 'accounts' %}"
              hx-get="{% url 'accounts' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
-             class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold {% if active_page == 'accounts' %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
-            <img src="{% static 'postflow/icons/home.svg' %}" class="size-6 shrink-0" alt="Home icon" />
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block text-white font-semibold{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'accounts' %}{% if not mobile_view %}bg-gray-800 text-white{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+            {% if not mobile_view %}<img src="{% static 'postflow/icons/home.svg' %}" class="size-6 shrink-0" alt="Home icon" />{% endif %}
             Accounts
           </a>
         </li>
@@ -21,8 +22,9 @@
              hx-get="{% url 'hashtag-groups' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
-             class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold {% if active_page == 'hashtags' %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
-            <img src="{% static 'postflow/icons/hashtag.svg' %}" class="size-6 shrink-0" alt="Hashtag icon" />
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'hashtags' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+            {% if not mobile_view %}<img src="{% static 'postflow/icons/hashtag.svg' %}" class="size-6 shrink-0" alt="Hashtag icon" />{% endif %}
             Hashtags
           </a>
         </li>
@@ -33,8 +35,9 @@
              hx-get="{% url 'calendar' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
-             class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold {% if active_page == 'calendar' %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
-            <img src="{% static 'postflow/icons/calendar.svg' %}" class="size-6 shrink-0" alt="Calendar icon" />
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'calendar' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+            {% if not mobile_view %}<img src="{% static 'postflow/icons/calendar.svg' %}" class="size-6 shrink-0" alt="Calendar icon" />{% endif %}
             Calendar
           </a>
         </li>
@@ -46,10 +49,13 @@
              hx-target="#content-area"
              hx-swap="innerHTML"
              hx-push-url="true"
-             class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold {% if active_page == 'analytics' %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'analytics' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+            {% if not mobile_view %}
             <svg class="size-6 shrink-0 {% if active_page == 'analytics' %}text-white{% else %}text-gray-400 group-hover:text-white{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
+            {% endif %}
             Analytics
           </a>
         </li>
@@ -60,17 +66,21 @@
              hx-get="{% url 'feedback' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
-             class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold {% if active_page == 'feedback' %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'feedback' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+            {% if not mobile_view %}
             <svg class="size-6 shrink-0 {% if active_page == 'feedback' %}text-white{% else %}text-gray-400 group-hover:text-white{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
             </svg>
+            {% endif %}
             Feedback
           </a>
         </li>
       </ul>
     </li>
 
-    <!-- Profile & Logout -->
+    {% if not mobile_view %}
+    <!-- Profile & Logout (Desktop Only) -->
     <li class="-mx-6 mt-auto">
       <a href="{% url 'profile' %}"
          hx-get="{% url 'profile' %}"
@@ -88,5 +98,25 @@
         Log out
       </a>
     </li>
+    {% else %}
+    <!-- Profile & Logout (Mobile) -->
+    <li>
+      <hr class="border-gray-700">
+    </li>
+    <li>
+      <a href="{% url 'profile' %}"
+         hx-get="{% url 'profile' %}"
+         hx-target="#content-area"
+         hx-swap="innerHTML"
+         @click="mobileOpen = false"
+         class="flex items-center gap-3 text-white hover:text-gray-300">
+        <img class="w-8 h-8 rounded-full bg-gray-800" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+        {{ request.user.first_name }} {{ request.user.last_name }}
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'logout' %}" class="block text-red-400 hover:text-red-600">Log out</a>
+    </li>
+    {% endif %}
   </ul>
 </nav>
