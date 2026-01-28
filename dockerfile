@@ -17,8 +17,8 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies using uv
-# The --system flag installs packages into the system Python
-RUN uv sync --frozen --no-dev --system
+# uv automatically detects Docker and installs system-wide
+RUN uv sync --frozen --no-dev
 
 # Copy the content of the local src directory to the working directory
 COPY . .
