@@ -7,6 +7,7 @@ created via PostFlow.
 """
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from django.utils.functional import cached_property
 from postflow.models import ScheduledPost
 from pixelfed.models import MastodonAccount
@@ -90,6 +91,12 @@ class PixelfedPost(models.Model):
         help_text="When the post was published on Pixelfed"
     )
 
+    edited_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the post was last edited (if edited)"
+    )
+
     last_fetched_at = models.DateTimeField(
         auto_now=True,
         db_index=True,
@@ -101,6 +108,59 @@ class PixelfedPost(models.Model):
         help_text="When this record was created in PostFlow"
     )
 
+    # Post metadata
+    visibility = models.CharField(
+        max_length=20,
+        default='public',
+        help_text="Post visibility: public, unlisted, private, or direct"
+    )
+
+    language = models.CharField(
+        max_length=10,
+        blank=True,
+        help_text="ISO 639-1 language code"
+    )
+
+    sensitive = models.BooleanField(
+        default=False,
+        help_text="Whether content has a content warning"
+    )
+
+    spoiler_text = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Content warning text"
+    )
+
+    # Threading (if this post is a reply)
+    in_reply_to_id = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Parent post ID if this is a reply"
+    )
+
+    in_reply_to_account_id = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Parent post author account ID"
+    )
+
+    # Aggregate metrics from API (for comparison with our detailed tracking)
+    api_replies_count = models.IntegerField(
+        default=0,
+        help_text="Reply count from API Status object"
+    )
+
+    api_reblogs_count = models.IntegerField(
+        default=0,
+        help_text="Reblog/share count from API Status object"
+    )
+
+    api_favourites_count = models.IntegerField(
+        default=0,
+        help_text="Favorite/like count from API Status object"
+    )
+
     class Meta:
         db_table = 'analytics_pixelfed_post'
         unique_together = [('instance_url', 'pixelfed_post_id')]
@@ -108,6 +168,8 @@ class PixelfedPost(models.Model):
             models.Index(fields=['posted_at']),
             models.Index(fields=['last_fetched_at']),
             models.Index(fields=['account', 'posted_at']),
+            models.Index(fields=['visibility']),
+            models.Index(fields=['in_reply_to_id']),
         ]
         ordering = ['-posted_at']
         verbose_name = 'Pixelfed Post'
@@ -125,6 +187,16 @@ class PixelfedPost(models.Model):
     def has_media(self):
         """All posts in this model have media by design"""
         return True
+
+    @property
+    def is_reply(self):
+        """Returns True if this post is a reply to another post"""
+        return bool(self.in_reply_to_id)
+
+    @property
+    def is_edited(self):
+        """Returns True if this post has been edited"""
+        return bool(self.edited_at)
 
     @cached_property
     def likes_count(self):
@@ -222,7 +294,13 @@ class PixelfedLike(models.Model):
 
     liked_at = models.DateTimeField(
         db_index=True,
-        help_text="When the like occurred"
+        help_text="When the like occurred (estimated as first discovered time)"
+    )
+
+    first_seen_at = models.DateTimeField(
+        db_index=True,
+        default=timezone.now,
+        help_text="When we first discovered this like (for timeline estimation)"
     )
 
     created_at = models.DateTimeField(
@@ -235,6 +313,7 @@ class PixelfedLike(models.Model):
         unique_together = [('post', 'account_id')]
         indexes = [
             models.Index(fields=['liked_at']),
+            models.Index(fields=['first_seen_at']),
             models.Index(fields=['username']),
         ]
         ordering = ['-liked_at']
@@ -355,7 +434,13 @@ class PixelfedShare(models.Model):
 
     shared_at = models.DateTimeField(
         db_index=True,
-        help_text="When the share occurred"
+        help_text="When the share occurred (estimated as first discovered time)"
+    )
+
+    first_seen_at = models.DateTimeField(
+        db_index=True,
+        default=timezone.now,
+        help_text="When we first discovered this share (for timeline estimation)"
     )
 
     created_at = models.DateTimeField(
@@ -368,6 +453,7 @@ class PixelfedShare(models.Model):
         unique_together = [('post', 'account_id')]
         indexes = [
             models.Index(fields=['shared_at']),
+            models.Index(fields=['first_seen_at']),
             models.Index(fields=['username']),
         ]
         ordering = ['-shared_at']

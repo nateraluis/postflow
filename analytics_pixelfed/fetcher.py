@@ -117,10 +117,16 @@ class PixelfedAnalyticsFetcher:
         """
         post_id = str(post_data['id'])
 
-        # Parse timestamp
+        # Parse timestamps
         posted_at = parse(post_data['created_at'])
         if timezone.is_naive(posted_at):
             posted_at = timezone.make_aware(posted_at)
+
+        edited_at = None
+        if post_data.get('edited_at'):
+            edited_at = parse(post_data['edited_at'])
+            if timezone.is_naive(edited_at):
+                edited_at = timezone.make_aware(edited_at)
 
         # Extract media information
         media_attachments = post_data.get('media_attachments', [])
@@ -151,6 +157,25 @@ class PixelfedAnalyticsFetcher:
         # Build post URL
         post_url = post_data.get('url', f"{self.account.instance_url}/p/{account_info['username']}/{post_id}")
 
+        # Extract metadata
+        visibility = post_data.get('visibility', 'public')
+        language = post_data.get('language', '')
+        sensitive = post_data.get('sensitive', False)
+        spoiler_text = post_data.get('spoiler_text', '')
+
+        # Extract threading information
+        in_reply_to_id = post_data.get('in_reply_to_id', '')
+        if in_reply_to_id:
+            in_reply_to_id = str(in_reply_to_id)
+        in_reply_to_account_id = post_data.get('in_reply_to_account_id', '')
+        if in_reply_to_account_id:
+            in_reply_to_account_id = str(in_reply_to_account_id)
+
+        # Extract aggregate metrics from API
+        api_replies_count = post_data.get('replies_count', 0)
+        api_reblogs_count = post_data.get('reblogs_count', 0)
+        api_favourites_count = post_data.get('favourites_count', 0)
+
         # Try to link to ScheduledPost if this was posted via PostFlow
         scheduled_post = None
         if hasattr(self.account, 'scheduled_posts'):
@@ -176,7 +201,20 @@ class PixelfedAnalyticsFetcher:
                     'media_type': media_type,
                     'post_url': post_url,
                     'posted_at': posted_at,
+                    'edited_at': edited_at,
                     'scheduled_post': scheduled_post,
+                    # Metadata
+                    'visibility': visibility,
+                    'language': language,
+                    'sensitive': sensitive,
+                    'spoiler_text': spoiler_text,
+                    # Threading
+                    'in_reply_to_id': in_reply_to_id,
+                    'in_reply_to_account_id': in_reply_to_account_id,
+                    # API aggregate metrics
+                    'api_replies_count': api_replies_count,
+                    'api_reblogs_count': api_reblogs_count,
+                    'api_favourites_count': api_favourites_count,
                 }
             )
 
@@ -242,6 +280,10 @@ class PixelfedAnalyticsFetcher:
         """
         Process and store likes for a post.
 
+        NOTE: The Mastodon/Pixelfed API does NOT provide individual like timestamps.
+        The favourited_by endpoint only returns Account objects without timestamp data.
+        We use the current time as an estimate when first discovering a like.
+
         Args:
             post: PixelfedPost instance
             likes_data: List of account dictionaries who liked
@@ -255,7 +297,8 @@ class PixelfedAnalyticsFetcher:
             username = like_data.get('username', '')
             display_name = like_data.get('display_name', username)
 
-            # Use current time as liked_at since API doesn't provide it
+            # Use current time as liked_at since API doesn't provide individual timestamps
+            # The first_seen_at field (auto_now_add) tracks when we discovered this like
             liked_at = timezone.now()
 
             with transaction.atomic():
@@ -266,6 +309,7 @@ class PixelfedAnalyticsFetcher:
                         'username': username,
                         'display_name': display_name,
                         'liked_at': liked_at,
+                        # first_seen_at is set automatically via auto_now_add
                     }
                 )
                 if created:
@@ -334,6 +378,10 @@ class PixelfedAnalyticsFetcher:
         """
         Process and store shares/boosts for a post.
 
+        NOTE: The Mastodon/Pixelfed API does NOT provide individual share timestamps.
+        The reblogged_by endpoint only returns Account objects without timestamp data.
+        We use the current time as an estimate when first discovering a share.
+
         Args:
             post: PixelfedPost instance
             shares_data: List of account dictionaries who shared
@@ -347,7 +395,8 @@ class PixelfedAnalyticsFetcher:
             username = share_data.get('username', '')
             display_name = share_data.get('display_name', username)
 
-            # Use current time as shared_at since API doesn't provide it
+            # Use current time as shared_at since API doesn't provide individual timestamps
+            # The first_seen_at field (auto_now_add) tracks when we discovered this share
             shared_at = timezone.now()
 
             with transaction.atomic():
@@ -358,6 +407,7 @@ class PixelfedAnalyticsFetcher:
                         'username': username,
                         'display_name': display_name,
                         'shared_at': shared_at,
+                        # first_seen_at is set automatically via auto_now_add
                     }
                 )
                 if created:

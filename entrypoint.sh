@@ -15,7 +15,7 @@ echo "Scheduler started with PID $SCHEDULER_PID"
 
 # Start Django tasks database worker in background
 echo "Starting Django tasks database worker..."
-python manage.py run_db_worker &
+python manage.py db_worker &
 DB_WORKER_PID=$!
 echo "Database worker started with PID $DB_WORKER_PID"
 
