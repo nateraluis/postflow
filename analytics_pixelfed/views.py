@@ -5,7 +5,8 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, F, Value
+from django.db.models.functions import Coalesce
 from datetime import timedelta
 from django.utils import timezone
 
@@ -24,8 +25,11 @@ def dashboard(request):
         instance_url__icontains='pixelfed'
     )
 
-    # Get all posts for user's accounts, ordered by most recent
-    posts = PixelfedPost.objects.filter(
+    # Get sort parameter (default: most recent)
+    sort_by = request.GET.get('sort', 'recent')
+
+    # Build base query for posts
+    posts_query = PixelfedPost.objects.filter(
         account__in=user_accounts
     ).select_related(
         'account',
@@ -34,10 +38,31 @@ def dashboard(request):
         'likes',
         'comments',
         'shares'
-    ).order_by('-posted_at')[:50]  # Last 50 posts
+    )
+
+    # Apply sorting - for engagement metrics, we need to handle NULL engagement_summary
+    if sort_by == 'likes':
+        # Annotate with coalesced values to handle posts without engagement_summary
+        posts = posts_query.annotate(
+            likes_sort=Coalesce(F('engagement_summary__total_likes'), Value(0))
+        ).order_by('-likes_sort', '-posted_at')[:50]
+    elif sort_by == 'comments':
+        posts = posts_query.annotate(
+            comments_sort=Coalesce(F('engagement_summary__total_comments'), Value(0))
+        ).order_by('-comments_sort', '-posted_at')[:50]
+    elif sort_by == 'shares':
+        posts = posts_query.annotate(
+            shares_sort=Coalesce(F('engagement_summary__total_shares'), Value(0))
+        ).order_by('-shares_sort', '-posted_at')[:50]
+    elif sort_by == 'engagement':
+        posts = posts_query.annotate(
+            engagement_sort=Coalesce(F('engagement_summary__total_engagement'), Value(0))
+        ).order_by('-engagement_sort', '-posted_at')[:50]
+    else:  # 'recent' or default
+        posts = posts_query.order_by('-posted_at')[:50]
 
     # Calculate summary statistics
-    total_posts = posts.count()
+    total_posts = PixelfedPost.objects.filter(account__in=user_accounts).count()
     total_engagement = PixelfedEngagementSummary.objects.filter(
         post__account__in=user_accounts
     ).aggregate(
@@ -47,12 +72,15 @@ def dashboard(request):
         total_engagement=Sum('total_engagement')
     )
 
-    # Get top performing posts (by total engagement)
-    top_posts = PixelfedPost.objects.filter(
-        account__in=user_accounts
+    # Get top performing post (by total engagement)
+    most_liked_post = PixelfedPost.objects.filter(
+        account__in=user_accounts,
+        engagement_summary__isnull=False,
+        engagement_summary__total_engagement__gt=0
     ).select_related(
+        'account',
         'engagement_summary'
-    ).order_by('-engagement_summary__total_engagement')[:10]
+    ).order_by('-engagement_summary__total_engagement', '-posted_at').first()
 
     context = {
         'active_page': 'analytics',
@@ -62,8 +90,9 @@ def dashboard(request):
         'total_likes': total_engagement['total_likes'] or 0,
         'total_comments': total_engagement['total_comments'] or 0,
         'total_shares': total_engagement['total_shares'] or 0,
-        'total_engagement': total_engagement['total_engagement'] or 0,
-        'top_posts': top_posts,
+        'total_engagement_count': total_engagement['total_engagement'] or 0,
+        'most_liked_post': most_liked_post,
+        'current_sort': sort_by,
     }
 
     # For HTMX requests, return just the content without the base template

@@ -51,78 +51,99 @@
     </div>
 
     <div class="px-6 py-4">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Post Media -->
-        <div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column: Post Media & Caption -->
+        <div class="lg:col-span-2">
+          <!-- Post Media (smaller) -->
           {% if post.media_url %}
-          <img src="{{ post.media_url }}" alt="Post image" class="w-full rounded-lg shadow-md">
+          <div class="mb-4">
+            <img src="{{ post.media_url }}" alt="Post image" class="max-w-2xl w-full rounded-lg shadow-md">
+          </div>
           {% endif %}
-        </div>
 
-        <!-- Post Info -->
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Post Information</h3>
-          
-          <!-- Caption -->
+          <!-- Caption below image -->
           {% if post.caption %}
           <div class="mb-4">
-            <p class="text-sm font-medium text-gray-700 mb-1">Caption</p>
-            <p class="text-sm text-gray-600">{{ post.caption_text }}</p>
+            <h3 class="text-sm font-semibold text-gray-700 mb-2">Caption</h3>
+            <p class="text-sm text-gray-900 leading-relaxed">{{ post.caption_text }}</p>
           </div>
           {% endif %}
 
-          <!-- Engagement Summary -->
-          <div class="grid grid-cols-3 gap-4 mb-4">
-            <div class="bg-red-50 p-4 rounded-lg">
-              <div class="flex items-center">
-                <svg class="h-8 w-8 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
-                </svg>
-                <div>
-                  <p class="text-2xl font-bold text-gray-900">{{ likes|length }}</p>
-                  <p class="text-xs text-gray-500">Likes</p>
+          <!-- Post Metadata -->
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-gray-500">Media Type:</span>
+              <span class="ml-2 font-medium text-gray-900">{{ post.media_type|title }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500">Visibility:</span>
+              <span class="ml-2 font-medium text-gray-900">{{ post.visibility|title }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500">Posted:</span>
+              <span class="ml-2 font-medium text-gray-900">{{ post.posted_at|date:"M d, Y H:i" }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500">Last Updated:</span>
+              <span class="ml-2 font-medium text-gray-900">{{ post.last_fetched_at|date:"M d, Y H:i" }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Analytics Metrics -->
+        <div class="lg:col-span-1">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Analytics</h3>
+
+          <!-- Engagement Summary Cards -->
+          <div class="space-y-3 mb-6">
+            <div class="bg-red-50 p-4 rounded-lg border border-red-100">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <svg class="h-6 w-6 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm font-medium text-gray-700">Likes</span>
                 </div>
+                <p class="text-2xl font-bold text-gray-900">{{ likes|length }}</p>
               </div>
             </div>
 
-            <div class="bg-blue-50 p-4 rounded-lg">
-              <div class="flex items-center">
-                <svg class="h-8 w-8 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <div>
-                  <p class="text-2xl font-bold text-gray-900">{{ comments|length }}</p>
-                  <p class="text-xs text-gray-500">Comments</p>
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <svg class="h-6 w-6 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span class="text-sm font-medium text-gray-700">Comments</span>
                 </div>
+                <p class="text-2xl font-bold text-gray-900">{{ comments|length }}</p>
               </div>
             </div>
 
-            <div class="bg-green-50 p-4 rounded-lg">
-              <div class="flex items-center">
-                <svg class="h-8 w-8 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                <div>
-                  <p class="text-2xl font-bold text-gray-900">{{ shares|length }}</p>
-                  <p class="text-xs text-gray-500">Shares</p>
+            <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <svg class="h-6 w-6 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                  <span class="text-sm font-medium text-gray-700">Shares</span>
                 </div>
+                <p class="text-2xl font-bold text-gray-900">{{ shares|length }}</p>
               </div>
             </div>
           </div>
 
-          <!-- Post Metadata -->
-          <div class="space-y-2 text-sm">
-            <div class="flex justify-between">
-              <span class="text-gray-500">Media Type:</span>
-              <span class="font-medium text-gray-900">{{ post.media_type|title }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-500">Posted:</span>
-              <span class="font-medium text-gray-900">{{ post.posted_at|date:"M d, Y H:i" }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-500">Last Updated:</span>
-              <span class="font-medium text-gray-900">{{ post.last_fetched_at|date:"M d, Y H:i" }}</span>
+          <!-- Total Engagement -->
+          <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+            <div class="text-center">
+              <p class="text-sm font-medium text-gray-700 mb-1">Total Engagement</p>
+              <p class="text-3xl font-bold text-indigo-600">
+                {% if post.engagement_summary %}
+                  {{ post.engagement_summary.total_engagement }}
+                {% else %}
+                  {{ likes.count|add:comments.count|add:shares.count }}
+                {% endif %}
+              </p>
             </div>
           </div>
         </div>

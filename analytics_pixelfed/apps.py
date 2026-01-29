@@ -23,5 +23,8 @@ class AnalyticsPixelfedConfig(AppConfig):
         # or via cron/APScheduler. django-tasks will be used for execution only.
         import logging
 
+        # Import signals to register them
+        from . import signals
+
         logger = logging.getLogger('postflow')
         logger.info("Pixelfed Analytics app ready")
