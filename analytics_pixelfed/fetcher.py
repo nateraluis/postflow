@@ -64,17 +64,20 @@ class PixelfedAnalyticsFetcher:
 
         return self._account_info
 
-    def sync_account_posts(self, limit: int = 50) -> Tuple[int, int]:
+    def sync_account_posts(self, limit: Optional[int] = 50) -> Tuple[int, int]:
         """
         Fetch posts from Pixelfed and create/update PixelfedPost records.
 
         Args:
-            limit: Maximum number of posts to fetch (default 50)
+            limit: Maximum number of posts to fetch. Pass None to fetch all posts. (default 50)
 
         Returns:
             Tuple of (created_count, updated_count)
         """
-        logger.info(f"Syncing posts for {self.account}")
+        if limit is None:
+            logger.info(f"Syncing ALL posts for {self.account}")
+        else:
+            logger.info(f"Syncing up to {limit} posts for {self.account}")
 
         try:
             # Get account info to get the account ID
@@ -159,17 +162,22 @@ class PixelfedAnalyticsFetcher:
 
         # Extract metadata
         visibility = post_data.get('visibility', 'public')
-        language = post_data.get('language', '')
+        language = post_data.get('language') or None  # Store None instead of empty string
         sensitive = post_data.get('sensitive', False)
-        spoiler_text = post_data.get('spoiler_text', '')
+        spoiler_text = post_data.get('spoiler_text') or None  # Store None instead of empty string
 
         # Extract threading information
-        in_reply_to_id = post_data.get('in_reply_to_id', '')
+        in_reply_to_id = post_data.get('in_reply_to_id')
         if in_reply_to_id:
             in_reply_to_id = str(in_reply_to_id)
-        in_reply_to_account_id = post_data.get('in_reply_to_account_id', '')
+        else:
+            in_reply_to_id = None
+
+        in_reply_to_account_id = post_data.get('in_reply_to_account_id')
         if in_reply_to_account_id:
             in_reply_to_account_id = str(in_reply_to_account_id)
+        else:
+            in_reply_to_account_id = None
 
         # Extract aggregate metrics from API
         api_replies_count = post_data.get('replies_count', 0)

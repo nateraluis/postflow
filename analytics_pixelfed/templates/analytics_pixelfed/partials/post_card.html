@@ -17,7 +17,7 @@
           <div class="min-w-0 flex-1 px-4">
             <div>
               <p class="text-sm font-medium text-indigo-600 truncate">@{{ post.username }}</p>
-              <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ post.caption|truncatewords:20 }}</p>
+              <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ post.caption_text|truncatewords:20 }}</p>
               <p class="text-xs text-gray-400 mt-1">{{ post.posted_at|date:"M d, Y H:i" }}</p>
             </div>
           </div>

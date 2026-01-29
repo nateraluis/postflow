@@ -137,13 +137,13 @@ class PixelfedAPIClient:
         # Should not reach here, but just in case
         raise PixelfedAPIError(f"Request failed after {self.MAX_RETRIES} attempts")
 
-    def get_user_posts(self, account_id: str, limit: int = 40) -> List[Dict]:
+    def get_user_posts(self, account_id: str, limit: Optional[int] = None) -> List[Dict]:
         """
         Fetch user's posts from Pixelfed with pagination support.
 
         Args:
             account_id: Pixelfed account ID
-            limit: Maximum number of posts to fetch (default 40, no upper limit)
+            limit: Maximum number of posts to fetch. If None, fetches all available posts.
 
         Returns:
             List of post dictionaries with media
@@ -154,16 +154,22 @@ class PixelfedAPIClient:
             'exclude_replies': 'true',  # Exclude replies to focus on original content
         }
 
-        logger.info(f"Fetching up to {limit} posts for account {account_id}")
+        if limit is None:
+            logger.info(f"Fetching ALL posts for account {account_id}")
+        else:
+            logger.info(f"Fetching up to {limit} posts for account {account_id}")
 
         all_posts = []
         max_id = None
         page = 1
 
         try:
-            while len(all_posts) < limit:
+            while True:
                 # Pixelfed API limits each request to 40 posts
-                batch_limit = min(40, limit - len(all_posts))
+                if limit is None:
+                    batch_limit = 40  # Fetch max per page when getting all posts
+                else:
+                    batch_limit = min(40, limit - len(all_posts))
 
                 params = {**base_params, 'limit': batch_limit}
                 if max_id:
@@ -183,6 +189,11 @@ class PixelfedAPIClient:
                 # If we got fewer posts than requested, we've reached the end
                 if len(posts_batch) < batch_limit:
                     logger.info(f"Reached end of posts at page {page}")
+                    break
+
+                # If we have a limit and reached it, stop
+                if limit is not None and len(all_posts) >= limit:
+                    logger.info(f"Reached limit of {limit} posts at page {page}")
                     break
 
                 # Use the last post's ID for pagination

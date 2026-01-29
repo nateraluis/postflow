@@ -9,6 +9,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.utils.functional import cached_property
+from django.utils.html import strip_tags
 from postflow.models import ScheduledPost
 from pixelfed.models import MastodonAccount
 
@@ -118,6 +119,7 @@ class PixelfedPost(models.Model):
     language = models.CharField(
         max_length=10,
         blank=True,
+        null=True,
         help_text="ISO 639-1 language code"
     )
 
@@ -129,6 +131,7 @@ class PixelfedPost(models.Model):
     spoiler_text = models.CharField(
         max_length=500,
         blank=True,
+        null=True,
         help_text="Content warning text"
     )
 
@@ -136,12 +139,14 @@ class PixelfedPost(models.Model):
     in_reply_to_id = models.CharField(
         max_length=100,
         blank=True,
+        null=True,
         help_text="Parent post ID if this is a reply"
     )
 
     in_reply_to_account_id = models.CharField(
         max_length=100,
         blank=True,
+        null=True,
         help_text="Parent post author account ID"
     )
 
@@ -197,6 +202,11 @@ class PixelfedPost(models.Model):
     def is_edited(self):
         """Returns True if this post has been edited"""
         return bool(self.edited_at)
+
+    @property
+    def caption_text(self):
+        """Returns caption with HTML tags stripped"""
+        return strip_tags(self.caption) if self.caption else ''
 
     @cached_property
     def likes_count(self):
@@ -400,6 +410,11 @@ class PixelfedComment(models.Model):
     def is_reply(self):
         """Returns True if this comment is a reply to another comment"""
         return bool(self.in_reply_to_id)
+
+    @property
+    def content_text(self):
+        """Returns comment content with HTML tags stripped"""
+        return strip_tags(self.content) if self.content else ''
 
 
 class PixelfedShare(models.Model):

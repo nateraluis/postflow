@@ -155,7 +155,7 @@ def refresh_post(request, post_id):
 def sync_account(request, account_id):
     """
     Manually sync posts from a Pixelfed account.
-    Returns a toast notification partial.
+    Returns a toast notification partial and triggers a refresh event.
     """
     from .fetcher import PixelfedAnalyticsFetcher
     import logging
@@ -176,9 +176,14 @@ def sync_account(request, account_id):
 
         logger.info(f"Synced account {account_id}: {created} created, {updated} updated")
 
-        # Return success toast partial
+        # Return success toast partial with HX-Trigger to refresh posts
         context = {'message': f'Synced {created + updated} posts ({created} new, {updated} updated)'}
-        return render(request, 'analytics_pixelfed/partials/toast.html#toast-success', context)
+        response = render(request, 'analytics_pixelfed/partials/toast.html#toast-success', context)
+
+        # Trigger HTMX event to refresh the dashboard
+        response['HX-Trigger'] = 'postsUpdated'
+
+        return response
 
     except Exception as e:
         logger.error(f"Error syncing account {account_id}: {e}", exc_info=True)
@@ -224,6 +229,75 @@ def fetch_engagement(request, account_id):
         # Return error toast partial
         context = {'message': f'Error starting engagement fetch: {str(e)}'}
         return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
+
+
+@login_required
+def post_list_partial(request):
+    """
+    Returns just the post list partial for HTMX refreshes.
+    Used to update the post list without reloading the entire page.
+    """
+    # Get user's Pixelfed accounts
+    user_accounts = MastodonAccount.objects.filter(
+        user=request.user,
+        instance_url__icontains='pixelfed'
+    )
+
+    # Get all posts for user's accounts, ordered by most recent
+    posts = PixelfedPost.objects.filter(
+        account__in=user_accounts
+    ).select_related(
+        'account',
+        'engagement_summary'
+    ).prefetch_related(
+        'likes',
+        'comments',
+        'shares'
+    ).order_by('-posted_at')[:50]  # Last 50 posts
+
+    context = {
+        'posts': posts,
+    }
+
+    return render(request, 'analytics_pixelfed/partials/post_list.html', context)
+
+
+@login_required
+def stats_partial(request):
+    """
+    Returns just the summary statistics partial for HTMX refreshes.
+    """
+    # Get user's Pixelfed accounts
+    user_accounts = MastodonAccount.objects.filter(
+        user=request.user,
+        instance_url__icontains='pixelfed'
+    )
+
+    # Get all posts for user's accounts
+    posts = PixelfedPost.objects.filter(
+        account__in=user_accounts
+    )
+
+    # Calculate summary statistics
+    total_posts = posts.count()
+    total_engagement = PixelfedEngagementSummary.objects.filter(
+        post__account__in=user_accounts
+    ).aggregate(
+        total_likes=Sum('total_likes'),
+        total_comments=Sum('total_comments'),
+        total_shares=Sum('total_shares'),
+        total_engagement=Sum('total_engagement')
+    )
+
+    context = {
+        'total_posts': total_posts,
+        'total_likes': total_engagement['total_likes'] or 0,
+        'total_comments': total_engagement['total_comments'] or 0,
+        'total_shares': total_engagement['total_shares'] or 0,
+        'total_engagement': total_engagement['total_engagement'] or 0,
+    }
+
+    return render(request, 'analytics_pixelfed/partials/stats.html', context)
 
 
 def _get_engagement_timeline(post):

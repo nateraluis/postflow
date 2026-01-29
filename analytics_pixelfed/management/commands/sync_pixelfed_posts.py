@@ -28,7 +28,12 @@ class Command(BaseCommand):
             '--limit',
             type=int,
             default=50,
-            help='Maximum number of posts to fetch per account (default: 50)'
+            help='Maximum number of posts to fetch per account. Use 0 or --all for unlimited (default: 50)'
+        )
+        parser.add_argument(
+            '--all',
+            action='store_true',
+            help='Fetch ALL posts from the account (ignores --limit)'
         )
         parser.add_argument(
             '--user',
@@ -38,8 +43,14 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         account_id = options.get('account_id')
+        fetch_all = options.get('all', False)
         limit = options['limit']
         user_email = options.get('user')
+
+        # Handle --all flag or limit=0 for unlimited fetch
+        if fetch_all or limit == 0:
+            limit = None
+            self.stdout.write(self.style.WARNING("Fetching ALL posts (unlimited)"))
 
         # Determine which accounts to sync
         if account_id:

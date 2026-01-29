@@ -25,6 +25,10 @@
     </div>
   {% else %}
     <!-- Summary Statistics -->
+    <div id="stats-container"
+         hx-trigger="postsUpdated from:body"
+         hx-get="{% url 'analytics_pixelfed:stats_partial' %}"
+         hx-swap="innerHTML">
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
       <!-- Total Posts -->
       <div class="bg-white overflow-hidden shadow rounded-lg">
@@ -164,8 +168,10 @@
         </ul>
       </div>
     </div>
+    </div>
 
     <!-- Recent Posts -->
+    <div id="post-list-container">
     {% if posts %}
     <div>
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Posts</h2>
@@ -186,5 +192,6 @@
       <p class="mt-1 text-sm text-gray-500">Get started by syncing posts from your connected accounts.</p>
     </div>
     {% endif %}
+    </div>
   {% endif %}
 </div>
