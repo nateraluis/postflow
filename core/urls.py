@@ -31,6 +31,7 @@ urlpatterns = [
     path('mastodon-integration/', include('mastodon_integration.urls')),
     path('analytics/', include('analytics.urls')),
     path('analytics/pixelfed/', include('analytics_pixelfed.urls')),
+    path('analytics/mastodon/', include('analytics_mastodon.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
 ]
 

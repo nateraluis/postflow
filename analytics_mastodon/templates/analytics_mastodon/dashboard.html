@@ -1,11 +1,13 @@
+{% extends "postflow/_base.html" %}
 {% load static %}
 
+{% block main %}
 <!-- Toast notification container -->
 <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
 
 <div class="mt-8 max-w-7xl mx-auto">
   <h1 class="text-2xl font-bold text-gray-900 mb-4">Analytics Dashboard</h1>
-  <p class="text-gray-600 mb-6">View engagement metrics for your Pixelfed posts</p>
+  <p class="text-gray-600 mb-6">View engagement metrics for your Mastodon posts</p>
 
   {% if user_accounts|length == 0 %}
     <!-- No accounts connected -->
@@ -18,17 +20,13 @@
         </div>
         <div class="ml-3">
           <p class="text-sm text-yellow-700">
-            No Pixelfed accounts connected. <a href="{% url 'accounts' %}" class="font-medium underline">Connect an account</a> to view analytics.
+            No Mastodon accounts connected. <a href="{% url 'accounts' %}" class="font-medium underline">Connect an account</a> to view analytics.
           </p>
         </div>
       </div>
     </div>
   {% else %}
     <!-- Summary Statistics -->
-    <div id="stats-container"
-         hx-trigger="postsUpdated from:body"
-         hx-get="{% url 'analytics_pixelfed:stats_partial' %}"
-         hx-swap="innerHTML">
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
       <!-- Total Posts -->
       <div class="bg-white overflow-hidden shadow rounded-lg">
@@ -49,7 +47,7 @@
         </div>
       </div>
 
-      <!-- Total Likes -->
+      <!-- Total Favourites -->
       <div class="bg-white overflow-hidden shadow rounded-lg">
         <div class="p-5">
           <div class="flex items-center">
@@ -60,15 +58,15 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Total Likes</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ total_likes }}</dd>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Favourites</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ total_favourites }}</dd>
               </dl>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Total Comments -->
+      <!-- Total Replies -->
       <div class="bg-white overflow-hidden shadow rounded-lg">
         <div class="p-5">
           <div class="flex items-center">
@@ -79,15 +77,15 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Total Comments</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ total_comments }}</dd>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Replies</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ total_replies }}</dd>
               </dl>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Total Shares -->
+      <!-- Total Reblogs -->
       <div class="bg-white overflow-hidden shadow rounded-lg">
         <div class="p-5">
           <div class="flex items-center">
@@ -98,8 +96,8 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Total Shares</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ total_shares }}</dd>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Reblogs</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ total_reblogs }}</dd>
               </dl>
             </div>
           </div>
@@ -130,7 +128,7 @@
               </div>
               <div class="flex space-x-2">
                 <button
-                  hx-post="{% url 'analytics_pixelfed:sync_account' account.id %}"
+                  hx-post="{% url 'analytics_mastodon:sync_account' account.id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#toast-container"
                   hx-swap="afterbegin"
@@ -146,7 +144,7 @@
                   Sync Posts
                 </button>
                 <button
-                  hx-post="{% url 'analytics_pixelfed:fetch_engagement' account.id %}"
+                  hx-post="{% url 'analytics_mastodon:fetch_engagement' account.id %}"
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                   hx-target="#toast-container"
                   hx-swap="afterbegin"
@@ -168,10 +166,9 @@
         </ul>
       </div>
     </div>
-    </div>
 
-    <!-- Most Liked Post Section -->
-    {% if most_liked_post %}
+    <!-- Most Engaged Post Section -->
+    {% if most_engaged_post %}
     <div class="mb-8">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Performing Post</h2>
       <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 shadow rounded-lg overflow-hidden">
@@ -179,12 +176,12 @@
           <div class="flex items-start space-x-6">
             <!-- Thumbnail -->
             <div class="flex-shrink-0">
-              <a href="{% url 'analytics_pixelfed:post_detail' most_liked_post.id %}"
-                 hx-get="{% url 'analytics_pixelfed:post_detail' most_liked_post.id %}"
+              <a href="{% url 'analytics_mastodon:post_detail' most_engaged_post.id %}"
+                 hx-get="{% url 'analytics_mastodon:post_detail' most_engaged_post.id %}"
                  hx-target="#content-area"
                  hx-swap="innerHTML"
                  hx-push-url="true">
-                <img src="{{ most_liked_post.media_url }}"
+                <img src="{{ most_engaged_post.media_url }}"
                      alt="Post thumbnail"
                      class="w-32 h-32 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow">
               </a>
@@ -193,21 +190,21 @@
             <!-- Post Info -->
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between mb-2">
-                <h3 class="text-lg font-bold text-gray-900">Most Liked Post</h3>
-                <a href="{{ most_liked_post.post_url }}"
+                <h3 class="text-lg font-bold text-gray-900">Top Performing Post</h3>
+                <a href="{{ most_engaged_post.post_url }}"
                    target="_blank"
                    rel="noopener noreferrer"
                    class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
-                  View on Pixelfed →
+                  View on Mastodon →
                 </a>
               </div>
 
               <p class="text-sm text-gray-600 mb-3">
-                @{{ most_liked_post.username }} • {{ most_liked_post.posted_at|date:"M d, Y" }}
+                @{{ most_engaged_post.account.username }} • {{ most_engaged_post.posted_at|date:"M d, Y" }}
               </p>
 
-              {% if most_liked_post.caption %}
-              <p class="text-sm text-gray-700 line-clamp-2 mb-4">{{ most_liked_post.caption_text }}</p>
+              {% if most_engaged_post.content %}
+              <p class="text-sm text-gray-700 line-clamp-2 mb-4">{{ most_engaged_post.content_text }}</p>
               {% endif %}
 
               <!-- Quick Stats -->
@@ -216,25 +213,25 @@
                   <svg class="h-5 w-5 text-red-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
                   </svg>
-                  <span class="text-sm font-semibold text-gray-900">{{ most_liked_post.engagement_summary.total_likes }}</span>
-                  <span class="text-xs text-gray-500 ml-1">likes</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ most_engaged_post.engagement_summary.total_favourites }}</span>
+                  <span class="text-xs text-gray-500 ml-1">favourites</span>
                 </div>
                 <div class="flex items-center">
                   <svg class="h-5 w-5 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
-                  <span class="text-sm font-semibold text-gray-900">{{ most_liked_post.engagement_summary.total_comments }}</span>
-                  <span class="text-xs text-gray-500 ml-1">comments</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ most_engaged_post.engagement_summary.total_replies }}</span>
+                  <span class="text-xs text-gray-500 ml-1">replies</span>
                 </div>
                 <div class="flex items-center">
                   <svg class="h-5 w-5 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                   </svg>
-                  <span class="text-sm font-semibold text-gray-900">{{ most_liked_post.engagement_summary.total_shares }}</span>
-                  <span class="text-xs text-gray-500 ml-1">shares</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ most_engaged_post.engagement_summary.total_reblogs }}</span>
+                  <span class="text-xs text-gray-500 ml-1">reblogs</span>
                 </div>
                 <div class="flex items-center">
-                  <span class="text-sm font-bold text-indigo-600">{{ most_liked_post.engagement_summary.total_engagement }}</span>
+                  <span class="text-sm font-bold text-indigo-600">{{ most_engaged_post.engagement_summary.total_engagement }}</span>
                   <span class="text-xs text-gray-500 ml-1">total engagement</span>
                 </div>
               </div>
@@ -246,7 +243,6 @@
     {% endif %}
 
     <!-- Posts Section with Sort -->
-    <div id="post-list-container">
     {% if posts %}
     <div>
       <div class="flex items-center justify-between mb-4">
@@ -256,7 +252,7 @@
         <div class="relative inline-block text-left">
           <select
             name="sort"
-            hx-get="{% url 'analytics_pixelfed:dashboard' %}"
+            hx-get="{% url 'analytics_mastodon:dashboard' %}"
             hx-target="#content-area"
             hx-swap="innerHTML"
             hx-push-url="true"
@@ -264,9 +260,9 @@
             class="block w-full pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
             <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Most Recent</option>
             <option value="engagement" {% if current_sort == 'engagement' %}selected{% endif %}>Total Engagement</option>
-            <option value="likes" {% if current_sort == 'likes' %}selected{% endif %}>Most Likes</option>
-            <option value="comments" {% if current_sort == 'comments' %}selected{% endif %}>Most Comments</option>
-            <option value="shares" {% if current_sort == 'shares' %}selected{% endif %}>Most Shares</option>
+            <option value="favourites" {% if current_sort == 'favourites' %}selected{% endif %}>Most Favourites</option>
+            <option value="replies" {% if current_sort == 'replies' %}selected{% endif %}>Most Replies</option>
+            <option value="reblogs" {% if current_sort == 'reblogs' %}selected{% endif %}>Most Reblogs</option>
           </select>
         </div>
       </div>
@@ -274,7 +270,7 @@
       <div class="bg-white shadow overflow-hidden sm:rounded-md">
         <ul role="list" class="divide-y divide-gray-200">
           {% for post in posts %}
-            {% include 'analytics_pixelfed/partials/post_card.html#post-card' %}
+            {% include 'analytics_mastodon/partials/post_card.html#post-card' %}
           {% endfor %}
         </ul>
       </div>
@@ -288,6 +284,6 @@
       <p class="mt-1 text-sm text-gray-500">Get started by syncing posts from your connected accounts.</p>
     </div>
     {% endif %}
-    </div>
   {% endif %}
 </div>
+{% endblock %}

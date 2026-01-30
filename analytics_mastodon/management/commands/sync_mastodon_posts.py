@@ -1,22 +1,22 @@
 """
-Management command to sync posts from Pixelfed accounts.
+Management command to sync posts from Mastodon accounts.
 
-Fetches posts from connected Pixelfed accounts and creates/updates
-PixelfedPost records for analytics tracking.
+Fetches posts from connected Mastodon accounts and creates/updates
+MastodonPost records for analytics tracking.
 """
 import logging
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth import get_user_model
 
-from pixelfed.models import MastodonAccount
-from analytics_pixelfed.fetcher import PixelfedAnalyticsFetcher, PixelfedAPIError
+from mastodon_native.models import MastodonAccount
+from analytics_mastodon.fetcher import MastodonAnalyticsFetcher, MastodonAPIError
 
 logger = logging.getLogger('postflow')
 User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Sync posts from Pixelfed accounts for analytics tracking'
+    help = 'Sync posts from Mastodon accounts for analytics tracking'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -35,11 +35,17 @@ class Command(BaseCommand):
             type=str,
             help='Email of user whose accounts to sync (optional)'
         )
+        parser.add_argument(
+            '--exclude-replies',
+            action='store_true',
+            help='Exclude replies and only fetch original posts'
+        )
 
     def handle(self, *args, **options):
         account_id = options.get('account_id')
         limit = options.get('limit')
         user_email = options.get('user')
+        exclude_replies = options.get('exclude_replies', False)
 
         # Display message about fetching strategy
         if limit is None:
@@ -55,7 +61,7 @@ class Command(BaseCommand):
                 accounts = [account]
                 self.stdout.write(f"Syncing posts for account: {account}")
             except MastodonAccount.DoesNotExist:
-                raise CommandError(f"MastodonAccount with ID {account_id} does not exist")
+                raise CommandError(f"Mastodon account with ID {account_id} does not exist")
 
         elif user_email:
             # Sync all accounts for specific user
@@ -63,18 +69,18 @@ class Command(BaseCommand):
                 user = User.objects.get(email=user_email)
                 accounts = MastodonAccount.objects.filter(user=user)
                 if not accounts.exists():
-                    raise CommandError(f"No Pixelfed accounts found for user {user_email}")
+                    raise CommandError(f"No Mastodon accounts found for user {user_email}")
                 self.stdout.write(f"Found {accounts.count()} accounts for user {user_email}")
             except User.DoesNotExist:
                 raise CommandError(f"User with email {user_email} does not exist")
 
         else:
-            # Sync all Pixelfed accounts
+            # Sync all Mastodon accounts
             accounts = MastodonAccount.objects.all()
             if not accounts.exists():
-                self.stdout.write(self.style.WARNING("No Pixelfed accounts found"))
+                self.stdout.write(self.style.WARNING("No Mastodon accounts found"))
                 return
-            self.stdout.write(f"Found {accounts.count()} total Pixelfed accounts to sync")
+            self.stdout.write(f"Found {accounts.count()} total Mastodon accounts to sync")
 
         # Track overall statistics
         total_created = 0
@@ -88,8 +94,11 @@ class Command(BaseCommand):
             self.stdout.write(f"  Username: {account.username}")
 
             try:
-                fetcher = PixelfedAnalyticsFetcher(account)
-                created, updated = fetcher.sync_account_posts(limit=limit)
+                fetcher = MastodonAnalyticsFetcher(account)
+                created, updated = fetcher.sync_account_posts(
+                    limit=limit,
+                    exclude_replies=exclude_replies
+                )
 
                 total_created += created
                 total_updated += updated
@@ -100,7 +109,7 @@ class Command(BaseCommand):
                     )
                 )
 
-            except PixelfedAPIError as e:
+            except MastodonAPIError as e:
                 error_msg = f"API error for {account}: {e}"
                 logger.error(error_msg)
                 total_errors.append(error_msg)

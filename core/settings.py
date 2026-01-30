@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'subscriptions',
     'analytics',
     'analytics_pixelfed',  # Pixelfed analytics
+    'analytics_mastodon',  # Mastodon analytics
     'django_tasks',  # Django 6.0 background tasks
     'django_tasks.backends.database',  # Database backend for django-tasks
     'django_browser_reload',

@@ -1,28 +1,134 @@
 """
-Analytics views - Placeholder for migration to platform-specific apps.
+Analytics views - Platform selector and overview.
 
-Legacy analytics functionality has been moved to platform-specific apps:
+Platform-specific analytics:
 - Pixelfed: analytics_pixelfed
+- Mastodon: analytics_mastodon
 - Instagram: (future)
-- Mastodon: (future)
 """
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+from django.db.models import Sum, Count, Q
+from django.utils import timezone
+from datetime import timedelta
+
+from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+from analytics_pixelfed.models import PixelfedPost, PixelfedEngagementSummary
+from analytics_mastodon.models import MastodonPost, MastodonEngagementSummary
 
 
 @login_required
 def dashboard(request):
     """
-    Placeholder dashboard that redirects to Pixelfed analytics.
+    Analytics dashboard with overview statistics for all platforms.
     """
-    # Redirect to Pixelfed analytics for now
-    return redirect('analytics_pixelfed:dashboard')
+    # Get user's Pixelfed accounts (from pixelfed app table)
+    pixelfed_accounts = PixelfedMastodonAccount.objects.filter(
+        user=request.user,
+        instance_url__icontains='pixelfed'
+    )
 
+    # Get user's Mastodon accounts (from mastodon_native app table)
+    mastodon_accounts = MastodonNativeAccount.objects.filter(
+        user=request.user
+    )
 
-@login_required
-def legacy_redirect(request):
-    """
-    Catch-all for old analytics URLs - redirect to new structure.
-    """
-    return redirect('analytics_pixelfed:dashboard')
+    # Calculate date ranges
+    now = timezone.now()
+    last_7_days = now - timedelta(days=7)
+    last_30_days = now - timedelta(days=30)
+
+    # Pixelfed Statistics
+    pixelfed_stats = None
+    if pixelfed_accounts.exists():
+        pixelfed_posts = PixelfedPost.objects.filter(account__in=pixelfed_accounts)
+        pixelfed_posts_last_7 = pixelfed_posts.filter(posted_at__gte=last_7_days)
+
+        # Get aggregate stats
+        pixelfed_engagement = PixelfedEngagementSummary.objects.filter(
+            post__account__in=pixelfed_accounts
+        ).aggregate(
+            total_likes=Sum('total_likes'),
+            total_comments=Sum('total_comments'),
+            total_shares=Sum('total_shares'),
+            total_engagement=Sum('total_engagement')
+        )
+
+        # Get top post from last 7 days
+        top_pixelfed_post = pixelfed_posts_last_7.select_related(
+            'engagement_summary', 'account'
+        ).filter(
+            engagement_summary__isnull=False
+        ).order_by('-engagement_summary__total_engagement').first()
+
+        # Get recent activity (posts in last 7 days)
+        recent_posts_count = pixelfed_posts_last_7.count()
+
+        pixelfed_stats = {
+            'total_posts': pixelfed_posts.count(),
+            'posts_last_7_days': recent_posts_count,
+            'total_likes': pixelfed_engagement['total_likes'] or 0,
+            'total_comments': pixelfed_engagement['total_comments'] or 0,
+            'total_shares': pixelfed_engagement['total_shares'] or 0,
+            'total_engagement': pixelfed_engagement['total_engagement'] or 0,
+            'top_post': top_pixelfed_post,
+            'accounts': pixelfed_accounts,
+        }
+
+    # Mastodon Statistics
+    mastodon_stats = None
+    if mastodon_accounts.exists():
+        mastodon_posts = MastodonPost.objects.filter(account__in=mastodon_accounts)
+        mastodon_posts_last_7 = mastodon_posts.filter(posted_at__gte=last_7_days)
+
+        # Get aggregate stats
+        mastodon_engagement = MastodonEngagementSummary.objects.filter(
+            post__account__in=mastodon_accounts
+        ).aggregate(
+            total_favourites=Sum('total_favourites'),
+            total_replies=Sum('total_replies'),
+            total_reblogs=Sum('total_reblogs'),
+            total_engagement=Sum('total_engagement')
+        )
+
+        # Get top post from last 7 days
+        top_mastodon_post = mastodon_posts_last_7.select_related(
+            'engagement_summary', 'account'
+        ).filter(
+            engagement_summary__isnull=False
+        ).order_by('-engagement_summary__total_engagement').first()
+
+        # Get recent activity (posts in last 7 days)
+        recent_posts_count = mastodon_posts_last_7.count()
+
+        mastodon_stats = {
+            'total_posts': mastodon_posts.count(),
+            'posts_last_7_days': recent_posts_count,
+            'total_favourites': mastodon_engagement['total_favourites'] or 0,
+            'total_replies': mastodon_engagement['total_replies'] or 0,
+            'total_reblogs': mastodon_engagement['total_reblogs'] or 0,
+            'total_engagement': mastodon_engagement['total_engagement'] or 0,
+            'top_post': top_mastodon_post,
+            'accounts': mastodon_accounts,
+        }
+
+    context = {
+        'active_page': 'analytics',
+        'pixelfed_accounts': pixelfed_accounts,
+        'mastodon_accounts': mastodon_accounts,
+        'has_pixelfed': pixelfed_accounts.exists(),
+        'has_mastodon': mastodon_accounts.exists(),
+        'pixelfed_stats': pixelfed_stats,
+        'mastodon_stats': mastodon_stats,
+    }
+
+    if request.headers.get("HX-Request"):
+        # Return both the content and sidebar with OOB swap
+        sidebar_context = {**context, 'is_htmx_request': True}
+        content = render(request, 'analytics/dashboard_content.html', context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
+
+    return render(request, 'analytics/dashboard.html', context)

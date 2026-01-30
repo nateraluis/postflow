@@ -1,5 +1,5 @@
 """
-Views for Pixelfed Analytics dashboard.
+Views for Mastodon Analytics dashboard.
 """
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -10,50 +10,49 @@ from django.db.models.functions import Coalesce
 from datetime import timedelta
 from django.utils import timezone
 
-from .models import PixelfedPost, PixelfedEngagementSummary
-from pixelfed.models import MastodonAccount
+from .models import MastodonPost, MastodonEngagementSummary
+from mastodon_native.models import MastodonAccount
 
 
 @login_required
 def dashboard(request):
     """
-    Main Pixelfed analytics dashboard showing posts and engagement metrics.
+    Main Mastodon analytics dashboard showing posts and engagement metrics.
     """
-    # Get user's Pixelfed accounts
+    # Get user's Mastodon accounts (from mastodon_native table)
     user_accounts = MastodonAccount.objects.filter(
-        user=request.user,
-        instance_url__icontains='pixelfed'
+        user=request.user
     )
 
     # Get sort parameter (default: most recent)
     sort_by = request.GET.get('sort', 'recent')
 
     # Build base query for posts
-    posts_query = PixelfedPost.objects.filter(
+    posts_query = MastodonPost.objects.filter(
         account__in=user_accounts
     ).select_related(
         'account',
         'engagement_summary'
     ).prefetch_related(
-        'likes',
-        'comments',
-        'shares'
+        'favourites',
+        'replies',
+        'reblogs'
     )
 
     # Apply sorting - for engagement metrics, we need to handle NULL engagement_summary
-    if sort_by == 'likes':
+    if sort_by == 'favourites':
         # Annotate with coalesced values to handle posts without engagement_summary
         posts = posts_query.annotate(
-            likes_sort=Coalesce(F('engagement_summary__total_likes'), Value(0))
-        ).order_by('-likes_sort', '-posted_at')[:50]
-    elif sort_by == 'comments':
+            favourites_sort=Coalesce(F('engagement_summary__total_favourites'), Value(0))
+        ).order_by('-favourites_sort', '-posted_at')[:50]
+    elif sort_by == 'replies':
         posts = posts_query.annotate(
-            comments_sort=Coalesce(F('engagement_summary__total_comments'), Value(0))
-        ).order_by('-comments_sort', '-posted_at')[:50]
-    elif sort_by == 'shares':
+            replies_sort=Coalesce(F('engagement_summary__total_replies'), Value(0))
+        ).order_by('-replies_sort', '-posted_at')[:50]
+    elif sort_by == 'reblogs':
         posts = posts_query.annotate(
-            shares_sort=Coalesce(F('engagement_summary__total_shares'), Value(0))
-        ).order_by('-shares_sort', '-posted_at')[:50]
+            reblogs_sort=Coalesce(F('engagement_summary__total_reblogs'), Value(0))
+        ).order_by('-reblogs_sort', '-posted_at')[:50]
     elif sort_by == 'engagement':
         posts = posts_query.annotate(
             engagement_sort=Coalesce(F('engagement_summary__total_engagement'), Value(0))
@@ -62,18 +61,18 @@ def dashboard(request):
         posts = posts_query.order_by('-posted_at')[:50]
 
     # Calculate summary statistics
-    total_posts = PixelfedPost.objects.filter(account__in=user_accounts).count()
-    total_engagement = PixelfedEngagementSummary.objects.filter(
+    total_posts = MastodonPost.objects.filter(account__in=user_accounts).count()
+    total_engagement = MastodonEngagementSummary.objects.filter(
         post__account__in=user_accounts
     ).aggregate(
-        total_likes=Sum('total_likes'),
-        total_comments=Sum('total_comments'),
-        total_shares=Sum('total_shares'),
+        total_favourites=Sum('total_favourites'),
+        total_replies=Sum('total_replies'),
+        total_reblogs=Sum('total_reblogs'),
         total_engagement=Sum('total_engagement')
     )
 
     # Get top performing post (by total engagement)
-    most_liked_post = PixelfedPost.objects.filter(
+    most_engaged_post = MastodonPost.objects.filter(
         account__in=user_accounts,
         engagement_summary__isnull=False,
         engagement_summary__total_engagement__gt=0
@@ -89,47 +88,47 @@ def dashboard(request):
         'total_posts': total_posts,
         'current_sort': sort_by,
         # Platform-specific configuration
-        'platform_name': 'Pixelfed',
-        'platform_namespace': 'analytics_pixelfed',
-        'top_post': most_liked_post,
-        'post_card_template': 'analytics_pixelfed/partials/post_card.html#post-card',
+        'platform_name': 'Mastodon',
+        'platform_namespace': 'analytics_mastodon',
+        'top_post': most_engaged_post,
+        'post_card_template': 'analytics_mastodon/partials/post_card.html#post-card',
         # Engagement metrics with generic names
         'engagement_metrics': {
-            'metric1': total_engagement['total_likes'] or 0,
-            'metric2': total_engagement['total_comments'] or 0,
-            'metric3': total_engagement['total_shares'] or 0,
+            'metric1': total_engagement['total_favourites'] or 0,
+            'metric2': total_engagement['total_replies'] or 0,
+            'metric3': total_engagement['total_reblogs'] or 0,
         },
         # Engagement labels
         'engagement_labels': {
-            'metric1': 'likes',
-            'metric1_plural': 'Likes',
-            'metric2': 'comments',
-            'metric2_plural': 'Comments',
-            'metric3': 'shares',
-            'metric3_plural': 'Shares',
+            'metric1': 'favourites',
+            'metric1_plural': 'Favourites',
+            'metric2': 'replies',
+            'metric2_plural': 'Replies',
+            'metric3': 'reblogs',
+            'metric3_plural': 'Reblogs',
         },
         # Engagement keys for accessing engagement_summary attributes
         'engagement_keys': {
-            'metric1': 'total_likes',
-            'metric2': 'total_comments',
-            'metric3': 'total_shares',
+            'metric1': 'total_favourites',
+            'metric2': 'total_replies',
+            'metric3': 'total_reblogs',
         },
         # Sort keys for URL parameters
         'sort_keys': {
-            'metric1': 'likes',
-            'metric2': 'comments',
-            'metric3': 'shares',
+            'metric1': 'favourites',
+            'metric2': 'replies',
+            'metric3': 'reblogs',
         },
         # Legacy context for backward compatibility (if needed elsewhere)
-        'total_likes': total_engagement['total_likes'] or 0,
-        'total_comments': total_engagement['total_comments'] or 0,
-        'total_shares': total_engagement['total_shares'] or 0,
+        'total_favourites': total_engagement['total_favourites'] or 0,
+        'total_replies': total_engagement['total_replies'] or 0,
+        'total_reblogs': total_engagement['total_reblogs'] or 0,
         'total_engagement_count': total_engagement['total_engagement'] or 0,
-        'most_liked_post': most_liked_post,
+        'most_engaged_post': most_engaged_post,
     }
 
     # For HTMX requests, return just the content without the base template
-    template = 'analytics_pixelfed/dashboard.html'
+    template = 'analytics_mastodon/dashboard.html'
     if request.htmx:
         template = 'analytics/platform_dashboard_content.html'
 
@@ -143,15 +142,15 @@ def post_detail(request, post_id):
     """
     # Get the post
     post = get_object_or_404(
-        PixelfedPost,
+        MastodonPost,
         pk=post_id,
         account__user=request.user
     )
 
     # Get engagement data
-    likes = post.likes.select_related('post').order_by('-liked_at')
-    comments = post.comments.select_related('post').order_by('commented_at')
-    shares = post.shares.select_related('post').order_by('-shared_at')
+    favourites = post.favourites.select_related('post').order_by('-favourited_at')
+    replies = post.replies.select_related('post').order_by('replied_at')
+    reblogs = post.reblogs.select_related('post').order_by('-reblogged_at')
 
     # Get engagement over time (for chart)
     engagement_timeline = _get_engagement_timeline(post)
@@ -159,16 +158,16 @@ def post_detail(request, post_id):
     context = {
         'active_page': 'analytics',
         'post': post,
-        'likes': likes,
-        'comments': comments,
-        'shares': shares,
+        'favourites': favourites,
+        'replies': replies,
+        'reblogs': reblogs,
         'engagement_timeline': engagement_timeline,
     }
 
     # For HTMX requests, return just the content without the base template
-    template = 'analytics_pixelfed/post_detail.html'
+    template = 'analytics_mastodon/post_detail.html'
     if request.htmx:
-        template = 'analytics_pixelfed/post_detail_content.html'
+        template = 'analytics_mastodon/post_detail_content.html'
 
     return render(request, template, context)
 
@@ -181,20 +180,20 @@ def refresh_post(request, post_id):
     Triggers a page reload via HX-Redirect to show updated data.
     """
     from django.http import HttpResponse
-    from .fetcher import PixelfedAnalyticsFetcher
+    from .fetcher import MastodonAnalyticsFetcher
     import logging
 
     logger = logging.getLogger('postflow')
 
     try:
         post = get_object_or_404(
-            PixelfedPost,
+            MastodonPost,
             pk=post_id,
             account__user=request.user
         )
 
         # Fetch updated engagement
-        fetcher = PixelfedAnalyticsFetcher(post.account)
+        fetcher = MastodonAnalyticsFetcher(post.account)
         stats = fetcher.fetch_post_engagement(post)
 
         logger.info(f"Refreshed engagement for post {post_id}: {stats}")
@@ -209,17 +208,17 @@ def refresh_post(request, post_id):
 
         # Return error toast partial
         context = {'message': f'Error refreshing post: {str(e)}'}
-        return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
+        return render(request, 'analytics_mastodon/partials/toast.html#toast-error', context)
 
 
 @login_required
 @require_http_methods(["POST"])
 def sync_account(request, account_id):
     """
-    Manually sync posts from a Pixelfed account.
+    Manually sync posts from a Mastodon account.
     Returns a toast notification partial and triggers a refresh event.
     """
-    from .fetcher import PixelfedAnalyticsFetcher
+    from .fetcher import MastodonAnalyticsFetcher
     import logging
 
     logger = logging.getLogger('postflow')
@@ -228,19 +227,18 @@ def sync_account(request, account_id):
         account = get_object_or_404(
             MastodonAccount,
             pk=account_id,
-            user=request.user,
-            instance_url__icontains='pixelfed'
+            user=request.user
         )
 
         # Sync posts (no engagement fetching - that's done separately)
-        fetcher = PixelfedAnalyticsFetcher(account)
+        fetcher = MastodonAnalyticsFetcher(account)
         created, updated = fetcher.sync_account_posts(limit=None)  # Fetch all posts
 
         logger.info(f"Synced account {account_id}: {created} created, {updated} updated")
 
         # Return success toast partial with HX-Trigger to refresh posts
         context = {'message': f'Synced {created + updated} posts ({created} new, {updated} updated)'}
-        response = render(request, 'analytics_pixelfed/partials/toast.html#toast-success', context)
+        response = render(request, 'analytics_mastodon/partials/toast.html#toast-success', context)
 
         # Trigger HTMX event to refresh the dashboard
         response['HX-Trigger'] = 'postsUpdated'
@@ -252,7 +250,7 @@ def sync_account(request, account_id):
 
         # Return error toast partial
         context = {'message': f'Error syncing posts: {str(e)}'}
-        return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
+        return render(request, 'analytics_mastodon/partials/toast.html#toast-error', context)
 
 
 @login_required
@@ -270,8 +268,7 @@ def fetch_engagement(request, account_id):
         account = get_object_or_404(
             MastodonAccount,
             pk=account_id,
-            user=request.user,
-            instance_url__icontains='pixelfed'
+            user=request.user
         )
 
         # Enqueue background task to fetch engagement
@@ -283,14 +280,14 @@ def fetch_engagement(request, account_id):
         context = {
             'message': f'Engagement fetch started for @{account.username}. This may take a few minutes...'
         }
-        return render(request, 'analytics_pixelfed/partials/toast.html#toast-info', context)
+        return render(request, 'analytics_mastodon/partials/toast.html#toast-info', context)
 
     except Exception as e:
         logger.error(f"Error enqueueing engagement fetch for account {account_id}: {e}", exc_info=True)
 
         # Return error toast partial
         context = {'message': f'Error starting engagement fetch: {str(e)}'}
-        return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
+        return render(request, 'analytics_mastodon/partials/toast.html#toast-error', context)
 
 
 @login_required
@@ -299,29 +296,28 @@ def post_list_partial(request):
     Returns just the post list partial for HTMX refreshes.
     Used to update the post list without reloading the entire page.
     """
-    # Get user's Pixelfed accounts
+    # Get user's Mastodon accounts (from mastodon_native table)
     user_accounts = MastodonAccount.objects.filter(
-        user=request.user,
-        instance_url__icontains='pixelfed'
+        user=request.user
     )
 
     # Get all posts for user's accounts, ordered by most recent
-    posts = PixelfedPost.objects.filter(
+    posts = MastodonPost.objects.filter(
         account__in=user_accounts
     ).select_related(
         'account',
         'engagement_summary'
     ).prefetch_related(
-        'likes',
-        'comments',
-        'shares'
+        'favourites',
+        'replies',
+        'reblogs'
     ).order_by('-posted_at')[:50]  # Last 50 posts
 
     context = {
         'posts': posts,
     }
 
-    return render(request, 'analytics_pixelfed/partials/post_list.html', context)
+    return render(request, 'analytics_mastodon/partials/post_list.html', context)
 
 
 @login_required
@@ -329,37 +325,36 @@ def stats_partial(request):
     """
     Returns just the summary statistics partial for HTMX refreshes.
     """
-    # Get user's Pixelfed accounts
+    # Get user's Mastodon accounts (from mastodon_native table)
     user_accounts = MastodonAccount.objects.filter(
-        user=request.user,
-        instance_url__icontains='pixelfed'
+        user=request.user
     )
 
     # Get all posts for user's accounts
-    posts = PixelfedPost.objects.filter(
+    posts = MastodonPost.objects.filter(
         account__in=user_accounts
     )
 
     # Calculate summary statistics
     total_posts = posts.count()
-    total_engagement = PixelfedEngagementSummary.objects.filter(
+    total_engagement = MastodonEngagementSummary.objects.filter(
         post__account__in=user_accounts
     ).aggregate(
-        total_likes=Sum('total_likes'),
-        total_comments=Sum('total_comments'),
-        total_shares=Sum('total_shares'),
+        total_favourites=Sum('total_favourites'),
+        total_replies=Sum('total_replies'),
+        total_reblogs=Sum('total_reblogs'),
         total_engagement=Sum('total_engagement')
     )
 
     context = {
         'total_posts': total_posts,
-        'total_likes': total_engagement['total_likes'] or 0,
-        'total_comments': total_engagement['total_comments'] or 0,
-        'total_shares': total_engagement['total_shares'] or 0,
+        'total_favourites': total_engagement['total_favourites'] or 0,
+        'total_replies': total_engagement['total_replies'] or 0,
+        'total_reblogs': total_engagement['total_reblogs'] or 0,
         'total_engagement': total_engagement['total_engagement'] or 0,
     }
 
-    return render(request, 'analytics_pixelfed/partials/stats.html', context)
+    return render(request, 'analytics_mastodon/partials/stats.html', context)
 
 
 def _get_engagement_timeline(post):
@@ -369,39 +364,39 @@ def _get_engagement_timeline(post):
     Returns data in format suitable for Chart.js.
     """
     # Get all engagement events with timestamps
-    likes_data = list(post.likes.values_list('liked_at', flat=True))
-    comments_data = list(post.comments.values_list('commented_at', flat=True))
-    shares_data = list(post.shares.values_list('shared_at', flat=True))
+    favourites_data = list(post.favourites.values_list('favourited_at', flat=True))
+    replies_data = list(post.replies.values_list('replied_at', flat=True))
+    reblogs_data = list(post.reblogs.values_list('reblogged_at', flat=True))
 
     # Group by day
     timeline = {}
 
-    for like_time in likes_data:
-        day = like_time.date()
+    for fav_time in favourites_data:
+        day = fav_time.date()
         if day not in timeline:
-            timeline[day] = {'likes': 0, 'comments': 0, 'shares': 0}
-        timeline[day]['likes'] += 1
+            timeline[day] = {'favourites': 0, 'replies': 0, 'reblogs': 0}
+        timeline[day]['favourites'] += 1
 
-    for comment_time in comments_data:
-        day = comment_time.date()
+    for reply_time in replies_data:
+        day = reply_time.date()
         if day not in timeline:
-            timeline[day] = {'likes': 0, 'comments': 0, 'shares': 0}
-        timeline[day]['comments'] += 1
+            timeline[day] = {'favourites': 0, 'replies': 0, 'reblogs': 0}
+        timeline[day]['replies'] += 1
 
-    for share_time in shares_data:
-        day = share_time.date()
+    for reblog_time in reblogs_data:
+        day = reblog_time.date()
         if day not in timeline:
-            timeline[day] = {'likes': 0, 'comments': 0, 'shares': 0}
-        timeline[day]['shares'] += 1
+            timeline[day] = {'favourites': 0, 'replies': 0, 'reblogs': 0}
+        timeline[day]['reblogs'] += 1
 
     # Convert to sorted list of dicts for Chart.js
     sorted_timeline = [
         {
             'date': str(day),
-            'likes': data['likes'],
-            'comments': data['comments'],
-            'shares': data['shares'],
-            'total': data['likes'] + data['comments'] + data['shares']
+            'favourites': data['favourites'],
+            'replies': data['replies'],
+            'reblogs': data['reblogs'],
+            'total': data['favourites'] + data['replies'] + data['reblogs']
         }
         for day, data in sorted(timeline.items())
     ]
