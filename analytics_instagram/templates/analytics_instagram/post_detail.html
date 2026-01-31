@@ -1,0 +1,141 @@
+{% extends "postflow/_base.html" %}
+{% load static %}
+
+{% block main %}
+<div class="mt-8 max-w-7xl mx-auto px-4">
+    <div class="mb-6">
+        <a href="{% url 'analytics_instagram:dashboard' %}" class="text-blue-600 hover:text-blue-800">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Post Content -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="mb-4">
+                    <h2 class="text-2xl font-bold mb-2">@{{ post.username }}</h2>
+                    <p class="text-gray-600">{{ post.posted_at|date:"F j, Y, g:i A" }}</p>
+                </div>
+
+                <!-- Post Image -->
+                {% if post.get_display_image_url %}
+                <div class="mb-6">
+                    <img src="{{ post.get_display_image_url }}" alt="Post" class="w-full rounded-lg">
+                </div>
+                {% endif %}
+
+                <!-- Caption -->
+                {% if post.caption %}
+                <div class="mb-6">
+                    <p class="text-gray-800">{{ post.caption }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Comments Section -->
+                <div class="border-t pt-6">
+                    <h3 class="text-xl font-bold mb-4">Comments ({{ top_level_comments.count }})</h3>
+                    {% for comment in top_level_comments %}
+                    <div class="mb-4 p-4 bg-gray-50 rounded">
+                        <div class="flex items-start">
+                            <div class="flex-1">
+                                <p class="font-semibold text-sm">@{{ comment.username }}</p>
+                                <p class="text-gray-700 mt-1">{{ comment.text }}</p>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    {{ comment.timestamp|date:"F j, Y, g:i A" }}
+                                    {% if comment.like_count > 0 %} • {{ comment.like_count }} likes{% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Replies -->
+                        {% for reply in replies %}
+                        {% if reply.parent_comment_id == comment.comment_id %}
+                        <div class="ml-8 mt-3 p-3 bg-white rounded">
+                            <p class="font-semibold text-sm">@{{ reply.username }}</p>
+                            <p class="text-gray-700 mt-1">{{ reply.text }}</p>
+                            <p class="text-xs text-gray-500 mt-2">
+                                {{ reply.timestamp|date:"F j, Y, g:i A" }}
+                                {% if reply.like_count > 0 %} • {{ reply.like_count }} likes{% endif %}
+                            </p>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500">No comments yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Engagement Stats Sidebar -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-md p-6 sticky top-6">
+                <h3 class="text-xl font-bold mb-4">Engagement</h3>
+
+                <!-- Basic Metrics -->
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <p class="text-gray-600 text-sm">Likes</p>
+                        <p class="text-2xl font-bold">{{ post.api_like_count|default:0 }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">Comments</p>
+                        <p class="text-2xl font-bold">{{ post.api_comments_count|default:0 }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">Saved</p>
+                        <p class="text-2xl font-bold">{{ post.api_saved|default:0 }}</p>
+                    </div>
+                </div>
+
+                <!-- Insights Metrics -->
+                {% if post.api_reach > 0 or post.api_impressions > 0 %}
+                <div class="border-t pt-4 space-y-4 mb-6">
+                    <h4 class="font-semibold text-gray-700">Insights</h4>
+                    <div>
+                        <p class="text-gray-600 text-sm">Reach</p>
+                        <p class="text-xl font-bold">{{ post.api_reach|default:0 }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">Impressions</p>
+                        <p class="text-xl font-bold">{{ post.api_impressions|default:0 }}</p>
+                    </div>
+                    {% if post.get_engagement_rate %}
+                    <div>
+                        <p class="text-gray-600 text-sm">Engagement Rate</p>
+                        <p class="text-xl font-bold">{{ post.get_engagement_rate|floatformat:2 }}%</p>
+                    </div>
+                    {% endif %}
+                    {% if post.api_video_views %}
+                    <div>
+                        <p class="text-gray-600 text-sm">Video Views</p>
+                        <p class="text-xl font-bold">{{ post.api_video_views }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="border-t pt-4">
+                    <form method="post" action="{% url 'analytics_instagram:refresh_post' post.id %}" class="mb-3">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded">
+                            Refresh Insights
+                        </button>
+                    </form>
+                    <a href="{{ post.permalink }}" target="_blank" class="block text-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded">
+                        View on Instagram
+                    </a>
+                </div>
+
+                <!-- Last Updated -->
+                <div class="mt-4 text-xs text-gray-500">
+                    <p>Last updated: {{ post.last_fetched_at|date:"M j, Y, g:i A" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

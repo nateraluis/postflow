@@ -111,6 +111,8 @@ class PostFlowScheduler:
         - refresh_instagram_tokens: Runs every 6 hours to refresh Instagram tokens
         - sync_pixelfed_posts: Runs every hour to sync posts from Pixelfed accounts
         - fetch_pixelfed_engagement: Runs every hour to fetch engagement metrics
+        - sync_instagram_posts: Runs daily to sync posts from Instagram Business accounts
+        - fetch_instagram_insights: Runs every 6 hours to fetch Instagram insights
         """
         # Acquire lock first
         self.acquire_lock()
@@ -167,6 +169,28 @@ class PostFlowScheduler:
             replace_existing=True,
         )
         logger.info("Added job: fetch_pixelfed_engagement (every hour at :45)")
+
+        # Add job: Sync Instagram posts daily
+        # Runs at 2:00 AM UTC every day
+        self.scheduler.add_job(
+            func=self._sync_instagram_posts,
+            trigger=CronTrigger(hour=2, minute=0),
+            id='sync_instagram_posts',
+            name='Sync Instagram posts',
+            replace_existing=True,
+        )
+        logger.info("Added job: sync_instagram_posts (daily at 2:00 AM UTC)")
+
+        # Add job: Fetch Instagram insights every 6 hours
+        # Runs at 00:15, 06:15, 12:15, 18:15 UTC (offset from token refresh)
+        self.scheduler.add_job(
+            func=self._fetch_instagram_insights,
+            trigger=CronTrigger(hour='0,6,12,18', minute=15),
+            id='fetch_instagram_insights',
+            name='Fetch Instagram insights',
+            replace_existing=True,
+        )
+        logger.info("Added job: fetch_instagram_insights (every 6 hours at :15)")
 
         # Start the scheduler
         self.scheduler.start()
@@ -226,6 +250,32 @@ class PostFlowScheduler:
             logger.info(f"Enqueued fetch_all_pixelfed_engagement task: {task.id}")
         except Exception as e:
             logger.exception(f"Error enqueueing fetch_all_pixelfed_engagement: {e}")
+
+    def _sync_instagram_posts(self):
+        """
+        Sync posts from all Instagram Business accounts.
+        Enqueues a Django task to run in the background.
+        """
+        try:
+            from analytics_instagram.tasks import sync_all_instagram_posts
+            logger.debug("Enqueuing sync_all_instagram_posts task...")
+            task = sync_all_instagram_posts.enqueue()
+            logger.info(f"Enqueued sync_all_instagram_posts task: {task.id}")
+        except Exception as e:
+            logger.exception(f"Error enqueueing sync_all_instagram_posts: {e}")
+
+    def _fetch_instagram_insights(self):
+        """
+        Fetch insights for all Instagram Business accounts.
+        Enqueues a Django task to run in the background.
+        """
+        try:
+            from analytics_instagram.tasks import fetch_all_instagram_insights
+            logger.debug("Enqueuing fetch_all_instagram_insights task...")
+            task = fetch_all_instagram_insights.enqueue()
+            logger.info(f"Enqueued fetch_all_instagram_insights task: {task.id}")
+        except Exception as e:
+            logger.exception(f"Error enqueueing fetch_all_instagram_insights: {e}")
 
     def shutdown(self):
         """Gracefully shut down the scheduler and release lock."""

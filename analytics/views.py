@@ -4,7 +4,7 @@ Analytics views - Platform selector and overview.
 Platform-specific analytics:
 - Pixelfed: analytics_pixelfed
 - Mastodon: analytics_mastodon
-- Instagram: (future)
+- Instagram: analytics_instagram
 """
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
@@ -15,8 +15,10 @@ from datetime import timedelta
 
 from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
 from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+from instagram.models import InstagramBusinessAccount
 from analytics_pixelfed.models import PixelfedPost, PixelfedEngagementSummary
 from analytics_mastodon.models import MastodonPost, MastodonEngagementSummary
+from analytics_instagram.models import InstagramPost, InstagramEngagementSummary
 
 
 @login_required
@@ -32,6 +34,11 @@ def dashboard(request):
 
     # Get user's Mastodon accounts (from mastodon_native app table)
     mastodon_accounts = MastodonNativeAccount.objects.filter(
+        user=request.user
+    )
+
+    # Get user's Instagram Business accounts
+    instagram_accounts = InstagramBusinessAccount.objects.filter(
         user=request.user
     )
 
@@ -114,14 +121,54 @@ def dashboard(request):
             'accounts': mastodon_accounts,
         }
 
+    # Instagram Statistics
+    instagram_stats = None
+    if instagram_accounts.exists():
+        instagram_posts = InstagramPost.objects.filter(account__in=instagram_accounts)
+        instagram_posts_last_7 = instagram_posts.filter(posted_at__gte=last_7_days)
+
+        # Get aggregate stats
+        instagram_engagement = InstagramEngagementSummary.objects.filter(
+            post__account__in=instagram_accounts
+        ).aggregate(
+            total_likes=Sum('total_likes'),
+            total_comments=Sum('total_comments'),
+            total_saved=Sum('total_saved'),
+            total_engagement=Sum('total_engagement')
+        )
+
+        # Get top post from last 7 days
+        top_instagram_post = instagram_posts_last_7.select_related(
+            'engagement_summary', 'account'
+        ).filter(
+            engagement_summary__isnull=False
+        ).order_by('-engagement_summary__total_engagement').first()
+
+        # Get recent activity (posts in last 7 days)
+        recent_posts_count = instagram_posts_last_7.count()
+
+        instagram_stats = {
+            'total_posts': instagram_posts.count(),
+            'posts_last_7_days': recent_posts_count,
+            'total_likes': instagram_engagement['total_likes'] or 0,
+            'total_comments': instagram_engagement['total_comments'] or 0,
+            'total_saved': instagram_engagement['total_saved'] or 0,
+            'total_engagement': instagram_engagement['total_engagement'] or 0,
+            'top_post': top_instagram_post,
+            'accounts': instagram_accounts,
+        }
+
     context = {
         'active_page': 'analytics',
         'pixelfed_accounts': pixelfed_accounts,
         'mastodon_accounts': mastodon_accounts,
+        'instagram_accounts': instagram_accounts,
         'has_pixelfed': pixelfed_accounts.exists(),
         'has_mastodon': mastodon_accounts.exists(),
+        'has_instagram': instagram_accounts.exists(),
         'pixelfed_stats': pixelfed_stats,
         'mastodon_stats': mastodon_stats,
+        'instagram_stats': instagram_stats,
     }
 
     if request.headers.get("HX-Request"):

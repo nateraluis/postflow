@@ -192,41 +192,115 @@
                 </div>
             </a>
 
-            <!-- Instagram Analytics (Coming Soon) -->
-            <div class="block p-6 bg-gray-50 border border-gray-200 rounded-lg shadow opacity-60">
+            <!-- Instagram Analytics -->
+            <a href="{% url 'analytics_instagram:dashboard' %}"
+               class="block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-2xl font-bold text-gray-900">Instagram</h2>
-                    <span class="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-200 rounded-full">
-                        Coming Soon
-                    </span>
+                    {% if has_instagram %}
+                        <span class="px-3 py-1 text-sm font-medium text-green-800 bg-green-100 rounded-full">
+                            Active
+                        </span>
+                    {% else %}
+                        <span class="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
+                            No accounts
+                        </span>
+                    {% endif %}
                 </div>
 
                 <p class="text-gray-600 mb-4">
-                    Track likes, comments, and shares for your Instagram Business posts
+                    Track likes, comments, saves, reach, and impressions for your Instagram Business posts
                 </p>
 
-                <p class="text-sm text-gray-500">
-                    Instagram analytics will be available soon
-                </p>
+                {% if has_instagram %}
+                    <div class="text-sm text-gray-500 mb-4">
+                        <p class="mb-1"><strong>{{ instagram_accounts.count }}</strong> connected account{{ instagram_accounts.count|pluralize }}</p>
+                        <ul class="list-disc list-inside ml-2 space-y-1">
+                            {% for account in instagram_accounts %}
+                                <li>@{{ account.username }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
 
-                <div class="mt-4 flex items-center text-gray-400 font-medium">
-                    Coming Soon
+                    {% if instagram_stats %}
+                        <!-- Statistics Overview -->
+                        <div class="mb-4 pb-4 border-b border-gray-200">
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                    <p class="text-gray-500">Total Posts</p>
+                                    <p class="text-lg font-semibold text-gray-900">{{ instagram_stats.total_posts }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500">Last 7 Days</p>
+                                    <p class="text-lg font-semibold text-gray-900">{{ instagram_stats.posts_last_7_days }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500">Total Likes</p>
+                                    <p class="text-lg font-semibold text-gray-900">{{ instagram_stats.total_likes }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500">Engagement</p>
+                                    <p class="text-lg font-semibold text-gray-900">{{ instagram_stats.total_engagement }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Post Preview -->
+                        {% if instagram_stats.top_post %}
+                        <div class="mb-4">
+                            <p class="text-xs font-semibold text-gray-700 mb-2">Top Post (Last 7 Days)</p>
+                            <div class="flex gap-3">
+                                {% if instagram_stats.top_post.get_display_image_url %}
+                                <img src="{{ instagram_stats.top_post.get_display_image_url }}"
+                                     alt="Post thumbnail"
+                                     class="w-16 h-16 rounded object-cover">
+                                {% endif %}
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs text-gray-600 truncate">
+                                        {{ instagram_stats.top_post.caption|striptags|truncatewords:10 }}
+                                    </p>
+                                    {% if instagram_stats.top_post.engagement_summary %}
+                                    <div class="flex gap-2 text-xs text-gray-500 mt-1">
+                                        <span>❤️ {{ instagram_stats.top_post.engagement_summary.total_likes }}</span>
+                                        <span>💬 {{ instagram_stats.top_post.engagement_summary.total_comments }}</span>
+                                        <span>📥 {{ instagram_stats.top_post.engagement_summary.total_saved }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <p class="text-sm text-gray-500">
+                        Connect an Instagram Business account to see analytics
+                    </p>
+                {% endif %}
+
+                <div class="mt-4 flex items-center text-blue-600 font-medium">
+                    View Analytics
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
                 </div>
-            </div>
+            </a>
         </div>
 
-        {% if not has_pixelfed and not has_mastodon %}
+        {% if not has_pixelfed and not has_mastodon and not has_instagram %}
             <div class="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
                 <h3 class="text-lg font-semibold text-blue-900 mb-2">Get Started</h3>
                 <p class="text-blue-800 mb-4">
                     Connect your social media accounts to start tracking engagement metrics.
                 </p>
-                <div class="flex gap-4">
+                <div class="flex flex-wrap gap-4">
                     <a href="{% url 'pixelfed:connect' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                         Connect Pixelfed
                     </a>
                     <a href="{% url 'mastodon_native:connect' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                         Connect Mastodon
+                    </a>
+                    <a href="{% url 'instagram:connect' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        Connect Instagram
                     </a>
                 </div>
             </div>

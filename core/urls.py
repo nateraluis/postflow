@@ -32,6 +32,7 @@ urlpatterns = [
     path('analytics/', include('analytics.urls')),
     path('analytics/pixelfed/', include('analytics_pixelfed.urls')),
     path('analytics/mastodon/', include('analytics_mastodon.urls')),
+    path('analytics/instagram/', include('analytics_instagram.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
 ]
 

@@ -1,0 +1,319 @@
+{% extends "postflow/_base.html" %}
+{% load static %}
+
+{% block main %}
+<!-- Toast notification container -->
+<div id="toast-container" class="fixed top-4 right-4 z-50"></div>
+
+<div class="mt-8 max-w-7xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-4">Instagram Analytics Dashboard</h1>
+  <p class="text-gray-600 mb-6">View engagement metrics for your Instagram Business posts</p>
+
+  {% if user_accounts|length == 0 %}
+    <!-- No accounts connected -->
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-yellow-700">
+            No Instagram Business accounts connected. <a href="{% url 'instagram:connect' %}" class="font-medium underline">Connect an account</a> to view analytics.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <!-- Summary Statistics -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-8">
+      <!-- Total Posts -->
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Posts</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ total_posts }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Likes -->
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Likes</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ engagement_metrics.metric1 }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Comments -->
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Comments</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ engagement_metrics.metric2 }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Saved -->
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Saved</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ engagement_metrics.metric3 }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Reach -->
+      <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Reach</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ engagement_metrics.metric4 }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connected Accounts -->
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Connected Accounts</h2>
+      <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul role="list" class="divide-y divide-gray-200">
+          {% for account in user_accounts %}
+          <li>
+            <div class="px-4 py-4 flex items-center justify-between sm:px-6">
+              <div class="flex items-center min-w-0 flex-1">
+                <div class="flex-shrink-0">
+                  <svg class="h-8 w-8 text-pink-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                </div>
+                <div class="min-w-0 flex-1 px-4">
+                  <div>
+                    <p class="text-sm font-medium text-pink-600 truncate">@{{ account.username }}</p>
+                    <p class="text-sm text-gray-500">Instagram Business</p>
+                  </div>
+                </div>
+              </div>
+              <div class="flex space-x-2">
+                <button
+                  hx-post="{% url 'analytics_instagram:sync_account' account.id %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-target="#toast-container"
+                  hx-swap="afterbegin"
+                  hx-indicator="#sync-spinner-{{ account.id }}"
+                  class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500">
+                  <svg id="sync-spinner-{{ account.id }}" class="htmx-indicator animate-spin h-4 w-4 mr-2 text-pink-600" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync Posts
+                </button>
+                <button
+                  hx-post="{% url 'analytics_instagram:fetch_insights' account.id %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-target="#toast-container"
+                  hx-swap="afterbegin"
+                  hx-indicator="#insights-spinner-{{ account.id }}"
+                  class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500">
+                  <svg id="insights-spinner-{{ account.id }}" class="htmx-indicator animate-spin h-4 w-4 mr-2 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Fetch Insights
+                </button>
+              </div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Top Performing Post Section -->
+    {% if top_post %}
+    <div class="mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Performing Post</h2>
+      <div class="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 shadow rounded-lg overflow-hidden">
+        <div class="p-6">
+          <div class="flex items-start space-x-6">
+            <!-- Thumbnail -->
+            <div class="flex-shrink-0">
+              <a href="{% url 'analytics_instagram:post_detail' top_post.id %}">
+                <img src="{{ top_post.get_display_image_url }}"
+                     alt="Post thumbnail"
+                     class="w-32 h-32 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow">
+              </a>
+            </div>
+
+            <!-- Post Info -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-lg font-bold text-gray-900">Top Performing Post</h3>
+                <a href="{{ top_post.permalink }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-pink-600 hover:text-pink-800 text-sm font-medium">
+                  View on Instagram →
+                </a>
+              </div>
+
+              <p class="text-sm text-gray-600 mb-3">
+                @{{ top_post.username }} • {{ top_post.posted_at|date:"M d, Y" }}
+              </p>
+
+              {% if top_post.caption %}
+              <p class="text-sm text-gray-700 line-clamp-2 mb-4">{{ top_post.caption_text }}</p>
+              {% endif %}
+
+              <!-- Quick Stats -->
+              {% if top_post.engagement_summary %}
+              <div class="flex items-center space-x-6">
+                <div class="flex items-center">
+                  <svg class="h-5 w-5 text-red-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm font-semibold text-gray-900">{{ top_post.engagement_summary.total_likes }}</span>
+                  <span class="text-xs text-gray-500 ml-1">likes</span>
+                </div>
+                <div class="flex items-center">
+                  <svg class="h-5 w-5 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span class="text-sm font-semibold text-gray-900">{{ top_post.engagement_summary.total_comments }}</span>
+                  <span class="text-xs text-gray-500 ml-1">comments</span>
+                </div>
+                <div class="flex items-center">
+                  <svg class="h-5 w-5 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                  <span class="text-sm font-semibold text-gray-900">{{ top_post.engagement_summary.total_saved }}</span>
+                  <span class="text-xs text-gray-500 ml-1">saved</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="text-sm font-bold text-pink-600">{{ top_post.engagement_summary.total_engagement }}</span>
+                  <span class="text-xs text-gray-500 ml-1">total engagement</span>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Posts Section with Sort -->
+    {% if posts %}
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Posts</h2>
+
+        <!-- Sort Dropdown -->
+        <div class="relative inline-block text-left">
+          <form method="get" action="{% url 'analytics_instagram:dashboard' %}">
+            <select
+              name="sort"
+              onchange="this.form.submit()"
+              class="block w-full pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-pink-500 focus:border-pink-500 rounded-md">
+              <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Most Recent</option>
+              <option value="engagement" {% if current_sort == 'engagement' %}selected{% endif %}>Total Engagement</option>
+              <option value="likes" {% if current_sort == 'likes' %}selected{% endif %}>Most Likes</option>
+              <option value="comments" {% if current_sort == 'comments' %}selected{% endif %}>Most Comments</option>
+              <option value="saved" {% if current_sort == 'saved' %}selected{% endif %}>Most Saved</option>
+              <option value="reach" {% if current_sort == 'reach' %}selected{% endif %}>Most Reach</option>
+              <option value="impressions" {% if current_sort == 'impressions' %}selected{% endif %}>Most Impressions</option>
+            </select>
+          </form>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for post in posts %}
+        <a href="{% url 'analytics_instagram:post_detail' post.id %}" class="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
+          <img src="{{ post.get_display_image_url }}" alt="Post" class="w-full h-64 object-cover">
+          <div class="p-4">
+            <p class="text-sm text-gray-600 mb-2">@{{ post.username }} • {{ post.posted_at|date:"M d, Y" }}</p>
+            {% if post.caption %}
+            <p class="text-sm text-gray-700 line-clamp-2 mb-3">{{ post.caption_text }}</p>
+            {% endif %}
+            {% if post.engagement_summary %}
+            <div class="flex items-center space-x-4 text-sm text-gray-500">
+              <span>❤️ {{ post.engagement_summary.total_likes }}</span>
+              <span>💬 {{ post.engagement_summary.total_comments }}</span>
+              <span>📥 {{ post.engagement_summary.total_saved }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No posts yet</h3>
+      <p class="mt-1 text-sm text-gray-500">Get started by syncing posts from your connected accounts.</p>
+    </div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
