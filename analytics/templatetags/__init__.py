@@ -1,1 +1,1 @@
-# Template tags for analytics app
+# Analytics template tags

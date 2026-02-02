@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from .models import PixelfedPost, PixelfedEngagementSummary
 from pixelfed.models import MastodonAccount
+from analytics.utils import get_base_analytics_context
 
 
 @login_required
@@ -73,7 +74,7 @@ def dashboard(request):
     )
 
     # Get top performing post (by total engagement)
-    most_liked_post = PixelfedPost.objects.filter(
+    top_post = PixelfedPost.objects.filter(
         account__in=user_accounts,
         engagement_summary__isnull=False,
         engagement_summary__total_engagement__gt=0
@@ -82,58 +83,22 @@ def dashboard(request):
         'engagement_summary'
     ).order_by('-engagement_summary__total_engagement', '-posted_at').first()
 
-    context = {
+    # Get base context from utility function
+    context = get_base_analytics_context(request, 'pixelfed')
+
+    # Add view-specific context
+    context.update({
         'active_page': 'analytics',
         'posts': posts,
         'user_accounts': user_accounts,
         'total_posts': total_posts,
-        'current_sort': sort_by,
-        # Platform-specific configuration
-        'platform_name': 'Pixelfed',
-        'platform_namespace': 'analytics_pixelfed',
-        'top_post': most_liked_post,
-        'post_card_template': 'analytics_pixelfed/partials/post_card.html#post-card',
-        # Engagement metrics with generic names
-        'engagement_metrics': {
-            'metric1': total_engagement['total_likes'] or 0,
-            'metric2': total_engagement['total_comments'] or 0,
-            'metric3': total_engagement['total_shares'] or 0,
-        },
-        # Engagement labels
-        'engagement_labels': {
-            'metric1': 'likes',
-            'metric1_plural': 'Likes',
-            'metric2': 'comments',
-            'metric2_plural': 'Comments',
-            'metric3': 'shares',
-            'metric3_plural': 'Shares',
-        },
-        # Engagement keys for accessing engagement_summary attributes
-        'engagement_keys': {
-            'metric1': 'total_likes',
-            'metric2': 'total_comments',
-            'metric3': 'total_shares',
-        },
-        # Sort keys for URL parameters
-        'sort_keys': {
-            'metric1': 'likes',
-            'metric2': 'comments',
-            'metric3': 'shares',
-        },
-        # Legacy context for backward compatibility (if needed elsewhere)
+        'top_post': top_post,
         'total_likes': total_engagement['total_likes'] or 0,
         'total_comments': total_engagement['total_comments'] or 0,
         'total_shares': total_engagement['total_shares'] or 0,
-        'total_engagement_count': total_engagement['total_engagement'] or 0,
-        'most_liked_post': most_liked_post,
-    }
+    })
 
-    # For HTMX requests, return just the content without the base template
-    template = 'analytics_pixelfed/dashboard.html'
-    if request.htmx:
-        template = 'analytics/platform_dashboard_content.html'
-
-    return render(request, template, context)
+    return render(request, 'analytics/shared/dashboard.html', context)
 
 
 @login_required
@@ -156,21 +121,21 @@ def post_detail(request, post_id):
     # Get engagement over time (for chart)
     engagement_timeline = _get_engagement_timeline(post)
 
-    context = {
+    # Get base context from utility function
+    context = get_base_analytics_context(request, 'pixelfed')
+
+    # Add view-specific context
+    context.update({
         'active_page': 'analytics',
         'post': post,
         'likes': likes,
         'comments': comments,
         'shares': shares,
         'engagement_timeline': engagement_timeline,
-    }
+    })
 
-    # For HTMX requests, return just the content without the base template
-    template = 'analytics_pixelfed/post_detail.html'
-    if request.htmx:
-        template = 'analytics_pixelfed/post_detail_content.html'
-
-    return render(request, template, context)
+    # Use platform-specific template that extends shared base
+    return render(request, 'analytics_pixelfed/post_detail.html', context)
 
 
 @login_required
@@ -208,8 +173,8 @@ def refresh_post(request, post_id):
         logger.error(f"Error refreshing post {post_id}: {e}", exc_info=True)
 
         # Return error toast partial
-        context = {'message': f'Error refreshing post: {str(e)}'}
-        return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
+        context = {'status': 'error', 'message': f'Error refreshing post: {str(e)}'}
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
 
 @login_required
@@ -239,8 +204,8 @@ def sync_account(request, account_id):
         logger.info(f"Synced account {account_id}: {created} created, {updated} updated")
 
         # Return success toast partial with HX-Trigger to refresh posts
-        context = {'message': f'Synced {created + updated} posts ({created} new, {updated} updated)'}
-        response = render(request, 'analytics_pixelfed/partials/toast.html#toast-success', context)
+        context = {'status': 'success', 'message': f'Synced {created + updated} posts ({created} new, {updated} updated)'}
+        response = render(request, 'analytics/shared/partials/toast.html', context)
 
         # Trigger HTMX event to refresh the dashboard
         response['HX-Trigger'] = 'postsUpdated'
@@ -251,8 +216,8 @@ def sync_account(request, account_id):
         logger.error(f"Error syncing account {account_id}: {e}", exc_info=True)
 
         # Return error toast partial
-        context = {'message': f'Error syncing posts: {str(e)}'}
-        return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
+        context = {'status': 'error', 'message': f'Error syncing posts: {str(e)}'}
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
 
 @login_required
@@ -281,16 +246,17 @@ def fetch_engagement(request, account_id):
 
         # Return success toast partial
         context = {
+            'status': 'info',
             'message': f'Engagement fetch started for @{account.username}. This may take a few minutes...'
         }
-        return render(request, 'analytics_pixelfed/partials/toast.html#toast-info', context)
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
     except Exception as e:
         logger.error(f"Error enqueueing engagement fetch for account {account_id}: {e}", exc_info=True)
 
         # Return error toast partial
-        context = {'message': f'Error starting engagement fetch: {str(e)}'}
-        return render(request, 'analytics_pixelfed/partials/toast.html#toast-error', context)
+        context = {'status': 'error', 'message': f'Error starting engagement fetch: {str(e)}'}
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
 
 @login_required

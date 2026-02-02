@@ -171,15 +171,33 @@ class InstagramAPIClient:
             logger.error(f"Failed to fetch media for user {ig_user_id}: {e}")
             raise
 
-    def get_media_insights(self, media_id: str) -> Dict[str, int]:
+    def get_media_insights(self, media_id: str, media_type: str = 'IMAGE') -> Dict[str, int]:
         """
         Fetch insights for a specific media post.
 
-        Insights include: engagement, saved, reach, impressions, video_views (for Reels).
+        Available metrics per Instagram API (as of 2025):
+
+        IMAGE/CAROUSEL_ALBUM:
+        - reach: Number of unique accounts that saw the media
+        - saved: Number of times the media was saved
+        - total_interactions: Total interactions (likes + comments + saves + shares)
+
+        VIDEO:
+        - reach: Number of unique accounts that saw the media
+        - saved: Number of times the media was saved
+        - total_interactions: Total interactions
+        - plays: Number of video plays
+
+        REELS:
+        - reach, likes, comments, saves, shares, plays
+
+        Note: 'impressions' metric was deprecated for media created after July 2, 2024
+
         Requires instagram_manage_insights permission.
 
         Args:
             media_id: Instagram media ID
+            media_type: Media type (IMAGE, VIDEO, CAROUSEL_ALBUM, REELS)
 
         Returns:
             Dictionary mapping metric names to values
@@ -188,9 +206,17 @@ class InstagramAPIClient:
             InstagramAPIError: If insights are unavailable or API error occurs
         """
         endpoint = f"/{media_id}/insights"
-        params = {
-            'metric': 'engagement,saved,reach,impressions,video_views'
-        }
+
+        # Request metrics based on media type
+        # IMAGE and CAROUSEL_ALBUM support: reach, saved, total_interactions
+        # VIDEO also supports: plays
+        # REELS support: reach, likes, comments, saves, shares, plays
+        if media_type in ['VIDEO', 'REELS']:
+            metrics = 'reach,saved,total_interactions,plays'
+        else:  # IMAGE, CAROUSEL_ALBUM, or unknown
+            metrics = 'reach,saved,total_interactions'
+
+        params = {'metric': metrics}
 
         try:
             response_data = self._make_request(endpoint, params)
@@ -204,7 +230,7 @@ class InstagramAPIClient:
                 if metric_values and len(metric_values) > 0:
                     insights[metric_name] = metric_values[0].get('value', 0)
 
-            logger.debug(f"Fetched insights for media {media_id}: {insights}")
+            logger.debug(f"Fetched insights for media {media_id} ({media_type}): {insights}")
             return insights
 
         except InstagramAPIError as e:

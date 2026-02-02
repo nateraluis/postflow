@@ -1,0 +1,72 @@
+{% comment %}
+Reusable SVG icon components for analytics templates.
+Usage: {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-5 w-5' color='gray-400' %}
+{% endcomment %}
+
+{% partialdef heart-icon %}
+<svg class="{{ size|default:'h-5 w-5' }} text-{{ color|default:'gray-400' }}" fill="currentColor" viewBox="0 0 20 20">
+  <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+</svg>
+{% endpartialdef %}
+
+{% partialdef comment-icon %}
+<svg class="{{ size|default:'h-5 w-5' }} text-{{ color|default:'gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+</svg>
+{% endpartialdef %}
+
+{% partialdef share-icon %}
+<svg class="{{ size|default:'h-5 w-5' }} text-{{ color|default:'gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+</svg>
+{% endpartialdef %}
+
+{% partialdef bookmark-icon %}
+<svg class="{{ size|default:'h-5 w-5' }} text-{{ color|default:'gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+</svg>
+{% endpartialdef %}
+
+{% partialdef people-icon %}
+<svg class="{{ size|default:'h-5 w-5' }} text-{{ color|default:'gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+</svg>
+{% endpartialdef %}
+
+{% partialdef image-icon %}
+<svg class="{{ size|default:'h-5 w-5' }} text-{{ color|default:'gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+</svg>
+{% endpartialdef %}
+
+{% partialdef eye-icon %}
+<svg class="{{ size|default:'h-5 w-5' }} text-{{ color|default:'gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+</svg>
+{% endpartialdef %}
+
+{% partialdef sync-icon %}
+<svg class="{{ size|default:'h-4 w-4' }} text-{{ color|default:'gray-700' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+</svg>
+{% endpartialdef %}
+
+{% partialdef spinner-icon %}
+<svg class="{{ size|default:'h-4 w-4' }} animate-spin text-{{ color|default:'gray-600' }}" fill="none" viewBox="0 0 24 24">
+  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+</svg>
+{% endpartialdef %}
+
+{% partialdef warning-icon %}
+<svg class="{{ size|default:'h-5 w-5' }} text-{{ color|default:'yellow-400' }}" viewBox="0 0 20 20" fill="currentColor">
+  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+</svg>
+{% endpartialdef %}
+
+{% partialdef chart-icon %}
+<svg class="{{ size|default:'h-12 w-12' }} text-{{ color|default:'gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+</svg>
+{% endpartialdef %}

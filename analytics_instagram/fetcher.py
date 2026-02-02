@@ -197,12 +197,13 @@ class InstagramAnalyticsFetcher:
         """
         Fetch insights for a specific post and update the post record.
 
-        Instagram Insights require a separate API call and include:
-        - engagement (likes + comments)
-        - saved
-        - reach
-        - impressions
-        - video_views (for Reels)
+        Instagram Insights (as of 2025) include:
+        - reach: Unique accounts that saw the media
+        - saved: Times the media was saved
+        - total_interactions: Total interactions (likes + comments + saves + shares)
+        - plays: Video plays (VIDEO and REELS only)
+
+        Note: 'impressions' metric was deprecated for media created after July 2, 2024
 
         Args:
             post: InstagramPost instance
@@ -213,8 +214,8 @@ class InstagramAnalyticsFetcher:
         logger.info(f"Fetching insights for post {post.instagram_media_id}")
 
         try:
-            # Fetch insights from API
-            insights = self.client.get_media_insights(post.instagram_media_id)
+            # Fetch insights from API with media type
+            insights = self.client.get_media_insights(post.instagram_media_id, post.media_type)
 
             if not insights:
                 logger.warning(f"No insights available for post {post.instagram_media_id}")
@@ -222,11 +223,14 @@ class InstagramAnalyticsFetcher:
 
             # Update post with insights
             with transaction.atomic():
-                post.api_engagement = insights.get('engagement', 0)
+                # Map API metrics to model fields
+                post.api_engagement = insights.get('total_interactions', 0)
                 post.api_saved = insights.get('saved', 0)
                 post.api_reach = insights.get('reach', 0)
+                # impressions is deprecated, but keep the field for older posts
                 post.api_impressions = insights.get('impressions', 0)
-                post.api_video_views = insights.get('video_views')  # Can be None for non-videos
+                # plays is only available for VIDEO and REELS
+                post.api_video_views = insights.get('plays')  # Can be None for non-videos
                 post.save()
 
                 # Update engagement summary

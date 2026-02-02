@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from .models import MastodonPost, MastodonEngagementSummary
 from mastodon_native.models import MastodonAccount
+from analytics.utils import get_base_analytics_context
 
 
 @login_required
@@ -72,7 +73,7 @@ def dashboard(request):
     )
 
     # Get top performing post (by total engagement)
-    most_engaged_post = MastodonPost.objects.filter(
+    top_post = MastodonPost.objects.filter(
         account__in=user_accounts,
         engagement_summary__isnull=False,
         engagement_summary__total_engagement__gt=0
@@ -81,58 +82,22 @@ def dashboard(request):
         'engagement_summary'
     ).order_by('-engagement_summary__total_engagement', '-posted_at').first()
 
-    context = {
+    # Get base context from utility function
+    context = get_base_analytics_context(request, 'mastodon')
+
+    # Add view-specific context
+    context.update({
         'active_page': 'analytics',
         'posts': posts,
         'user_accounts': user_accounts,
         'total_posts': total_posts,
-        'current_sort': sort_by,
-        # Platform-specific configuration
-        'platform_name': 'Mastodon',
-        'platform_namespace': 'analytics_mastodon',
-        'top_post': most_engaged_post,
-        'post_card_template': 'analytics_mastodon/partials/post_card.html#post-card',
-        # Engagement metrics with generic names
-        'engagement_metrics': {
-            'metric1': total_engagement['total_favourites'] or 0,
-            'metric2': total_engagement['total_replies'] or 0,
-            'metric3': total_engagement['total_reblogs'] or 0,
-        },
-        # Engagement labels
-        'engagement_labels': {
-            'metric1': 'favourites',
-            'metric1_plural': 'Favourites',
-            'metric2': 'replies',
-            'metric2_plural': 'Replies',
-            'metric3': 'reblogs',
-            'metric3_plural': 'Reblogs',
-        },
-        # Engagement keys for accessing engagement_summary attributes
-        'engagement_keys': {
-            'metric1': 'total_favourites',
-            'metric2': 'total_replies',
-            'metric3': 'total_reblogs',
-        },
-        # Sort keys for URL parameters
-        'sort_keys': {
-            'metric1': 'favourites',
-            'metric2': 'replies',
-            'metric3': 'reblogs',
-        },
-        # Legacy context for backward compatibility (if needed elsewhere)
+        'top_post': top_post,
         'total_favourites': total_engagement['total_favourites'] or 0,
         'total_replies': total_engagement['total_replies'] or 0,
         'total_reblogs': total_engagement['total_reblogs'] or 0,
-        'total_engagement_count': total_engagement['total_engagement'] or 0,
-        'most_engaged_post': most_engaged_post,
-    }
+    })
 
-    # For HTMX requests, return just the content without the base template
-    template = 'analytics_mastodon/dashboard.html'
-    if request.htmx:
-        template = 'analytics/platform_dashboard_content.html'
-
-    return render(request, template, context)
+    return render(request, 'analytics/shared/dashboard.html', context)
 
 
 @login_required
@@ -155,21 +120,21 @@ def post_detail(request, post_id):
     # Get engagement over time (for chart)
     engagement_timeline = _get_engagement_timeline(post)
 
-    context = {
+    # Get base context from utility function
+    context = get_base_analytics_context(request, 'mastodon')
+
+    # Add view-specific context
+    context.update({
         'active_page': 'analytics',
         'post': post,
         'favourites': favourites,
         'replies': replies,
         'reblogs': reblogs,
         'engagement_timeline': engagement_timeline,
-    }
+    })
 
-    # For HTMX requests, return just the content without the base template
-    template = 'analytics_mastodon/post_detail.html'
-    if request.htmx:
-        template = 'analytics_mastodon/post_detail_content.html'
-
-    return render(request, template, context)
+    # Use platform-specific template that extends shared base
+    return render(request, 'analytics_mastodon/post_detail.html', context)
 
 
 @login_required
@@ -207,8 +172,8 @@ def refresh_post(request, post_id):
         logger.error(f"Error refreshing post {post_id}: {e}", exc_info=True)
 
         # Return error toast partial
-        context = {'message': f'Error refreshing post: {str(e)}'}
-        return render(request, 'analytics_mastodon/partials/toast.html#toast-error', context)
+        context = {'status': 'error', 'message': f'Error refreshing post: {str(e)}'}
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
 
 @login_required
@@ -237,8 +202,8 @@ def sync_account(request, account_id):
         logger.info(f"Synced account {account_id}: {created} created, {updated} updated")
 
         # Return success toast partial with HX-Trigger to refresh posts
-        context = {'message': f'Synced {created + updated} posts ({created} new, {updated} updated)'}
-        response = render(request, 'analytics_mastodon/partials/toast.html#toast-success', context)
+        context = {'status': 'success', 'message': f'Synced {created + updated} posts ({created} new, {updated} updated)'}
+        response = render(request, 'analytics/shared/partials/toast.html', context)
 
         # Trigger HTMX event to refresh the dashboard
         response['HX-Trigger'] = 'postsUpdated'
@@ -249,8 +214,8 @@ def sync_account(request, account_id):
         logger.error(f"Error syncing account {account_id}: {e}", exc_info=True)
 
         # Return error toast partial
-        context = {'message': f'Error syncing posts: {str(e)}'}
-        return render(request, 'analytics_mastodon/partials/toast.html#toast-error', context)
+        context = {'status': 'error', 'message': f'Error syncing posts: {str(e)}'}
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
 
 @login_required
@@ -278,16 +243,16 @@ def fetch_engagement(request, account_id):
 
         # Return success toast partial
         context = {
-            'message': f'Engagement fetch started for @{account.username}. This may take a few minutes...'
+            'status': 'info', 'message': f'Engagement fetch started for @{account.username}. This may take a few minutes...'
         }
-        return render(request, 'analytics_mastodon/partials/toast.html#toast-info', context)
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
     except Exception as e:
         logger.error(f"Error enqueueing engagement fetch for account {account_id}: {e}", exc_info=True)
 
         # Return error toast partial
-        context = {'message': f'Error starting engagement fetch: {str(e)}'}
-        return render(request, 'analytics_mastodon/partials/toast.html#toast-error', context)
+        context = {'status': 'error', 'message': f'Error starting engagement fetch: {str(e)}'}
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
 
 @login_required

@@ -14,6 +14,7 @@ from .models import InstagramPost, InstagramEngagementSummary, InstagramComment
 from instagram.models import InstagramBusinessAccount
 from .fetcher import InstagramAnalyticsFetcher
 from .tasks import fetch_account_insights
+from analytics.utils import get_base_analytics_context
 
 
 @login_required
@@ -94,46 +95,23 @@ def dashboard(request):
             account__in=user_accounts
         ).select_related('account').order_by('-posted_at').first()
 
-    context = {
+    # Get base context from utility function
+    context = get_base_analytics_context(request, 'instagram')
+
+    # Add view-specific context
+    context.update({
         'active_page': 'analytics',
         'posts': posts,
         'user_accounts': user_accounts,
         'total_posts': total_posts,
-        'current_sort': sort_by,
-        # Platform-specific configuration
-        'platform_name': 'Instagram',
-        'platform_namespace': 'analytics_instagram',
         'top_post': top_post,
-        # Engagement metrics
-        'engagement_metrics': {
-            'metric1': total_engagement['total_likes'] or 0,
-            'metric2': total_engagement['total_comments'] or 0,
-            'metric3': total_engagement['total_saved'] or 0,
-            'metric4': total_engagement['total_reach'] or 0,
-            'metric5': total_engagement['total_impressions'] or 0,
-            'metric1_label': 'Likes',
-            'metric2_label': 'Comments',
-            'metric3_label': 'Saved',
-            'metric4_label': 'Reach',
-            'metric5_label': 'Impressions',
-        },
-        'sort_options': [
-            {'value': 'recent', 'label': 'Most Recent'},
-            {'value': 'likes', 'label': 'Most Likes'},
-            {'value': 'comments', 'label': 'Most Comments'},
-            {'value': 'saved', 'label': 'Most Saved'},
-            {'value': 'engagement', 'label': 'Most Engagement'},
-            {'value': 'reach', 'label': 'Most Reach'},
-            {'value': 'impressions', 'label': 'Most Impressions'},
-        ]
-    }
+        'total_likes': total_engagement['total_likes'] or 0,
+        'total_comments': total_engagement['total_comments'] or 0,
+        'total_saved': total_engagement['total_saved'] or 0,
+        'total_reach': total_engagement['total_reach'] or 0,
+    })
 
-    # For HTMX requests, return just the content without the base template
-    template = 'analytics_instagram/dashboard.html'
-    if request.htmx:
-        template = 'analytics/platform_dashboard_content.html'
-
-    return render(request, template, context)
+    return render(request, 'analytics/shared/dashboard.html', context)
 
 
 @login_required
@@ -154,14 +132,16 @@ def post_detail(request, post_id):
     top_level_comments = comments.filter(parent_comment_id__isnull=True)
     replies = comments.filter(parent_comment_id__isnull=False)
 
-    context = {
+    # Get base context from utility function
+    context = get_base_analytics_context(request, 'instagram')
+
+    # Add view-specific context
+    context.update({
         'active_page': 'analytics',
         'post': post,
         'top_level_comments': top_level_comments,
         'replies': replies,
-        'platform_name': 'Instagram',
-        'platform_namespace': 'analytics_instagram',
-    }
+    })
 
     return render(request, 'analytics_instagram/post_detail.html', context)
 
@@ -211,18 +191,20 @@ def sync_account(request, account_id):
         fetcher = InstagramAnalyticsFetcher(account)
         created, updated = fetcher.sync_account_posts(limit=50)
 
-        return JsonResponse({
+        # Return success toast partial
+        context = {
             'status': 'success',
-            'message': f'Synced: {created} new posts, {updated} updated',
-            'created': created,
-            'updated': updated
-        })
+            'message': f'Synced {created + updated} posts ({created} new, {updated} updated)'
+        }
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
     except Exception as e:
-        return JsonResponse({
+        # Return error toast partial
+        context = {
             'status': 'error',
-            'message': str(e)
-        }, status=500)
+            'message': f'Error syncing posts: {str(e)}'
+        }
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
 
 @login_required
@@ -241,13 +223,17 @@ def fetch_insights(request, account_id):
         # Enqueue background task
         fetch_account_insights.enqueue(account_id=account.id, limit_posts=50)
 
-        return JsonResponse({
-            'status': 'success',
-            'message': f'Insights fetch started for @{account.username}'
-        })
+        # Return success toast partial
+        context = {
+            'status': 'info',
+            'message': f'Insights fetch started for @{account.username}. This may take a few minutes...'
+        }
+        return render(request, 'analytics/shared/partials/toast.html', context)
 
     except Exception as e:
-        return JsonResponse({
+        # Return error toast partial
+        context = {
             'status': 'error',
-            'message': str(e)
-        }, status=500)
+            'message': f'Error starting insights fetch: {str(e)}'
+        }
+        return render(request, 'analytics/shared/partials/toast.html', context)
