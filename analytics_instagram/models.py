@@ -202,10 +202,20 @@ class InstagramPost(models.Model):
         Returns the URL to display for this post.
         Prefers cached_image (stored in S3) over media_url (Instagram CDN).
 
+        In production with S3 storage, generates a fresh signed URL each time
+        to prevent expired URL issues. Signed URLs are valid for 1 hour.
+
         Returns:
             str: URL to the image
         """
         if self.cached_image:
+            # For S3 storage with signed URLs, we need to generate fresh URLs
+            # The .url property may cache expired URLs, so we call storage.url() directly
+            from django.conf import settings
+            if not settings.DEBUG and hasattr(self.cached_image, 'storage'):
+                # Generate fresh signed URL using storage backend
+                # The expiry is controlled by AWS_QUERYSTRING_EXPIRE (default 3600s)
+                return self.cached_image.storage.url(self.cached_image.name)
             return self.cached_image.url
         return self.media_url
 

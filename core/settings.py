@@ -184,6 +184,7 @@ else:
     AWS_STORAGE_BUCKET_NAME = env("S3_AWS_STORAGE_BUCKET_NAME")
 
     AWS_QUERYSTRING_AUTH = True  # Requires signed URLs
+    AWS_QUERYSTRING_EXPIRE = 3600  # Signed URLs expire after 1 hour (default is 1 hour)
     AWS_DEFAULT_ACL = None  # No public ACL
 
     STORAGES = {
