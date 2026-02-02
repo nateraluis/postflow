@@ -9,43 +9,43 @@ Requires context: post, platform
    class="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
   {% with display_url=post.get_display_image_url %}
   {% if display_url %}
-  <img src="{{ display_url }}" alt="Post" class="w-full h-64 object-cover">
+  <img src="{{ display_url }}" alt="Post" class="w-full h-48 sm:h-64 object-cover">
   {% elif post.media_url %}
-  <img src="{{ post.media_url }}" alt="Post" class="w-full h-64 object-cover">
+  <img src="{{ post.media_url }}" alt="Post" class="w-full h-48 sm:h-64 object-cover">
   {% else %}
-  <div class="w-full h-64 bg-gray-200 flex items-center justify-center">
-    {% include 'analytics/shared/components/icons.html#image-icon' with size='h-16 w-16' color='gray-400' %}
+  <div class="w-full h-48 sm:h-64 bg-gray-200 flex items-center justify-center">
+    {% include 'analytics/shared/components/icons.html#image-icon' with size='h-12 w-12 sm:h-16 sm:w-16' color='gray-400' %}
   </div>
   {% endif %}
   {% endwith %}
 
-  <div class="p-4">
-    <p class="text-sm text-gray-600 mb-2">
+  <div class="p-3 sm:p-4">
+    <p class="text-xs sm:text-sm text-gray-600 mb-2 truncate">
       @{{ post|get_username_field:platform.slug }} • {{ post.posted_at|date:"M d, Y" }}
     </p>
 
     {% with content=post|get_content_field:platform.slug %}
     {% if content %}
-    <p class="text-sm text-gray-700 line-clamp-2 mb-3">{{ content|truncatewords:20 }}</p>
+    <p class="text-xs sm:text-sm text-gray-700 line-clamp-2 mb-2 sm:mb-3">{{ content|truncatewords:20 }}</p>
     {% endif %}
     {% endwith %}
 
     {% if post.engagement_summary %}
-    <div class="flex items-center space-x-4 text-sm text-gray-500">
+    <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 flex-wrap">
       {% for metric in platform.metrics %}
-      <div class="flex items-center">
+      <div class="flex items-center gap-1">
         {% if metric.icon == 'heart' %}
-          {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-4 w-4' color='gray-400' %}
+          {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-3 w-3 sm:h-4 sm:w-4' color='gray-400' %}
         {% elif metric.icon == 'comment' %}
-          {% include 'analytics/shared/components/icons.html#comment-icon' with size='h-4 w-4' color='gray-400' %}
+          {% include 'analytics/shared/components/icons.html#comment-icon' with size='h-3 w-3 sm:h-4 sm:w-4' color='gray-400' %}
         {% elif metric.icon == 'share' %}
-          {% include 'analytics/shared/components/icons.html#share-icon' with size='h-4 w-4' color='gray-400' %}
+          {% include 'analytics/shared/components/icons.html#share-icon' with size='h-3 w-3 sm:h-4 sm:w-4' color='gray-400' %}
         {% elif metric.icon == 'bookmark' %}
-          {% include 'analytics/shared/components/icons.html#bookmark-icon' with size='h-4 w-4' color='gray-400' %}
+          {% include 'analytics/shared/components/icons.html#bookmark-icon' with size='h-3 w-3 sm:h-4 sm:w-4' color='gray-400' %}
         {% elif metric.icon == 'people' %}
-          {% include 'analytics/shared/components/icons.html#people-icon' with size='h-4 w-4' color='gray-400' %}
+          {% include 'analytics/shared/components/icons.html#people-icon' with size='h-3 w-3 sm:h-4 sm:w-4' color='gray-400' %}
         {% endif %}
-        <span class="ml-1">{{ post|get_metric:metric.key }}</span>
+        <span>{{ post|get_metric:metric.key }}</span>
       </div>
       {% endfor %}
     </div>

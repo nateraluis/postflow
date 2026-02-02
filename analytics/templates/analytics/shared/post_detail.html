@@ -6,12 +6,12 @@
 <!-- Toast notification container -->
 <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
 
-<div class="mt-8 max-w-7xl mx-auto">
+<div class="mt-4 sm:mt-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
   <!-- Back Button -->
-  <div class="mb-4">
+  <div class="mb-3 sm:mb-4">
     <a href="{% build_url platform.url_namespace 'dashboard' %}"
-       class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
-      <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+       class="inline-flex items-center text-xs sm:text-sm text-gray-500 hover:text-gray-700">
+      <svg class="h-4 w-4 sm:h-5 sm:w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
       </svg>
       Back to Dashboard
@@ -19,26 +19,26 @@
   </div>
 
   <!-- Post Header -->
-  <div class="bg-white shadow rounded-lg overflow-hidden mb-6">
-    <div class="px-6 py-4 border-b border-gray-200">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">Post Details</h1>
-          <p class="text-sm text-gray-500 mt-1">@{{ post|get_username_field:platform.slug }} • {{ post.posted_at|date:"M d, Y H:i" }}</p>
+  <div class="bg-white shadow rounded-lg overflow-hidden mb-4 sm:mb-6">
+    <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0 flex-1">
+          <h1 class="text-lg sm:text-2xl font-bold text-gray-900">Post Details</h1>
+          <p class="text-xs sm:text-sm text-gray-500 mt-1 truncate">@{{ post|get_username_field:platform.slug }} • {{ post.posted_at|date:"M d, Y H:i" }}</p>
         </div>
-        <div class="flex items-center space-x-2">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           {% if post.post_url %}
           <a href="{{ post.post_url }}" target="_blank" rel="noopener noreferrer"
-             class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-xs sm:text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            <svg class="h-3 w-3 sm:h-4 sm:w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
             View on {{ platform.name }}
           </a>
           {% elif post.permalink %}
           <a href="{{ post.permalink }}" target="_blank" rel="noopener noreferrer"
-             class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-xs sm:text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            <svg class="h-3 w-3 sm:h-4 sm:w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
             View on {{ platform.name }}
@@ -49,27 +49,27 @@
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-target="#toast-container"
             hx-swap="afterbegin"
-            class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-gray-800 hover:bg-gray-900">
-            {% include 'analytics/shared/components/icons.html#sync-icon' with size='h-4 w-4' color='white' %}
+            class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-xs sm:text-sm leading-4 font-medium rounded-md text-white bg-gray-800 hover:bg-gray-900">
+            {% include 'analytics/shared/components/icons.html#sync-icon' with size='h-3 w-3 sm:h-4 sm:w-4' color='white' %}
             <span class="ml-2">Refresh</span>
           </button>
         </div>
       </div>
     </div>
 
-    <div class="px-6 py-4">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="px-4 sm:px-6 py-3 sm:py-4">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <!-- Left Column: Post Media & Caption -->
         <div class="lg:col-span-2">
           <!-- Post Media -->
           {% with display_url=post.get_display_image_url %}
           {% if display_url %}
-          <div class="mb-4">
-            <img src="{{ display_url }}" alt="Post image" class="max-w-2xl w-full rounded-lg shadow-md">
+          <div class="mb-3 sm:mb-4">
+            <img src="{{ display_url }}" alt="Post image" class="w-full max-w-2xl rounded-lg shadow-md">
           </div>
           {% elif post.media_url %}
-          <div class="mb-4">
-            <img src="{{ post.media_url }}" alt="Post image" class="max-w-2xl w-full rounded-lg shadow-md">
+          <div class="mb-3 sm:mb-4">
+            <img src="{{ post.media_url }}" alt="Post image" class="w-full max-w-2xl rounded-lg shadow-md">
           </div>
           {% endif %}
           {% endwith %}
@@ -77,15 +77,15 @@
           <!-- Caption -->
           {% with content=post|get_content_field:platform.slug %}
           {% if content %}
-          <div class="mb-4">
-            <h3 class="text-sm font-semibold text-gray-700 mb-2">Caption</h3>
-            <p class="text-sm text-gray-900 leading-relaxed">{{ content }}</p>
+          <div class="mb-3 sm:mb-4">
+            <h3 class="text-xs sm:text-sm font-semibold text-gray-700 mb-2">Caption</h3>
+            <p class="text-xs sm:text-sm text-gray-900 leading-relaxed break-words">{{ content }}</p>
           </div>
           {% endif %}
           {% endwith %}
 
           <!-- Post Metadata -->
-          <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
             {% if post.media_type %}
             <div>
               <span class="text-gray-500">Media Type:</span>
@@ -116,28 +116,28 @@
 
         <!-- Right Column: Analytics Metrics -->
         <div class="lg:col-span-1">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Analytics</h3>
+          <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Analytics</h3>
 
           <!-- Engagement Summary Cards -->
-          <div class="space-y-3 mb-6">
+          <div class="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
             {% for metric in platform.metrics %}
-            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div class="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
               <div class="flex items-center justify-between">
-                <div class="flex items-center">
+                <div class="flex items-center min-w-0 flex-1">
                   {% if metric.icon == 'heart' %}
-                    {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-6 w-6' color='gray-500' %}
+                    {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-5 w-5 sm:h-6 sm:w-6' color='gray-500' %}
                   {% elif metric.icon == 'comment' %}
-                    {% include 'analytics/shared/components/icons.html#comment-icon' with size='h-6 w-6' color='gray-500' %}
+                    {% include 'analytics/shared/components/icons.html#comment-icon' with size='h-5 w-5 sm:h-6 sm:w-6' color='gray-500' %}
                   {% elif metric.icon == 'share' %}
-                    {% include 'analytics/shared/components/icons.html#share-icon' with size='h-6 w-6' color='gray-500' %}
+                    {% include 'analytics/shared/components/icons.html#share-icon' with size='h-5 w-5 sm:h-6 sm:w-6' color='gray-500' %}
                   {% elif metric.icon == 'bookmark' %}
-                    {% include 'analytics/shared/components/icons.html#bookmark-icon' with size='h-6 w-6' color='gray-500' %}
+                    {% include 'analytics/shared/components/icons.html#bookmark-icon' with size='h-5 w-5 sm:h-6 sm:w-6' color='gray-500' %}
                   {% elif metric.icon == 'people' %}
-                    {% include 'analytics/shared/components/icons.html#people-icon' with size='h-6 w-6' color='gray-500' %}
+                    {% include 'analytics/shared/components/icons.html#people-icon' with size='h-5 w-5 sm:h-6 sm:w-6' color='gray-500' %}
                   {% endif %}
-                  <span class="ml-2 text-sm font-medium text-gray-700">{{ metric.label }}</span>
+                  <span class="ml-2 text-xs sm:text-sm font-medium text-gray-700 truncate">{{ metric.label }}</span>
                 </div>
-                <p class="text-2xl font-bold text-gray-900">
+                <p class="text-lg sm:text-2xl font-bold text-gray-900 ml-2">
                   {% if metric.key == 'likes' and likes %}{{ likes|length }}
                   {% elif metric.key == 'favourites' and favourites %}{{ favourites|length }}
                   {% elif metric.key == 'comments' and comments %}{{ comments|length }}
@@ -152,10 +152,10 @@
           </div>
 
           <!-- Total Engagement -->
-          <div class="bg-gray-100 p-4 rounded-lg border border-gray-300">
+          <div class="bg-gray-100 p-3 sm:p-4 rounded-lg border border-gray-300">
             <div class="text-center">
-              <p class="text-sm font-medium text-gray-700 mb-1">Total Engagement</p>
-              <p class="text-3xl font-bold text-gray-900">
+              <p class="text-xs sm:text-sm font-medium text-gray-700 mb-1">Total Engagement</p>
+              <p class="text-2xl sm:text-3xl font-bold text-gray-900">
                 {% if post.engagement_summary %}
                   {{ post.engagement_summary.total_engagement|default:0 }}
                 {% else %}

@@ -3,16 +3,16 @@
 
 {% block platform_specific_content %}
 <!-- Comments Section with Threading -->
-<div class="border-t pt-6 mt-6">
-  <h3 class="text-lg font-semibold text-gray-900 mb-4">Comments ({{ top_level_comments.count }})</h3>
+<div class="border-t pt-4 sm:pt-6 mt-4 sm:mt-6">
+  <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Comments ({{ top_level_comments.count }})</h3>
   {% if top_level_comments %}
-  <div class="space-y-4">
+  <div class="space-y-3 sm:space-y-4">
     {% for comment in top_level_comments %}
-    <div class="p-4 bg-gray-50 rounded-lg">
+    <div class="p-3 sm:p-4 bg-gray-50 rounded-lg">
       <div class="flex items-start">
-        <div class="flex-1">
-          <p class="font-semibold text-sm text-gray-900">@{{ comment.username }}</p>
-          <p class="text-gray-700 mt-1 text-sm">{{ comment.text }}</p>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-xs sm:text-sm text-gray-900 truncate">@{{ comment.username }}</p>
+          <p class="text-gray-700 mt-1 text-xs sm:text-sm break-words">{{ comment.text }}</p>
           <p class="text-xs text-gray-500 mt-2">
             {{ comment.timestamp|date:"M d, Y H:i" }}
             {% if comment.like_count > 0 %} • {{ comment.like_count }} likes{% endif %}
@@ -23,9 +23,9 @@
       <!-- Replies -->
       {% for reply in replies %}
       {% if reply.parent_comment_id == comment.comment_id %}
-      <div class="ml-8 mt-3 p-3 bg-white rounded-lg border border-gray-200">
-        <p class="font-semibold text-sm text-gray-900">@{{ reply.username }}</p>
-        <p class="text-gray-700 mt-1 text-sm">{{ reply.text }}</p>
+      <div class="ml-4 sm:ml-8 mt-2 sm:mt-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200">
+        <p class="font-semibold text-xs sm:text-sm text-gray-900 truncate">@{{ reply.username }}</p>
+        <p class="text-gray-700 mt-1 text-xs sm:text-sm break-words">{{ reply.text }}</p>
         <p class="text-xs text-gray-500 mt-2">
           {{ reply.timestamp|date:"M d, Y H:i" }}
           {% if reply.like_count > 0 %} • {{ reply.like_count }} likes{% endif %}
@@ -37,7 +37,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <p class="text-gray-500 text-center py-8">No comments yet</p>
+  <p class="text-xs sm:text-sm text-gray-500 text-center py-6 sm:py-8">No comments yet</p>
   {% endif %}
 </div>
 {% endblock %}
@@ -45,62 +45,62 @@
 {% block platform_specific_metrics %}
 <!-- Instagram-specific metrics (Reach, Impressions, Total Interactions, etc.) -->
 {% if post.api_reach or post.api_impressions or post.api_engagement %}
-<div class="border-t border-gray-200 pt-4 mt-4 space-y-3">
-  <h4 class="text-sm font-semibold text-gray-700 mb-3">Additional Insights</h4>
+<div class="border-t border-gray-200 pt-3 sm:pt-4 mt-3 sm:mt-4 space-y-2 sm:space-y-3">
+  <h4 class="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Additional Insights</h4>
 
   {% if post.api_reach %}
-  <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+  <div class="bg-gray-50 p-2 sm:p-3 rounded-lg border border-gray-200">
     <div class="flex items-center justify-between">
-      <div class="flex items-center">
-        {% include 'analytics/shared/components/icons.html#people-icon' with size='h-5 w-5' color='gray-500' %}
-        <span class="ml-2 text-sm font-medium text-gray-700">Reach</span>
+      <div class="flex items-center min-w-0 flex-1">
+        {% include 'analytics/shared/components/icons.html#people-icon' with size='h-4 w-4 sm:h-5 sm:w-5' color='gray-500' %}
+        <span class="ml-2 text-xs sm:text-sm font-medium text-gray-700 truncate">Reach</span>
       </div>
-      <p class="text-lg font-bold text-gray-900">{{ post.api_reach|default:0 }}</p>
+      <p class="text-base sm:text-lg font-bold text-gray-900 ml-2">{{ post.api_reach|default:0 }}</p>
     </div>
   </div>
   {% endif %}
 
   {% if post.api_engagement %}
-  <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+  <div class="bg-gray-50 p-2 sm:p-3 rounded-lg border border-gray-200">
     <div class="flex items-center justify-between">
-      <div class="flex items-center">
-        {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-5 w-5' color='gray-500' %}
-        <span class="ml-2 text-sm font-medium text-gray-700">Total Interactions</span>
+      <div class="flex items-center min-w-0 flex-1">
+        {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-4 w-4 sm:h-5 sm:w-5' color='gray-500' %}
+        <span class="ml-2 text-xs sm:text-sm font-medium text-gray-700 truncate">Total Interactions</span>
       </div>
-      <p class="text-lg font-bold text-gray-900">{{ post.api_engagement|default:0 }}</p>
+      <p class="text-base sm:text-lg font-bold text-gray-900 ml-2">{{ post.api_engagement|default:0 }}</p>
     </div>
   </div>
   {% endif %}
 
   {% if post.api_impressions %}
-  <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+  <div class="bg-gray-50 p-2 sm:p-3 rounded-lg border border-gray-200">
     <div class="flex items-center justify-between">
-      <div class="flex items-center">
-        {% include 'analytics/shared/components/icons.html#eye-icon' with size='h-5 w-5' color='gray-500' %}
-        <span class="ml-2 text-sm font-medium text-gray-700">Impressions</span>
+      <div class="flex items-center min-w-0 flex-1">
+        {% include 'analytics/shared/components/icons.html#eye-icon' with size='h-4 w-4 sm:h-5 sm:w-5' color='gray-500' %}
+        <span class="ml-2 text-xs sm:text-sm font-medium text-gray-700 truncate">Impressions</span>
       </div>
-      <p class="text-lg font-bold text-gray-900">{{ post.api_impressions|default:0 }}</p>
+      <p class="text-base sm:text-lg font-bold text-gray-900 ml-2">{{ post.api_impressions|default:0 }}</p>
     </div>
   </div>
   {% endif %}
 
   {% if post.get_engagement_rate %}
-  <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+  <div class="bg-gray-50 p-2 sm:p-3 rounded-lg border border-gray-200">
     <div class="text-center">
-      <p class="text-sm font-medium text-gray-700 mb-1">Engagement Rate</p>
-      <p class="text-xl font-bold text-gray-900">{{ post.get_engagement_rate|floatformat:2 }}%</p>
+      <p class="text-xs sm:text-sm font-medium text-gray-700 mb-1">Engagement Rate</p>
+      <p class="text-lg sm:text-xl font-bold text-gray-900">{{ post.get_engagement_rate|floatformat:2 }}%</p>
     </div>
   </div>
   {% endif %}
 
   {% if post.api_video_views %}
-  <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+  <div class="bg-gray-50 p-2 sm:p-3 rounded-lg border border-gray-200">
     <div class="flex items-center justify-between">
-      <div class="flex items-center">
-        {% include 'analytics/shared/components/icons.html#eye-icon' with size='h-5 w-5' color='gray-500' %}
-        <span class="ml-2 text-sm font-medium text-gray-700">Video Views</span>
+      <div class="flex items-center min-w-0 flex-1">
+        {% include 'analytics/shared/components/icons.html#eye-icon' with size='h-4 w-4 sm:h-5 sm:w-5' color='gray-500' %}
+        <span class="ml-2 text-xs sm:text-sm font-medium text-gray-700 truncate">Video Views</span>
       </div>
-      <p class="text-lg font-bold text-gray-900">{{ post.api_video_views }}</p>
+      <p class="text-base sm:text-lg font-bold text-gray-900 ml-2">{{ post.api_video_views }}</p>
     </div>
   </div>
   {% endif %}

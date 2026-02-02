@@ -6,9 +6,9 @@
 <!-- Toast notification container -->
 <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
 
-<div class="mt-8 max-w-7xl mx-auto">
-  <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ platform.name }} Analytics Dashboard</h1>
-  <p class="text-gray-600 mb-6">View engagement metrics for your {{ platform.name }} posts</p>
+<div class="mt-4 sm:mt-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <h1 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">{{ platform.name }} Analytics Dashboard</h1>
+  <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">View engagement metrics for your {{ platform.name }} posts</p>
 
   {% if user_accounts|length == 0 %}
     <!-- No accounts connected -->
@@ -35,53 +35,55 @@
         <ul role="list" class="divide-y divide-gray-200">
           {% for account in user_accounts %}
           <li>
-            <div class="px-4 py-4 flex items-center justify-between sm:px-6">
-              <div class="flex items-center min-w-0 flex-1">
-                <div class="flex-shrink-0">
-                  <svg class="h-8 w-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-                  </svg>
-                </div>
-                <div class="min-w-0 flex-1 px-4">
-                  <div>
-                    <p class="text-sm font-medium text-gray-900 truncate">@{{ account.username }}</p>
-                    {% if account.instance_url %}
-                    <p class="text-sm text-gray-500">{{ account.instance_url }}</p>
-                    {% else %}
-                    <p class="text-sm text-gray-500">{{ platform.platform_label }}</p>
-                    {% endif %}
+            <div class="px-4 py-4 sm:px-6">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center min-w-0 flex-1">
+                  <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                    </svg>
+                  </div>
+                  <div class="min-w-0 flex-1 px-4">
+                    <div>
+                      <p class="text-sm font-medium text-gray-900 truncate">@{{ account.username }}</p>
+                      {% if account.instance_url %}
+                      <p class="text-sm text-gray-500 truncate">{{ account.instance_url }}</p>
+                      {% else %}
+                      <p class="text-sm text-gray-500">{{ platform.platform_label }}</p>
+                      {% endif %}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="flex space-x-2">
-                <button
-                  hx-post="{% build_url platform.url_namespace 'sync_account' account.id %}"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-target="#toast-container"
-                  hx-swap="afterbegin"
-                  hx-indicator="#sync-spinner-{{ account.id }}"
-                  class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                  <svg id="sync-spinner-{{ account.id }}" class="htmx-indicator animate-spin h-4 w-4 mr-2 text-gray-600" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  {% include 'analytics/shared/components/icons.html#sync-icon' with size='h-4 w-4' color='gray-700' %}
-                  <span class="ml-2">Sync Posts</span>
-                </button>
-                <button
-                  hx-post="{% if platform.slug == 'instagram' %}{% build_url platform.url_namespace 'fetch_insights' account.id %}{% else %}{% build_url platform.url_namespace 'fetch_engagement' account.id %}{% endif %}"
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                  hx-target="#toast-container"
-                  hx-swap="afterbegin"
-                  hx-indicator="#engagement-spinner-{{ account.id }}"
-                  class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700">
-                  <svg id="engagement-spinner-{{ account.id }}" class="htmx-indicator animate-spin h-4 w-4 mr-2 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-4 w-4' color='white' %}
-                  <span class="ml-2">{% if platform.slug == 'instagram' %}Fetch Insights{% else %}Fetch Engagement{% endif %}</span>
-                </button>
+                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <button
+                    hx-post="{% build_url platform.url_namespace 'sync_account' account.id %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="#toast-container"
+                    hx-swap="afterbegin"
+                    hx-indicator="#sync-spinner-{{ account.id }}"
+                    class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                    <svg id="sync-spinner-{{ account.id }}" class="htmx-indicator animate-spin h-4 w-4 mr-2 text-gray-600" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {% include 'analytics/shared/components/icons.html#sync-icon' with size='h-4 w-4' color='gray-700' %}
+                    <span class="ml-2">Sync Posts</span>
+                  </button>
+                  <button
+                    hx-post="{% if platform.slug == 'instagram' %}{% build_url platform.url_namespace 'fetch_insights' account.id %}{% else %}{% build_url platform.url_namespace 'fetch_engagement' account.id %}{% endif %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-target="#toast-container"
+                    hx-swap="afterbegin"
+                    hx-indicator="#engagement-spinner-{{ account.id }}"
+                    class="inline-flex items-center justify-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700">
+                    <svg id="engagement-spinner-{{ account.id }}" class="htmx-indicator animate-spin h-4 w-4 mr-2 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-4 w-4' color='white' %}
+                    <span class="ml-2">{% if platform.slug == 'instagram' %}Fetch Insights{% else %}Fetch Engagement{% endif %}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </li>
