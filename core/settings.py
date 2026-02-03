@@ -154,11 +154,11 @@ else:
     AWS_S3_REGION_NAME = "eu-central-1"
     AWS_STORAGE_BUCKET_NAME = env("S3_AWS_STORAGE_BUCKET_NAME")
     AWS_STORAGE_MEDIA_BUCKET_NAME = env("AWS_STORAGE_MEDIA_BUCKET_NAME")
-    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
-    AWS_S3_MEDIA_DOMAIN = f"{AWS_STORAGE_MEDIA_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
 
-    STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
-    MEDIA_URL = f"https://{AWS_S3_MEDIA_DOMAIN}/media/"
+    # Note: We don't set global AWS_S3_CUSTOM_DOMAIN here because it would override
+    # per-storage custom_domain settings in STORAGES configuration below
+    STATIC_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/static/"
+    MEDIA_URL = f"https://{AWS_STORAGE_MEDIA_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/"
 
 # ✅ Django 5+ Storage Settings
 if DEBUG:
@@ -190,6 +190,7 @@ else:
                 "access_key": env("S3_ACCESS_KEY"),
                 "secret_key": env("S3_SECRET_KEY"),
                 "region_name": AWS_S3_REGION_NAME,
+                "custom_domain": f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com",
             },
         },
         # Media files (PRIVATE)
@@ -200,6 +201,7 @@ else:
                 "access_key": MEDIA_ACCESS_KEY_ID,
                 "secret_key": MEDIA_SECRET_ACCESS_KEY,
                 "region_name": AWS_S3_REGION_NAME,
+                "custom_domain": f"{AWS_STORAGE_MEDIA_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com",
                 "querystring_auth": True,  # Require signed URLs
                 "querystring_expire": 3600,  # Signed URLs expire after 1 hour
                 "default_acl": None,  # No public ACL
