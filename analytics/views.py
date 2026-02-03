@@ -19,6 +19,7 @@ from instagram.models import InstagramBusinessAccount
 from analytics_pixelfed.models import PixelfedPost, PixelfedEngagementSummary
 from analytics_mastodon.models import MastodonPost, MastodonEngagementSummary
 from analytics_instagram.models import InstagramPost, InstagramEngagementSummary
+from analytics.utils import get_posting_calendar_data
 
 
 @login_required
@@ -158,6 +159,11 @@ def dashboard(request):
             'accounts': instagram_accounts,
         }
 
+    # Get posting calendar data (all platforms)
+    calendar_data = None
+    if pixelfed_accounts.exists() or mastodon_accounts.exists() or instagram_accounts.exists():
+        calendar_data = get_posting_calendar_data(request.user, platform=None, days=365)
+
     context = {
         'active_page': 'analytics',
         'pixelfed_accounts': pixelfed_accounts,
@@ -169,6 +175,7 @@ def dashboard(request):
         'pixelfed_stats': pixelfed_stats,
         'mastodon_stats': mastodon_stats,
         'instagram_stats': instagram_stats,
+        'calendar_data': calendar_data,
     }
 
     if request.headers.get("HX-Request"):

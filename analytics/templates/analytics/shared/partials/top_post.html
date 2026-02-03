@@ -24,18 +24,18 @@ Requires context: top_post, platform
   </div>
 
   <!-- Image -->
-  <a href="{% build_url platform.url_namespace 'post_detail' top_post.id %}" class="block">
+  <a href="{% build_url platform.url_namespace 'post_detail' top_post.id %}" class="block flex-shrink-0">
     {% with display_url=top_post.get_display_image_url %}
     {% if display_url %}
     <img src="{{ display_url }}"
          alt="Top post"
-         class="w-full h-auto object-contain bg-gray-50">
+         class="w-full h-64 object-cover bg-gray-50">
     {% elif top_post.media_url %}
     <img src="{{ top_post.media_url }}"
          alt="Top post"
-         class="w-full h-auto object-contain bg-gray-50">
+         class="w-full h-64 object-cover bg-gray-50">
     {% else %}
-    <div class="w-full h-48 sm:h-64 bg-gray-200 flex items-center justify-center">
+    <div class="w-full h-64 bg-gray-200 flex items-center justify-center">
       {% include 'analytics/shared/components/icons.html#image-icon' with size='h-12 w-12 sm:h-16 sm:w-16' color='gray-400' %}
     </div>
     {% endif %}

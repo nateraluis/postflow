@@ -88,13 +88,17 @@
 - **Impact**: Medium - quality over vanity metrics
 - **Difficulty**: Easy
 
-#### 10. **Engagement Type Distribution** 📊
-- Pie/donut chart showing likes vs. comments vs. shares ratio
-- Compare your content's engagement patterns over time
-- Benchmark against account averages
-- **Data**: Aggregate counts from `PixelfedEngagementSummary`
-- **Impact**: Medium - understand audience behavior
-- **Difficulty**: Easy
+#### 10. ~~**Engagement Type Distribution**~~ ✅ **COMPLETED**
+- ✅ Donut chart showing likes vs. comments vs. shares ratio
+- ✅ Interactive visualization with click-to-filter
+- ✅ Legend with percentage and count breakdowns
+- ✅ Color-coded metrics (amber for likes, violet for comments, pink for shares)
+- ✅ Summary stats cards showing totals and percentages
+- ✅ Unified with Top Engagers view (single page with both visualizations)
+- ✅ Implemented for **Pixelfed** and **Mastodon**
+- **Data**: Aggregate counts from engagement summaries
+- **Implementation**: Shared template `analytics/shared/engagement_distribution.html`
+- **Features**: D3.js donut chart, sortable engagers table with HTMX, weighted engagement scoring
 
 ### 🔬 Low Priority (Advanced Features)
 

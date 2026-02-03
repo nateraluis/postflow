@@ -14,7 +14,7 @@ from .models import InstagramPost, InstagramEngagementSummary, InstagramComment
 from instagram.models import InstagramBusinessAccount
 from .fetcher import InstagramAnalyticsFetcher
 from .tasks import fetch_account_insights
-from analytics.utils import get_base_analytics_context
+from analytics.utils import get_base_analytics_context, get_posting_calendar_data
 
 
 @login_required
@@ -111,6 +111,11 @@ def dashboard(request):
     else:
         engagement_distribution = {'has_data': False}
 
+    # Get posting calendar data (Instagram only)
+    calendar_data = None
+    if user_accounts.exists():
+        calendar_data = get_posting_calendar_data(request.user, platform='instagram', days=365)
+
     # Get base context from utility function
     context = get_base_analytics_context(request, 'instagram')
 
@@ -126,6 +131,7 @@ def dashboard(request):
         'total_saved': total_engagement['total_saved'] or 0,
         'total_reach': total_engagement['total_reach'] or 0,
         'engagement_data': engagement_distribution,
+        'calendar_data': calendar_data,
     })
 
     return render(request, 'analytics/shared/dashboard.html', context)

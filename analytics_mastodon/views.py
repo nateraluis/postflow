@@ -13,7 +13,7 @@ from collections import defaultdict
 
 from .models import MastodonPost, MastodonEngagementSummary
 from mastodon_native.models import MastodonAccount
-from analytics.utils import get_base_analytics_context
+from analytics.utils import get_base_analytics_context, get_posting_calendar_data
 
 
 @login_required
@@ -156,6 +156,11 @@ def dashboard(request):
     else:
         engagement_distribution = {'has_data': False}
 
+    # Get posting calendar data (Mastodon only)
+    calendar_data = None
+    if user_accounts.exists():
+        calendar_data = get_posting_calendar_data(request.user, platform='mastodon', days=365)
+
     # Get base context from utility function
     context = get_base_analytics_context(request, 'mastodon')
 
@@ -171,6 +176,7 @@ def dashboard(request):
         'total_reblogs': total_engagement['total_reblogs'] or 0,
         'top_engagers': top_engagers_list,
         'engagement_data': engagement_distribution,
+        'calendar_data': calendar_data,
     })
 
     return render(request, 'analytics/shared/dashboard.html', context)

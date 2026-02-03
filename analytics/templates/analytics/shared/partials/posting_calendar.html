@@ -1,0 +1,288 @@
+{% load analytics_filters %}
+
+<div class="bg-white shadow rounded-lg p-6 mb-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-semibold text-gray-900">{{ title|default:"Posting Activity" }}</h2>
+        <div class="text-sm text-gray-500">
+            Last 365 days
+        </div>
+    </div>
+
+    {% if calendar_data.summary.total_posts > 0 %}
+        <!-- Summary Statistics -->
+        {% if show_summary %}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div>
+                <p class="text-xs text-gray-500 mb-1">Total Posts</p>
+                <p class="text-xl font-bold text-gray-900">{{ calendar_data.summary.total_posts }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 mb-1">Active Days</p>
+                <p class="text-xl font-bold text-gray-900">{{ calendar_data.summary.days_with_posts }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 mb-1">Current Streak</p>
+                <p class="text-xl font-bold text-violet-600">🔥 {{ calendar_data.summary.current_streak }} day{{ calendar_data.summary.current_streak|pluralize }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 mb-1">Longest Streak</p>
+                <p class="text-xl font-bold text-amber-500">⭐ {{ calendar_data.summary.longest_streak }} day{{ calendar_data.summary.longest_streak|pluralize }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Calendar Heatmap -->
+        <div id="posting-calendar-container" class="w-full pb-4">
+            <div id="posting-calendar" class="w-full"></div>
+        </div>
+
+        <!-- Legend -->
+        <div class="flex items-center justify-between mt-4">
+            <div class="text-xs text-gray-500">
+                {% if calendar_data.summary.busiest_day %}
+                    Busiest day: {{ calendar_data.summary.busiest_day.post_count }} post{{ calendar_data.summary.busiest_day.post_count|pluralize }}
+                {% endif %}
+            </div>
+            <div class="flex items-center text-xs text-gray-500">
+                <span class="mr-2">Less</span>
+                <div class="flex gap-1">
+                    <div class="w-3 h-3 rounded-sm bg-gray-100 border border-gray-200" title="No posts"></div>
+                    <div class="w-3 h-3 rounded-sm bg-violet-200" title="1 post"></div>
+                    <div class="w-3 h-3 rounded-sm bg-violet-300" title="2 posts"></div>
+                    <div class="w-3 h-3 rounded-sm bg-violet-400" title="3-4 posts"></div>
+                    <div class="w-3 h-3 rounded-sm bg-violet-600" title="5+ posts"></div>
+                </div>
+                <span class="ml-2">More</span>
+            </div>
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-gray-900">No posting activity yet</h3>
+            <p class="mt-2 text-sm text-gray-500">
+                Start posting to see your activity calendar here.
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+{% if calendar_data.summary.total_posts > 0 %}
+<!-- D3.js Calendar Script -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(function() {
+    // Parse calendar data from Django
+    const calendarData = {{ calendar_data.calendar_data|safe }};
+    const summaryData = {{ calendar_data.summary|safe }};
+
+    // Create a map for quick date lookups
+    const dataByDate = {};
+    calendarData.forEach(day => {
+        dataByDate[day.date] = day;
+    });
+
+    // Get container width for responsive sizing
+    const container = document.getElementById('posting-calendar-container');
+    const containerWidth = container.offsetWidth;
+
+    // Calendar configuration - responsive
+    const weekLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Color scale (PostFlow violet palette)
+    const colorScale = {
+        0: '#f3f4f6',  // gray-100 - no posts
+        1: '#ddd6fe',  // violet-200 - 1 post
+        2: '#c4b5fd',  // violet-300 - 2 posts
+        3: '#a78bfa',  // violet-400 - 3-4 posts
+        4: '#8b5cf6',  // violet-600 - 5+ posts
+    };
+
+    // Get intensity level for a post count
+    function getIntensityLevel(postCount) {
+        if (postCount === 0) return 0;
+        if (postCount === 1) return 1;
+        if (postCount === 2) return 2;
+        if (postCount <= 4) return 3;
+        return 4;
+    }
+
+    // Calculate date range (last 365 days)
+    const endDate = new Date();
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 364); // 365 days including today
+
+    // Adjust startDate to previous Sunday
+    const startDayOfWeek = startDate.getDay();
+    if (startDayOfWeek !== 0) {
+        startDate.setDate(startDate.getDate() - startDayOfWeek);
+    }
+
+    // Calculate number of weeks to display
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    const numWeeks = Math.ceil(daysDiff / 7);
+
+    // Calculate responsive dimensions
+    const dayLabelWidth = containerWidth < 640 ? 25 : 30; // Smaller on mobile
+    const monthLabelHeight = 20;
+    const cellPadding = containerWidth < 640 ? 1.5 : 2;
+
+    // Calculate cell size to fit container width
+    const availableWidth = containerWidth - dayLabelWidth - 10;
+    const cellSize = Math.max(8, Math.floor((availableWidth - (numWeeks - 1) * cellPadding) / numWeeks));
+
+    // Recalculate actual width and height based on cell size
+    const width = numWeeks * (cellSize + cellPadding) + dayLabelWidth + 10;
+    const height = 7 * (cellSize + cellPadding) + monthLabelHeight + 10;
+
+    // Create SVG with responsive viewBox
+    const svg = d3.select('#posting-calendar')
+        .append('svg')
+        .attr('width', '100%')
+        .attr('height', height)
+        .attr('viewBox', `0 0 ${width} ${height}`)
+        .attr('preserveAspectRatio', 'xMinYMin meet');
+
+    // Create tooltip
+    const tooltip = d3.select('body').append('div')
+        .attr('class', 'calendar-tooltip')
+        .style('position', 'absolute')
+        .style('visibility', 'hidden')
+        .style('background-color', 'rgba(17, 24, 39, 0.95)')
+        .style('color', 'white')
+        .style('padding', '12px 16px')
+        .style('border-radius', '8px')
+        .style('font-size', '0.875rem')
+        .style('pointer-events', 'none')
+        .style('z-index', '1000')
+        .style('box-shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1)')
+        .style('max-width', '320px')
+        .style('line-height', '1.5');
+
+    // Draw day labels (responsive font size)
+    const dayLabelFontSize = containerWidth < 640 ? 8 : 10;
+    weekLabels.forEach((label, index) => {
+        svg.append('text')
+            .attr('x', 5)
+            .attr('y', monthLabelHeight + index * (cellSize + cellPadding) + cellSize - 2)
+            .attr('font-size', `${dayLabelFontSize}px`)
+            .attr('fill', '#6b7280')
+            .attr('text-anchor', 'start')
+            .text(label);
+    });
+
+    // Track months for labels
+    let currentMonth = null;
+    let monthPositions = [];
+
+    // Generate calendar cells
+    for (let week = 0; week < numWeeks; week++) {
+        for (let day = 0; day < 7; day++) {
+            const cellDate = new Date(startDate);
+            cellDate.setDate(startDate.getDate() + week * 7 + day);
+
+            // Skip if date is in the future
+            if (cellDate > endDate) continue;
+
+            const dateStr = cellDate.toISOString().split('T')[0];
+            const dayData = dataByDate[dateStr] || { date: dateStr, post_count: 0, total_engagement: 0, posts: [] };
+
+            const x = dayLabelWidth + week * (cellSize + cellPadding);
+            const y = monthLabelHeight + day * (cellSize + cellPadding);
+
+            // Track month changes for labels
+            const month = cellDate.getMonth();
+            if (day === 0 && month !== currentMonth) {
+                currentMonth = month;
+                monthPositions.push({ x: x, month: month });
+            }
+
+            // Draw cell
+            const intensity = getIntensityLevel(dayData.post_count);
+            const rect = svg.append('rect')
+                .attr('x', x)
+                .attr('y', y)
+                .attr('width', cellSize)
+                .attr('height', cellSize)
+                .attr('rx', 2)
+                .attr('fill', colorScale[intensity])
+                .attr('stroke', '#e5e7eb')
+                .attr('stroke-width', 1)
+                .style('cursor', dayData.post_count > 0 ? 'pointer' : 'default')
+                .on('mouseover', function(event) {
+                    // Highlight cell
+                    d3.select(this)
+                        .attr('stroke', '#8b5cf6')
+                        .attr('stroke-width', 2);
+
+                    // Format date
+                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    const formattedDate = cellDate.toLocaleDateString('en-US', options);
+
+                    // Build tooltip content
+                    let tooltipContent = `<div style="font-weight: 600; margin-bottom: 8px;">${formattedDate}</div>`;
+
+                    if (dayData.post_count > 0) {
+                        tooltipContent += `<div style="padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">`;
+                        tooltipContent += `<span style="font-weight: 600;">${dayData.post_count}</span> post${dayData.post_count !== 1 ? 's' : ''}`;
+                        tooltipContent += ` • <span style="font-weight: 600;">${dayData.total_engagement}</span> interaction${dayData.total_engagement !== 1 ? 's' : ''}`;
+                        tooltipContent += `</div>`;
+
+                        // Show up to 3 posts
+                        const postsToShow = dayData.posts.slice(0, 3);
+                        postsToShow.forEach(post => {
+                            const platformBadge = `<span style="display: inline-block; padding: 2px 6px; background: rgba(139, 92, 246, 0.3); border-radius: 4px; font-size: 0.75rem; margin-right: 4px;">${post.platform_name}</span>`;
+                            const preview = post.content_preview ? post.content_preview.substring(0, 50) + (post.content_preview.length > 50 ? '...' : '') : 'No caption';
+                            tooltipContent += `<div style="margin-top: 8px; font-size: 0.8125rem;">`;
+                            tooltipContent += platformBadge;
+                            tooltipContent += `<div style="color: #d1d5db; margin-top: 4px;">"${preview}"</div>`;
+                            tooltipContent += `<div style="color: #9ca3af; margin-top: 2px;">${post.engagement} interactions</div>`;
+                            tooltipContent += `</div>`;
+                        });
+
+                        if (dayData.posts.length > 3) {
+                            tooltipContent += `<div style="margin-top: 8px; font-size: 0.75rem; color: #9ca3af;">`;
+                            tooltipContent += `and ${dayData.posts.length - 3} more post${dayData.posts.length - 3 !== 1 ? 's' : ''}...`;
+                            tooltipContent += `</div>`;
+                        }
+                    } else {
+                        tooltipContent += `<div style="color: #9ca3af;">No posts on this day</div>`;
+                    }
+
+                    tooltip.html(tooltipContent)
+                        .style('visibility', 'visible');
+                })
+                .on('mousemove', function(event) {
+                    tooltip
+                        .style('top', (event.pageY - 10) + 'px')
+                        .style('left', (event.pageX + 10) + 'px');
+                })
+                .on('mouseout', function() {
+                    // Reset cell stroke
+                    d3.select(this)
+                        .attr('stroke', '#e5e7eb')
+                        .attr('stroke-width', 1);
+
+                    tooltip.style('visibility', 'hidden');
+                });
+        }
+    }
+
+    // Draw month labels (responsive font size)
+    const monthLabelFontSize = containerWidth < 640 ? 8 : 10;
+    monthPositions.forEach(pos => {
+        svg.append('text')
+            .attr('x', pos.x)
+            .attr('y', 12)
+            .attr('font-size', `${monthLabelFontSize}px`)
+            .attr('fill', '#6b7280')
+            .attr('font-weight', '500')
+            .text(monthLabels[pos.month]);
+    });
+})();
+</script>
+{% endif %}

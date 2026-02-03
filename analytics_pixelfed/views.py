@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from .models import PixelfedPost, PixelfedEngagementSummary, PixelfedLike, PixelfedComment, PixelfedShare
 from pixelfed.models import MastodonAccount
-from analytics.utils import get_base_analytics_context
+from analytics.utils import get_base_analytics_context, get_posting_calendar_data
 from collections import defaultdict
 
 
@@ -144,6 +144,11 @@ def dashboard(request):
     else:
         engagement_distribution = {'has_data': False}
 
+    # Get posting calendar data (Pixelfed only)
+    calendar_data = None
+    if user_accounts.exists():
+        calendar_data = get_posting_calendar_data(request.user, platform='pixelfed', days=365)
+
     # Get base context from utility function
     context = get_base_analytics_context(request, 'pixelfed')
 
@@ -159,6 +164,7 @@ def dashboard(request):
         'total_shares': total_engagement['total_shares'] or 0,
         'top_engagers': top_engagers_list,
         'engagement_data': engagement_distribution,
+        'calendar_data': calendar_data,
     })
 
     return render(request, 'analytics/shared/dashboard.html', context)

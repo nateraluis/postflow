@@ -25,6 +25,11 @@
       </div>
     </div>
   {% else %}
+    <!-- Posting Calendar -->
+    {% if calendar_data %}
+      {% include 'analytics/shared/partials/posting_calendar.html' with calendar_data=calendar_data title=platform.name|add:" Posting Activity" show_summary=True %}
+    {% endif %}
+
     <!-- Summary Statistics -->
     <div id="stats-container"
          hx-trigger="postsUpdated from:body"
