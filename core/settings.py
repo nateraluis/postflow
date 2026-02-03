@@ -201,7 +201,8 @@ else:
                 "access_key": MEDIA_ACCESS_KEY_ID,
                 "secret_key": MEDIA_SECRET_ACCESS_KEY,
                 "region_name": AWS_S3_REGION_NAME,
-                "custom_domain": f"{AWS_STORAGE_MEDIA_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com",
+                # NOTE: Do NOT set custom_domain here - it disables signed URL generation
+                # Let boto3 generate proper signed URLs with querystring_auth
                 "querystring_auth": True,  # Require signed URLs
                 "querystring_expire": 3600,  # Signed URLs expire after 1 hour
                 "default_acl": None,  # No public ACL
