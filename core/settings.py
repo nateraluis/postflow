@@ -178,20 +178,19 @@ else:
     AWS_STORAGE_MEDIA_BUCKET_NAME = env("AWS_STORAGE_MEDIA_BUCKET_NAME")
 
     # S3 storage for production
-    AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY")
-    AWS_SECRET_ACCESS_KEY = env("S3_SECRET_KEY")
     AWS_S3_REGION_NAME = "eu-central-1"
     AWS_STORAGE_BUCKET_NAME = env("S3_AWS_STORAGE_BUCKET_NAME")
-
-    AWS_QUERYSTRING_AUTH = True  # Requires signed URLs
-    AWS_QUERYSTRING_EXPIRE = 3600  # Signed URLs expire after 1 hour (default is 1 hour)
-    AWS_DEFAULT_ACL = None  # No public ACL
 
     STORAGES = {
         # Static files (CSS, JS)
         "staticfiles": {
             "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
-            "OPTIONS": {"bucket_name": AWS_STORAGE_BUCKET_NAME},
+            "OPTIONS": {
+                "bucket_name": AWS_STORAGE_BUCKET_NAME,
+                "access_key": env("S3_ACCESS_KEY"),
+                "secret_key": env("S3_SECRET_KEY"),
+                "region_name": AWS_S3_REGION_NAME,
+            },
         },
         # Media files (PRIVATE)
         "default": {
@@ -208,10 +207,6 @@ else:
             },
         }
     MEDIA_URL = f"https://{AWS_STORAGE_MEDIA_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/"
-
-AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY")
-AWS_SECRET_ACCESS_KEY = env("S3_SECRET_KEY")
-AWS_S3_REGION_NAME = "eu-central-1"
 # ✅ Static files settings
 STATIC_ROOT = BASE_DIR / "staticfiles"
 if DEBUG:
