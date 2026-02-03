@@ -8,6 +8,7 @@ app_name = 'analytics_pixelfed'
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
+    path('top-engagers/', views.top_engagers, name='top_engagers'),
     path('post/<int:post_id>/', views.post_detail, name='post_detail'),
     path('post/<int:post_id>/refresh/', views.refresh_post, name='refresh_post'),
     path('account/<int:account_id>/sync/', views.sync_account, name='sync_account'),

@@ -10,9 +10,10 @@ from django.db.models.functions import Coalesce
 from datetime import timedelta
 from django.utils import timezone
 
-from .models import PixelfedPost, PixelfedEngagementSummary
+from .models import PixelfedPost, PixelfedEngagementSummary, PixelfedLike, PixelfedComment, PixelfedShare
 from pixelfed.models import MastodonAccount
 from analytics.utils import get_base_analytics_context
+from collections import defaultdict
 
 
 @login_required
@@ -373,3 +374,96 @@ def _get_engagement_timeline(post):
     ]
 
     return sorted_timeline
+
+@login_required
+def top_engagers(request):
+    """
+    Display top engagers (super fans) dashboard.
+    
+    Shows users who engage most with your content through likes, comments, and shares.
+    Comments are weighted 3x, shares 2x to reflect deeper engagement.
+    """
+    # Get user's Pixelfed accounts
+    user_accounts = MastodonAccount.objects.filter(
+        user=request.user,
+        instance_url__icontains='pixelfed'
+    )
+    
+    # Get time period filter (default: all-time)
+    period = request.GET.get('period', 'all')
+    time_period = period
+    
+    # Calculate cutoff date based on period
+    cutoff_date = None
+    if period == '30':
+        cutoff_date = timezone.now() - timedelta(days=30)
+        time_period = 30
+    elif period == '90':
+        cutoff_date = timezone.now() - timedelta(days=90)
+        time_period = 90
+    
+    # Get usernames to exclude (own accounts)
+    exclude_usernames = list(user_accounts.values_list('username', flat=True))
+    
+    # Build base queries for posts from user's accounts
+    user_posts = PixelfedPost.objects.filter(account__in=user_accounts)
+    
+    # Count engagement per user
+    engagement_scores = defaultdict(lambda: {'likes': 0, 'comments': 0, 'shares': 0, 'total': 0})
+    
+    # Count likes
+    likes_query = PixelfedLike.objects.filter(post__in=user_posts).exclude(username__in=exclude_usernames)
+    if cutoff_date:
+        likes_query = likes_query.filter(first_seen_at__gte=cutoff_date)
+    
+    likes_data = likes_query.values('username').annotate(count=Count('id'))
+    for item in likes_data:
+        engagement_scores[item['username']]['likes'] = item['count']
+    
+    # Count comments (weighted 3x)
+    comments_query = PixelfedComment.objects.filter(post__in=user_posts).exclude(username__in=exclude_usernames)
+    if cutoff_date:
+        comments_query = comments_query.filter(commented_at__gte=cutoff_date)
+    
+    comments_data = comments_query.values('username').annotate(count=Count('id'))
+    for item in comments_data:
+        engagement_scores[item['username']]['comments'] = item['count']
+    
+    # Count shares (weighted 2x)
+    shares_query = PixelfedShare.objects.filter(post__in=user_posts).exclude(username__in=exclude_usernames)
+    if cutoff_date:
+        shares_query = shares_query.filter(first_seen_at__gte=cutoff_date)
+    
+    shares_data = shares_query.values('username').annotate(count=Count('id'))
+    for item in shares_data:
+        engagement_scores[item['username']]['shares'] = item['count']
+    
+    # Calculate weighted total engagement score
+    top_engagers_list = []
+    for username, scores in engagement_scores.items():
+        weighted_score = scores['likes'] + (scores['comments'] * 3) + (scores['shares'] * 2)
+        total_interactions = scores['likes'] + scores['comments'] + scores['shares']
+        
+        top_engagers_list.append({
+            'username': username,
+            'likes': scores['likes'],
+            'comments': scores['comments'],
+            'shares': scores['shares'],
+            'total_interactions': total_interactions,
+            'engagement_score': weighted_score,
+        })
+    
+    # Sort by engagement score (descending)
+    top_engagers_list = sorted(top_engagers_list, key=lambda x: x['engagement_score'], reverse=True)
+    
+    # Limit to top 50
+    top_engagers_list = top_engagers_list[:50]
+    
+    context = {
+        'top_engagers': top_engagers_list,
+        'time_period': time_period,
+        'accounts': user_accounts,
+        'has_data': len(top_engagers_list) > 0,
+    }
+    
+    return render(request, 'analytics_pixelfed/top_engagers.html', context)
