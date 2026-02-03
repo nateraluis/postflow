@@ -14,14 +14,16 @@
 - **Impact**: Visual, motivational, helps build consistency habit
 - **Difficulty**: Medium
 
-#### 2. **Top Engagers / Super Fans Dashboard** 👥
-- Leaderboard of users who engage most with your content
-- Show total likes + comments per user
-- Display username, display name, and interaction counts
-- Filter by time period (all-time, 30/90 days)
-- **Data**: `PixelfedLike.username`, `PixelfedComment.username` (aggregate by user)
-- **Impact**: High - builds community, identifies loyal audience
-- **Difficulty**: Easy
+#### 2. ~~**Top Engagers / Super Fans Dashboard**~~ ✅ **COMPLETED**
+- ✅ Leaderboard of users who engage most with your content
+- ✅ Show total likes + comments per user
+- ✅ Display username and interaction counts
+- ✅ Filter by time period (all-time, 30/90 days)
+- ✅ Implemented for **Pixelfed** and **Mastodon** (full engagement data available)
+- ❌ **Not implemented for Instagram** - API doesn't provide commenter usernames
+- **Data**: Aggregates from likes/favourites, comments/replies, shares/reblogs
+- **Implementation**: Shared template `analytics/shared/top_engagers.html`
+- **Features**: Top 3 widget on dashboard, dedicated leaderboard page, weighted scoring (comments 3x, shares 2x, likes 1x)
 
 #### 3. **Best Time to Post Analysis** ⏰
 - Heatmap showing average engagement by day of week + hour

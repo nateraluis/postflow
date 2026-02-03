@@ -84,6 +84,66 @@ def dashboard(request):
         'engagement_summary'
     ).order_by('-engagement_summary__total_engagement', '-posted_at').first()
 
+    # Get top 3 engagers
+    exclude_usernames = list(user_accounts.values_list('username', flat=True))
+    user_posts = PixelfedPost.objects.filter(account__in=user_accounts)
+
+    engagement_scores = defaultdict(lambda: {'likes': 0, 'comments': 0, 'shares': 0})
+
+    # Count likes
+    likes_data = PixelfedLike.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(count=Count('id'))
+    for item in likes_data:
+        engagement_scores[item['username']]['likes'] = item['count']
+
+    # Count comments (weighted 3x)
+    comments_data = PixelfedComment.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(count=Count('id'))
+    for item in comments_data:
+        engagement_scores[item['username']]['comments'] = item['count']
+
+    # Count shares (weighted 2x)
+    shares_data = PixelfedShare.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(count=Count('id'))
+    for item in shares_data:
+        engagement_scores[item['username']]['shares'] = item['count']
+
+    # Calculate top 3 engagers
+    top_engagers_list = []
+    for username, scores in engagement_scores.items():
+        weighted_score = scores['likes'] + (scores['comments'] * 3) + (scores['shares'] * 2)
+        total_interactions = scores['likes'] + scores['comments'] + scores['shares']
+
+        top_engagers_list.append({
+            'username': username,
+            'likes': scores['likes'],
+            'comments': scores['comments'],
+            'shares': scores['shares'],
+            'total_interactions': total_interactions,
+            'engagement_score': weighted_score,
+        })
+
+    top_engagers_list = sorted(top_engagers_list, key=lambda x: x['engagement_score'], reverse=True)[:3]
+
+    # Calculate engagement distribution for widget
+    total_engagement_sum = (total_engagement['total_likes'] or 0) + (total_engagement['total_comments'] or 0) + (total_engagement['total_shares'] or 0)
+    if total_engagement_sum > 0:
+        engagement_distribution = {
+            'total_likes': total_engagement['total_likes'] or 0,
+            'total_comments': total_engagement['total_comments'] or 0,
+            'total_shares': total_engagement['total_shares'] or 0,
+            'total_engagement': total_engagement_sum,
+            'likes_percentage': round(((total_engagement['total_likes'] or 0) / total_engagement_sum) * 100, 2),
+            'comments_percentage': round(((total_engagement['total_comments'] or 0) / total_engagement_sum) * 100, 2),
+            'shares_percentage': round(((total_engagement['total_shares'] or 0) / total_engagement_sum) * 100, 2),
+            'has_data': True,
+        }
+    else:
+        engagement_distribution = {'has_data': False}
+
     # Get base context from utility function
     context = get_base_analytics_context(request, 'pixelfed')
 
@@ -97,6 +157,8 @@ def dashboard(request):
         'total_likes': total_engagement['total_likes'] or 0,
         'total_comments': total_engagement['total_comments'] or 0,
         'total_shares': total_engagement['total_shares'] or 0,
+        'top_engagers': top_engagers_list,
+        'engagement_data': engagement_distribution,
     })
 
     return render(request, 'analytics/shared/dashboard.html', context)
@@ -375,75 +437,80 @@ def _get_engagement_timeline(post):
 
     return sorted_timeline
 
+
 @login_required
-def top_engagers(request):
+def engagement_distribution(request):
     """
-    Display top engagers (super fans) dashboard.
-    
-    Shows users who engage most with your content through likes, comments, and shares.
-    Comments are weighted 3x, shares 2x to reflect deeper engagement.
+    Display engagement type distribution (likes vs comments vs shares) with top engagers.
+
+    Shows donut chart visualization of engagement patterns and table of top engagers
+    to help understand audience behavior and engagement preferences.
     """
     # Get user's Pixelfed accounts
     user_accounts = MastodonAccount.objects.filter(
         user=request.user,
         instance_url__icontains='pixelfed'
     )
-    
-    # Get time period filter (default: all-time)
-    period = request.GET.get('period', 'all')
-    time_period = period
-    
-    # Calculate cutoff date based on period
-    cutoff_date = None
-    if period == '30':
-        cutoff_date = timezone.now() - timedelta(days=30)
-        time_period = 30
-    elif period == '90':
-        cutoff_date = timezone.now() - timedelta(days=90)
-        time_period = 90
-    
-    # Get usernames to exclude (own accounts)
+
+    # Aggregate engagement totals from all user posts
+    engagement_totals = PixelfedEngagementSummary.objects.filter(
+        post__account__in=user_accounts
+    ).aggregate(
+        total_likes=Sum('total_likes'),
+        total_comments=Sum('total_comments'),
+        total_shares=Sum('total_shares'),
+        total_engagement=Sum('total_engagement')
+    )
+
+    # Handle None values (no data case)
+    total_likes = engagement_totals['total_likes'] or 0
+    total_comments = engagement_totals['total_comments'] or 0
+    total_shares = engagement_totals['total_shares'] or 0
+    total_engagement = engagement_totals['total_engagement'] or 0
+
+    # Calculate percentages (avoid division by zero)
+    if total_engagement > 0:
+        likes_percentage = round((total_likes / total_engagement) * 100, 2)
+        comments_percentage = round((total_comments / total_engagement) * 100, 2)
+        shares_percentage = round((total_shares / total_engagement) * 100, 2)
+    else:
+        likes_percentage = 0
+        comments_percentage = 0
+        shares_percentage = 0
+
+    # Calculate top engagers (same logic as top_engagers view)
     exclude_usernames = list(user_accounts.values_list('username', flat=True))
-    
-    # Build base queries for posts from user's accounts
     user_posts = PixelfedPost.objects.filter(account__in=user_accounts)
-    
-    # Count engagement per user
+
     engagement_scores = defaultdict(lambda: {'likes': 0, 'comments': 0, 'shares': 0, 'total': 0})
-    
+
     # Count likes
-    likes_query = PixelfedLike.objects.filter(post__in=user_posts).exclude(username__in=exclude_usernames)
-    if cutoff_date:
-        likes_query = likes_query.filter(first_seen_at__gte=cutoff_date)
-    
-    likes_data = likes_query.values('username').annotate(count=Count('id'))
+    likes_data = PixelfedLike.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(count=Count('id'))
     for item in likes_data:
         engagement_scores[item['username']]['likes'] = item['count']
-    
+
     # Count comments (weighted 3x)
-    comments_query = PixelfedComment.objects.filter(post__in=user_posts).exclude(username__in=exclude_usernames)
-    if cutoff_date:
-        comments_query = comments_query.filter(commented_at__gte=cutoff_date)
-    
-    comments_data = comments_query.values('username').annotate(count=Count('id'))
+    comments_data = PixelfedComment.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(count=Count('id'))
     for item in comments_data:
         engagement_scores[item['username']]['comments'] = item['count']
-    
+
     # Count shares (weighted 2x)
-    shares_query = PixelfedShare.objects.filter(post__in=user_posts).exclude(username__in=exclude_usernames)
-    if cutoff_date:
-        shares_query = shares_query.filter(first_seen_at__gte=cutoff_date)
-    
-    shares_data = shares_query.values('username').annotate(count=Count('id'))
+    shares_data = PixelfedShare.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(count=Count('id'))
     for item in shares_data:
         engagement_scores[item['username']]['shares'] = item['count']
-    
+
     # Calculate weighted total engagement score
     top_engagers_list = []
     for username, scores in engagement_scores.items():
         weighted_score = scores['likes'] + (scores['comments'] * 3) + (scores['shares'] * 2)
         total_interactions = scores['likes'] + scores['comments'] + scores['shares']
-        
+
         top_engagers_list.append({
             'username': username,
             'likes': scores['likes'],
@@ -452,18 +519,47 @@ def top_engagers(request):
             'total_interactions': total_interactions,
             'engagement_score': weighted_score,
         })
-    
-    # Sort by engagement score (descending)
-    top_engagers_list = sorted(top_engagers_list, key=lambda x: x['engagement_score'], reverse=True)
-    
+
+    # Handle sorting from query parameters
+    sort_by = request.GET.get('sort', 'engagement_score')
+    sort_order = request.GET.get('order', 'desc')
+
+    # Define valid sort fields
+    valid_sort_fields = ['likes', 'comments', 'shares', 'total_interactions', 'engagement_score', 'username']
+    if sort_by not in valid_sort_fields:
+        sort_by = 'engagement_score'
+
+    # Sort the engagers list
+    reverse_sort = (sort_order == 'desc')
+    if sort_by == 'username':
+        top_engagers_list = sorted(top_engagers_list, key=lambda x: x[sort_by].lower(), reverse=reverse_sort)
+    else:
+        top_engagers_list = sorted(top_engagers_list, key=lambda x: x[sort_by], reverse=reverse_sort)
+
     # Limit to top 50
     top_engagers_list = top_engagers_list[:50]
-    
-    context = {
-        'top_engagers': top_engagers_list,
-        'time_period': time_period,
+
+    # Get base context from utility function
+    context = get_base_analytics_context(request, 'pixelfed')
+
+    # Add view-specific context
+    context.update({
+        'total_likes': total_likes,
+        'total_comments': total_comments,
+        'total_shares': total_shares,
+        'total_engagement': total_engagement,
+        'likes_percentage': likes_percentage,
+        'comments_percentage': comments_percentage,
+        'shares_percentage': shares_percentage,
         'accounts': user_accounts,
-        'has_data': len(top_engagers_list) > 0,
-    }
-    
-    return render(request, 'analytics_pixelfed/top_engagers.html', context)
+        'has_data': total_engagement > 0,
+        'top_engagers': top_engagers_list,
+        'sort_by': sort_by,
+        'sort_order': sort_order,
+    })
+
+    # If HTMX request, return the table with headers (so indicators update)
+    if request.headers.get('HX-Request'):
+        return render(request, 'analytics/shared/partials/engagers_table.html', context)
+
+    return render(request, 'analytics/shared/engagement_distribution.html', context)

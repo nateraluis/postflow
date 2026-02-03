@@ -95,6 +95,22 @@ def dashboard(request):
             account__in=user_accounts
         ).select_related('account').order_by('-posted_at').first()
 
+    # Calculate engagement distribution for widget
+    total_engagement_sum = (total_engagement['total_likes'] or 0) + (total_engagement['total_comments'] or 0) + (total_engagement['total_saved'] or 0)
+    if total_engagement_sum > 0:
+        engagement_distribution = {
+            'total_likes': total_engagement['total_likes'] or 0,
+            'total_comments': total_engagement['total_comments'] or 0,
+            'total_shares': total_engagement['total_saved'] or 0,  # Map saved to shares
+            'total_engagement': total_engagement_sum,
+            'likes_percentage': round(((total_engagement['total_likes'] or 0) / total_engagement_sum) * 100, 2),
+            'comments_percentage': round(((total_engagement['total_comments'] or 0) / total_engagement_sum) * 100, 2),
+            'shares_percentage': round(((total_engagement['total_saved'] or 0) / total_engagement_sum) * 100, 2),
+            'has_data': True,
+        }
+    else:
+        engagement_distribution = {'has_data': False}
+
     # Get base context from utility function
     context = get_base_analytics_context(request, 'instagram')
 
@@ -109,6 +125,7 @@ def dashboard(request):
         'total_comments': total_engagement['total_comments'] or 0,
         'total_saved': total_engagement['total_saved'] or 0,
         'total_reach': total_engagement['total_reach'] or 0,
+        'engagement_data': engagement_distribution,
     })
 
     return render(request, 'analytics/shared/dashboard.html', context)
@@ -237,3 +254,59 @@ def fetch_insights(request, account_id):
             'message': f'Error starting insights fetch: {str(e)}'
         }
         return render(request, 'analytics/shared/partials/toast.html', context)
+
+
+@login_required
+def engagement_distribution(request):
+    """
+    Display engagement type distribution for Instagram.
+
+    Shows donut chart visualization of engagement patterns. Note: Instagram
+    provides likes/comments/saved metrics (no individual engagement data).
+    """
+    # Get user's Instagram Business accounts
+    user_accounts = InstagramBusinessAccount.objects.filter(user=request.user)
+
+    # Aggregate engagement totals from all user posts
+    engagement_totals = InstagramEngagementSummary.objects.filter(
+        post__account__in=user_accounts
+    ).aggregate(
+        total_likes=Sum('total_likes'),
+        total_comments=Sum('total_comments'),
+        total_saved=Sum('total_saved'),
+        total_engagement=Sum('total_engagement')
+    )
+
+    # Handle None values (no data case)
+    total_likes = engagement_totals['total_likes'] or 0
+    total_comments = engagement_totals['total_comments'] or 0
+    total_shares = engagement_totals['total_saved'] or 0  # Map saved to shares for consistency
+    total_engagement = engagement_totals['total_engagement'] or 0
+
+    # Calculate percentages (avoid division by zero)
+    if total_engagement > 0:
+        likes_percentage = round((total_likes / total_engagement) * 100, 2)
+        comments_percentage = round((total_comments / total_engagement) * 100, 2)
+        shares_percentage = round((total_shares / total_engagement) * 100, 2)
+    else:
+        likes_percentage = 0
+        comments_percentage = 0
+        shares_percentage = 0
+
+    # Get base context from utility function
+    context = get_base_analytics_context(request, 'instagram')
+
+    # Add view-specific context
+    context.update({
+        'total_likes': total_likes,
+        'total_comments': total_comments,
+        'total_shares': total_shares,  # Actually "saved" for Instagram
+        'total_engagement': total_engagement,
+        'likes_percentage': likes_percentage,
+        'comments_percentage': comments_percentage,
+        'shares_percentage': shares_percentage,
+        'accounts': user_accounts,
+        'has_data': total_engagement > 0,
+    })
+
+    return render(request, 'analytics/shared/engagement_distribution.html', context)

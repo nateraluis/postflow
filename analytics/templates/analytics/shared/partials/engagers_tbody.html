@@ -1,0 +1,36 @@
+{% load analytics_filters %}
+{% for engager in top_engagers %}
+<tr class="{% if forloop.counter <= 3 %}bg-gray-50{% endif %} hover:bg-gray-100">
+    <td class="px-6 py-4 whitespace-nowrap text-sm">
+        {% if forloop.counter == 1 %}
+            <span class="text-xl">🥇</span>
+        {% elif forloop.counter == 2 %}
+            <span class="text-xl">🥈</span>
+        {% elif forloop.counter == 3 %}
+            <span class="text-xl">🥉</span>
+        {% else %}
+            <span class="text-gray-500">#{{ forloop.counter }}</span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+        <div class="text-sm font-medium text-gray-900">@{{ engager.username }}</div>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+        {{ engager.likes }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+        {{ engager.comments }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+        {{ engager.shares }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+        {{ engager.total_interactions }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-center">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            {{ engager.engagement_score }}
+        </span>
+    </td>
+</tr>
+{% endfor %}

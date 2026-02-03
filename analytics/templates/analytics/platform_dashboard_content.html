@@ -118,13 +118,13 @@
             <div class="px-4 py-4 flex items-center justify-between sm:px-6">
               <div class="flex items-center min-w-0 flex-1">
                 <div class="flex-shrink-0">
-                  <svg class="h-8 w-8 text-indigo-600" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-8 w-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
                   </svg>
                 </div>
                 <div class="min-w-0 flex-1 px-4">
                   <div>
-                    <p class="text-sm font-medium text-indigo-600 truncate">@{{ account.username }}</p>
+                    <p class="text-sm font-medium text-gray-900 truncate">@{{ account.username }}</p>
                     <p class="text-sm text-gray-500">{{ account.instance_url }}</p>
                   </div>
                 </div>
@@ -136,8 +136,8 @@
                   hx-target="#toast-container"
                   hx-swap="afterbegin"
                   hx-indicator="#sync-spinner-{{ account.id }}"
-                  class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                  <svg id="sync-spinner-{{ account.id }}" class="htmx-indicator animate-spin h-4 w-4 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                  class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                  <svg id="sync-spinner-{{ account.id }}" class="htmx-indicator animate-spin h-4 w-4 mr-2 text-gray-600" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -198,7 +198,7 @@
                 <a href="{{ top_post.post_url }}"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+                   class="text-violet-600 hover:text-violet-700 text-sm font-medium">
                   View on {{ platform_name }} →
                 </a>
               </div>
@@ -235,7 +235,7 @@
                   <span class="text-xs text-gray-500 ml-1">{{ engagement_labels.metric3 }}</span>
                 </div>
                 <div class="flex items-center">
-                  <span class="text-sm font-bold text-indigo-600">{{ top_post.engagement_summary.total_engagement }}</span>
+                  <span class="text-sm font-bold text-gray-900">{{ top_post.engagement_summary.total_engagement }}</span>
                   <span class="text-xs text-gray-500 ml-1">total engagement</span>
                 </div>
               </div>

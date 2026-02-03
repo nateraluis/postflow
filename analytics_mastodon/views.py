@@ -9,6 +9,7 @@ from django.db.models import Sum, Count, Q, F, Value
 from django.db.models.functions import Coalesce
 from datetime import timedelta
 from django.utils import timezone
+from collections import defaultdict
 
 from .models import MastodonPost, MastodonEngagementSummary
 from mastodon_native.models import MastodonAccount
@@ -82,6 +83,79 @@ def dashboard(request):
         'engagement_summary'
     ).order_by('-engagement_summary__total_engagement', '-posted_at').first()
 
+    # Get top 3 engagers
+    from collections import defaultdict
+    user_posts = MastodonPost.objects.filter(account__in=user_accounts)
+
+    # Exclude own usernames from top engagers
+    exclude_usernames = list(user_accounts.values_list('username', flat=True))
+
+    # Aggregate engagement by user
+    engagement_scores = defaultdict(lambda: {'favourites': 0, 'replies': 0, 'reblogs': 0})
+
+    # Count favourites
+    from .models import MastodonFavourite, MastodonReply, MastodonReblog
+    favourites = MastodonFavourite.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(
+        favourite_count=Count('id')
+    )
+    for fav in favourites:
+        engagement_scores[fav['username']]['favourites'] = fav['favourite_count']
+
+    # Count replies
+    replies = MastodonReply.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(
+        reply_count=Count('id')
+    )
+    for reply in replies:
+        engagement_scores[reply['username']]['replies'] = reply['reply_count']
+
+    # Count reblogs
+    reblogs = MastodonReblog.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(
+        reblog_count=Count('id')
+    )
+    for reblog in reblogs:
+        engagement_scores[reblog['username']]['reblogs'] = reblog['reblog_count']
+
+    # Calculate weighted engagement scores and format for template
+    top_engagers_list = []
+    for username, scores in engagement_scores.items():
+        total_interactions = scores['favourites'] + scores['replies'] + scores['reblogs']
+        # Weighted scoring: Comments 3x, Reblogs 2x, Favourites 1x
+        weighted_score = scores['favourites'] + (scores['replies'] * 3) + (scores['reblogs'] * 2)
+
+        top_engagers_list.append({
+            'username': username,
+            'likes': scores['favourites'],
+            'comments': scores['replies'],
+            'shares': scores['reblogs'],
+            'total_interactions': total_interactions,
+            'engagement_score': weighted_score,
+        })
+
+    # Sort by engagement score and take top 3
+    top_engagers_list = sorted(top_engagers_list, key=lambda x: x['engagement_score'], reverse=True)[:3]
+
+    # Calculate engagement distribution for widget
+    total_engagement_sum = (total_engagement['total_favourites'] or 0) + (total_engagement['total_replies'] or 0) + (total_engagement['total_reblogs'] or 0)
+    if total_engagement_sum > 0:
+        engagement_distribution = {
+            'total_likes': total_engagement['total_favourites'] or 0,
+            'total_comments': total_engagement['total_replies'] or 0,
+            'total_shares': total_engagement['total_reblogs'] or 0,
+            'total_engagement': total_engagement_sum,
+            'likes_percentage': round(((total_engagement['total_favourites'] or 0) / total_engagement_sum) * 100, 2),
+            'comments_percentage': round(((total_engagement['total_replies'] or 0) / total_engagement_sum) * 100, 2),
+            'shares_percentage': round(((total_engagement['total_reblogs'] or 0) / total_engagement_sum) * 100, 2),
+            'has_data': True,
+        }
+    else:
+        engagement_distribution = {'has_data': False}
+
     # Get base context from utility function
     context = get_base_analytics_context(request, 'mastodon')
 
@@ -95,6 +169,8 @@ def dashboard(request):
         'total_favourites': total_engagement['total_favourites'] or 0,
         'total_replies': total_engagement['total_replies'] or 0,
         'total_reblogs': total_engagement['total_reblogs'] or 0,
+        'top_engagers': top_engagers_list,
+        'engagement_data': engagement_distribution,
     })
 
     return render(request, 'analytics/shared/dashboard.html', context)
@@ -320,6 +396,131 @@ def stats_partial(request):
     }
 
     return render(request, 'analytics_mastodon/partials/stats.html', context)
+
+
+@login_required
+def engagement_distribution(request):
+    """
+    Display engagement type distribution (favourites vs replies vs reblogs) with top engagers.
+
+    Shows donut chart visualization of engagement patterns and table of top engagers
+    to help understand audience behavior and engagement preferences.
+    """
+    # Get user's Mastodon accounts
+    user_accounts = MastodonAccount.objects.filter(user=request.user)
+
+    # Aggregate engagement totals from all user posts
+    engagement_totals = MastodonEngagementSummary.objects.filter(
+        post__account__in=user_accounts
+    ).aggregate(
+        total_favourites=Sum('total_favourites'),
+        total_replies=Sum('total_replies'),
+        total_reblogs=Sum('total_reblogs'),
+        total_engagement=Sum('total_engagement')
+    )
+
+    # Handle None values (no data case)
+    total_likes = engagement_totals['total_favourites'] or 0
+    total_comments = engagement_totals['total_replies'] or 0
+    total_shares = engagement_totals['total_reblogs'] or 0
+    total_engagement = engagement_totals['total_engagement'] or 0
+
+    # Calculate percentages (avoid division by zero)
+    if total_engagement > 0:
+        likes_percentage = round((total_likes / total_engagement) * 100, 2)
+        comments_percentage = round((total_comments / total_engagement) * 100, 2)
+        shares_percentage = round((total_shares / total_engagement) * 100, 2)
+    else:
+        likes_percentage = 0
+        comments_percentage = 0
+        shares_percentage = 0
+
+    # Calculate top engagers (same logic as top_engagers view)
+    user_posts = MastodonPost.objects.filter(account__in=user_accounts)
+    exclude_usernames = list(user_accounts.values_list('username', flat=True))
+
+    from .models import MastodonFavourite, MastodonReply, MastodonReblog
+    engagement_scores = defaultdict(lambda: {'favourites': 0, 'replies': 0, 'reblogs': 0})
+
+    # Count favourites
+    favourites = MastodonFavourite.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(favourite_count=Count('id'))
+    for fav in favourites:
+        engagement_scores[fav['username']]['favourites'] = fav['favourite_count']
+
+    # Count replies
+    replies = MastodonReply.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(reply_count=Count('id'))
+    for reply in replies:
+        engagement_scores[reply['username']]['replies'] = reply['reply_count']
+
+    # Count reblogs
+    reblogs = MastodonReblog.objects.filter(
+        post__in=user_posts
+    ).exclude(username__in=exclude_usernames).values('username').annotate(reblog_count=Count('id'))
+    for reblog in reblogs:
+        engagement_scores[reblog['username']]['reblogs'] = reblog['reblog_count']
+
+    # Calculate weighted engagement scores
+    top_engagers_list = []
+    for username, scores in engagement_scores.items():
+        total_interactions = scores['favourites'] + scores['replies'] + scores['reblogs']
+        weighted_score = scores['favourites'] + (scores['replies'] * 3) + (scores['reblogs'] * 2)
+
+        top_engagers_list.append({
+            'username': username,
+            'likes': scores['favourites'],
+            'comments': scores['replies'],
+            'shares': scores['reblogs'],
+            'total_interactions': total_interactions,
+            'engagement_score': weighted_score,
+        })
+
+    # Handle sorting from query parameters
+    sort_by = request.GET.get('sort', 'engagement_score')
+    sort_order = request.GET.get('order', 'desc')
+
+    # Define valid sort fields
+    valid_sort_fields = ['likes', 'comments', 'shares', 'total_interactions', 'engagement_score', 'username']
+    if sort_by not in valid_sort_fields:
+        sort_by = 'engagement_score'
+
+    # Sort the engagers list
+    reverse_sort = (sort_order == 'desc')
+    if sort_by == 'username':
+        top_engagers_list = sorted(top_engagers_list, key=lambda x: x[sort_by].lower(), reverse=reverse_sort)
+    else:
+        top_engagers_list = sorted(top_engagers_list, key=lambda x: x[sort_by], reverse=reverse_sort)
+
+    # Limit to top 50
+    top_engagers_list = top_engagers_list[:50]
+
+    # Get base context from utility function
+    context = get_base_analytics_context(request, 'mastodon')
+
+    # Add view-specific context
+    context.update({
+        'total_likes': total_likes,
+        'total_comments': total_comments,
+        'total_shares': total_shares,
+        'total_engagement': total_engagement,
+        'likes_percentage': likes_percentage,
+        'comments_percentage': comments_percentage,
+        'shares_percentage': shares_percentage,
+        'accounts': user_accounts,
+        'has_data': total_engagement > 0,
+        'top_engagers': top_engagers_list,
+        'sort_by': sort_by,
+        'sort_order': sort_order,
+    })
+
+    # If HTMX request, return the table with headers (so indicators update)
+    if request.headers.get('HX-Request'):
+        return render(request, 'analytics/shared/partials/engagers_table.html', context)
+
+    return render(request, 'analytics/shared/engagement_distribution.html', context)
 
 
 def _get_engagement_timeline(post):

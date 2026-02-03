@@ -1,0 +1,547 @@
+{% load humanize %}
+{% comment %}
+Cross-platform comparison visualization
+Shows comparative bar charts for engagement metrics across Instagram, Mastodon, and Pixelfed
+{% endcomment %}
+
+<!-- Platform Comparison Card -->
+<div class="bg-white shadow rounded-lg overflow-hidden mb-8">
+  <div class="p-6">
+    <div class="mb-6">
+      <h2 class="text-lg font-semibold text-gray-900">Platform Comparison</h2>
+      <p class="text-sm text-gray-500">Compare engagement metrics across your connected platforms</p>
+    </div>
+
+    {% if has_pixelfed or has_mastodon or has_instagram %}
+      <!-- Summary Stats Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <!-- Pixelfed -->
+        <div class="bg-gray-50 rounded-lg p-4 platform-summary-card transition-all duration-300 cursor-pointer hover:shadow-md" data-platform="Pixelfed">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-medium text-gray-900">Pixelfed</h3>
+            {% if has_pixelfed %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                Active
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                Inactive
+              </span>
+            {% endif %}
+          </div>
+          {% if pixelfed_stats %}
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Posts</span>
+                <span class="font-semibold text-gray-900">{{ pixelfed_stats.total_posts|intcomma }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Likes</span>
+                <span class="font-semibold text-gray-900">{{ pixelfed_stats.total_likes|intcomma }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Comments</span>
+                <span class="font-semibold text-gray-900">{{ pixelfed_stats.total_comments|intcomma }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Shares</span>
+                <span class="font-semibold text-gray-900">{{ pixelfed_stats.total_shares|intcomma }}</span>
+              </div>
+            </div>
+          {% else %}
+            <p class="text-xs text-gray-500">No data available</p>
+          {% endif %}
+        </div>
+
+        <!-- Mastodon -->
+        <div class="bg-gray-50 rounded-lg p-4 platform-summary-card transition-all duration-300 cursor-pointer hover:shadow-md" data-platform="Mastodon">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-medium text-gray-900">Mastodon</h3>
+            {% if has_mastodon %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                Active
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                Inactive
+              </span>
+            {% endif %}
+          </div>
+          {% if mastodon_stats %}
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Posts</span>
+                <span class="font-semibold text-gray-900">{{ mastodon_stats.total_posts|intcomma }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Favourites</span>
+                <span class="font-semibold text-gray-900">{{ mastodon_stats.total_favourites|intcomma }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Replies</span>
+                <span class="font-semibold text-gray-900">{{ mastodon_stats.total_replies|intcomma }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Reblogs</span>
+                <span class="font-semibold text-gray-900">{{ mastodon_stats.total_reblogs|intcomma }}</span>
+              </div>
+            </div>
+          {% else %}
+            <p class="text-xs text-gray-500">No data available</p>
+          {% endif %}
+        </div>
+
+        <!-- Instagram -->
+        <div class="bg-gray-50 rounded-lg p-4 platform-summary-card transition-all duration-300 cursor-pointer hover:shadow-md" data-platform="Instagram">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-medium text-gray-900">Instagram</h3>
+            {% if has_instagram %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                Active
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                Inactive
+              </span>
+            {% endif %}
+          </div>
+          {% if instagram_stats %}
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Posts</span>
+                <span class="font-semibold text-gray-900">{{ instagram_stats.total_posts|intcomma }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Likes</span>
+                <span class="font-semibold text-gray-900">{{ instagram_stats.total_likes|intcomma }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Comments</span>
+                <span class="font-semibold text-gray-900">{{ instagram_stats.total_comments|intcomma }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Saved</span>
+                <span class="font-semibold text-gray-900">{{ instagram_stats.total_saved|intcomma }}</span>
+              </div>
+            </div>
+          {% else %}
+            <p class="text-xs text-gray-500">No data available</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Grouped Bar Chart Comparison -->
+      <div>
+        <h3 class="text-sm font-medium text-gray-900 mb-4">Engagement Metrics by Platform</h3>
+        <div id="platform-comparison-chart" class="overflow-x-auto"></div>
+
+        <!-- Legend -->
+        <div class="flex flex-wrap items-center justify-center gap-4 mt-6">
+          <div class="flex items-center space-x-2 legend-item transition-all duration-300 cursor-pointer hover:opacity-80" data-platform="Pixelfed">
+            <div class="w-4 h-4 rounded bg-amber-500"></div>
+            <span class="text-xs text-gray-600">Pixelfed</span>
+          </div>
+          <div class="flex items-center space-x-2 legend-item transition-all duration-300 cursor-pointer hover:opacity-80" data-platform="Mastodon">
+            <div class="w-4 h-4 rounded bg-violet-500"></div>
+            <span class="text-xs text-gray-600">Mastodon</span>
+          </div>
+          <div class="flex items-center space-x-2 legend-item transition-all duration-300 cursor-pointer hover:opacity-80" data-platform="Instagram">
+            <div class="w-4 h-4 rounded bg-pink-500"></div>
+            <span class="text-xs text-gray-600">Instagram</span>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No platforms connected</h3>
+        <p class="mt-1 text-sm text-gray-500">Connect at least one platform to see comparison data</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- D3.js Chart Script -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(function() {
+  // Only render if we have data
+  {% if has_pixelfed or has_mastodon or has_instagram %}
+
+    // Restructured data grouped by metric
+    const platforms = ['Pixelfed', 'Mastodon', 'Instagram'];
+    const platformData = {
+      'Pixelfed': {
+        active: {{ has_pixelfed|yesno:"true,false" }},
+        likes: {{ pixelfed_stats.total_likes|default:0 }},
+        comments: {{ pixelfed_stats.total_comments|default:0 }},
+        shares: {{ pixelfed_stats.total_shares|default:0 }}
+      },
+      'Mastodon': {
+        active: {{ has_mastodon|yesno:"true,false" }},
+        likes: {{ mastodon_stats.total_favourites|default:0 }},
+        comments: {{ mastodon_stats.total_replies|default:0 }},
+        shares: {{ mastodon_stats.total_reblogs|default:0 }}
+      },
+      'Instagram': {
+        active: {{ has_instagram|yesno:"true,false" }},
+        likes: {{ instagram_stats.total_likes|default:0 }},
+        comments: {{ instagram_stats.total_comments|default:0 }},
+        shares: {{ instagram_stats.total_saved|default:0 }}
+      }
+    };
+
+    // Grouped by metric for comparison
+    const data = [
+      {
+        metric: 'Likes/Favourites',
+        Pixelfed: platformData.Pixelfed.likes,
+        Mastodon: platformData.Mastodon.likes,
+        Instagram: platformData.Instagram.likes
+      },
+      {
+        metric: 'Comments/Replies',
+        Pixelfed: platformData.Pixelfed.comments,
+        Mastodon: platformData.Mastodon.comments,
+        Instagram: platformData.Instagram.comments
+      },
+      {
+        metric: 'Shares/Reblogs/Saved',
+        Pixelfed: platformData.Pixelfed.shares,
+        Mastodon: platformData.Mastodon.shares,
+        Instagram: platformData.Instagram.shares
+      }
+    ];
+
+    // Muted, sophisticated colors inspired by modern data viz
+    const colors = {
+      Pixelfed: '#f59e0b',   // amber-500 - warm, muted orange
+      Mastodon: '#8b5cf6',   // violet-500 - soft purple
+      Instagram: '#ec4899'   // pink-500 - muted pink
+    };
+
+    // State management
+    let selectedPlatform = null;
+    let svg = null;
+
+    function createGroupedBarChart() {
+      const container = d3.select('#platform-comparison-chart');
+      const containerWidth = container.node().getBoundingClientRect().width;
+
+      const margin = { top: 20, right: 20, bottom: 80, left: 80 };
+      const width = Math.max(containerWidth - margin.left - margin.right, 400);
+      const height = 400 - margin.top - margin.bottom;
+
+      // Clear any existing chart
+      container.selectAll('*').remove();
+
+      svg = container
+        .append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+      // X0 scale (metrics)
+      const x0 = d3.scaleBand()
+        .domain(data.map(d => d.metric))
+        .range([0, width])
+        .padding(0.2);
+
+      // X1 scale (platforms within each metric)
+      const x1 = d3.scaleBand()
+        .domain(platforms)
+        .range([0, x0.bandwidth()])
+        .padding(0.1);
+
+      // Y scale
+      const maxValue = d3.max(data, d => Math.max(d.Pixelfed, d.Mastodon, d.Instagram)) || 1;
+      const y = d3.scaleLinear()
+        .domain([0, maxValue])
+        .nice()
+        .range([height, 0]);
+
+      // X axis
+      svg.append('g')
+        .attr('transform', `translate(0, ${height})`)
+        .call(d3.axisBottom(x0))
+        .selectAll('text')
+        .style('font-size', '0.875rem')
+        .style('fill', '#374151')
+        .style('font-weight', '500')
+        .attr('transform', 'rotate(-15)')
+        .attr('text-anchor', 'end');
+
+      // Y axis
+      svg.append('g')
+        .call(d3.axisLeft(y).ticks(5).tickFormat(d => d.toLocaleString()))
+        .selectAll('text')
+        .style('font-size', '0.75rem')
+        .style('fill', '#6b7280');
+
+      // Remove all axis lines for minimal look
+      svg.selectAll('.domain').remove();
+      svg.selectAll('.tick line').remove();
+
+      // Create groups for each metric
+      const metricGroups = svg.selectAll('.metric-group')
+        .data(data)
+        .enter()
+        .append('g')
+        .attr('class', 'metric-group')
+        .attr('transform', d => `translate(${x0(d.metric)}, 0)`);
+
+      // Create tooltip
+      const tooltip = d3.select('body').selectAll('.chart-tooltip').data([null]);
+      const tooltipEnter = tooltip.enter().append('div')
+        .attr('class', 'chart-tooltip')
+        .style('position', 'absolute')
+        .style('visibility', 'hidden')
+        .style('background-color', 'rgba(17, 24, 39, 0.95)')
+        .style('color', 'white')
+        .style('padding', '10px 14px')
+        .style('border-radius', '8px')
+        .style('font-size', '0.875rem')
+        .style('pointer-events', 'none')
+        .style('z-index', '1000')
+        .style('box-shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)');
+
+      const tooltipDiv = tooltip.merge(tooltipEnter);
+
+      // Add bars for each platform with interactivity
+      metricGroups.selectAll('rect')
+        .data(d => platforms.map(platform => ({
+          platform: platform,
+          value: d[platform],
+          metric: d.metric,
+          active: platformData[platform].active
+        })))
+        .enter()
+        .append('rect')
+        .attr('x', d => x1(d.platform))
+        .attr('y', d => y(d.value))
+        .attr('width', x1.bandwidth())
+        .attr('height', d => height - y(d.value))
+        .attr('fill', d => {
+          if (!d.active) return '#e5e7eb';
+          if (selectedPlatform && selectedPlatform !== d.platform) return '#e5e7eb';
+          return colors[d.platform];
+        })
+        .attr('rx', 6)
+        .style('opacity', d => {
+          if (!d.active) return 0.5;
+          if (selectedPlatform && selectedPlatform !== d.platform) return 0.3;
+          return 0.9;
+        })
+        .style('cursor', d => d.active ? 'pointer' : 'default')
+        .style('transition', 'all 0.2s ease')
+        .on('mouseover', function(event, d) {
+          if (!d.active) return;
+
+          d3.select(this)
+            .style('opacity', 1)
+            .attr('transform', 'scale(1.05)');
+
+          tooltipDiv
+            .style('visibility', 'visible')
+            .html(`
+              <div style="font-weight: 600; margin-bottom: 4px;">${d.platform}</div>
+              <div style="color: #d1d5db; font-size: 0.75rem;">${d.metric}</div>
+              <div style="font-size: 1.25rem; font-weight: 700; margin-top: 6px; color: ${colors[d.platform]};">
+                ${d.value.toLocaleString()}
+              </div>
+            `);
+        })
+        .on('mousemove', function(event) {
+          tooltipDiv
+            .style('top', (event.pageY - 10) + 'px')
+            .style('left', (event.pageX + 10) + 'px');
+        })
+        .on('mouseout', function(event, d) {
+          if (!d.active) return;
+
+          d3.select(this)
+            .style('opacity', d => {
+              if (selectedPlatform && selectedPlatform !== d.platform) return 0.3;
+              return 0.9;
+            })
+            .attr('transform', 'scale(1)');
+
+          tooltipDiv.style('visibility', 'hidden');
+        })
+        .on('click', function(event, d) {
+          if (!d.active) return;
+
+          event.stopPropagation();
+
+          // Toggle selection
+          if (selectedPlatform === d.platform) {
+            selectedPlatform = null;
+          } else {
+            selectedPlatform = d.platform;
+          }
+
+          // Update chart
+          updateChartFilter();
+          updateSummaryCards();
+        });
+
+      // Add value labels on top of bars with better styling
+      metricGroups.selectAll('.value-label')
+        .data(d => platforms.map(platform => ({
+          platform: platform,
+          value: d[platform],
+          metric: d.metric,
+          active: platformData[platform].active
+        })))
+        .enter()
+        .append('text')
+        .attr('class', 'value-label')
+        .attr('x', d => x1(d.platform) + x1.bandwidth() / 2)
+        .attr('y', d => d.value > 0 ? y(d.value) - 8 : y(0) - 8)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '0.7rem')
+        .style('fill', '#374151')  // Darker for better contrast
+        .style('font-weight', '600')
+        .style('letter-spacing', '0.01em')
+        .text(d => d.value > 0 ? d.value.toLocaleString() : '');
+
+      // Y-axis label (simplified)
+      svg.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 0 - margin.left + 20)
+        .attr('x', 0 - (height / 2))
+        .style('text-anchor', 'middle')
+        .style('font-size', '0.7rem')
+        .style('fill', '#9ca3af')
+        .style('font-weight', '500')
+        .text('Engagement');
+    }
+
+    // Update chart filter
+    function updateChartFilter() {
+      svg.selectAll('rect')
+        .transition()
+        .duration(300)
+        .style('opacity', function() {
+          const d = d3.select(this).datum();
+          if (!d.active) return 0.5;
+          if (selectedPlatform && selectedPlatform !== d.platform) return 0.3;
+          return 0.9;
+        })
+        .attr('fill', function() {
+          const d = d3.select(this).datum();
+          if (!d.active) return '#e5e7eb';
+          if (selectedPlatform && selectedPlatform !== d.platform) return '#e5e7eb';
+          return colors[d.platform];
+        });
+
+      // Update legend
+      updateLegend();
+    }
+
+    // Update summary cards
+    function updateSummaryCards() {
+      const cards = document.querySelectorAll('.platform-summary-card');
+      cards.forEach(card => {
+        const platform = card.dataset.platform;
+        if (selectedPlatform) {
+          if (platform === selectedPlatform) {
+            card.style.opacity = '1';
+            card.style.transform = 'scale(1.02)';
+            card.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+          } else {
+            card.style.opacity = '0.4';
+            card.style.transform = 'scale(1)';
+            card.style.boxShadow = 'none';
+          }
+        } else {
+          card.style.opacity = '1';
+          card.style.transform = 'scale(1)';
+          card.style.boxShadow = 'none';
+        }
+      });
+    }
+
+    // Update legend highlighting
+    function updateLegend() {
+      const legendItems = document.querySelectorAll('.legend-item');
+      legendItems.forEach(item => {
+        const platform = item.dataset.platform;
+        if (selectedPlatform) {
+          if (platform === selectedPlatform) {
+            item.style.opacity = '1';
+            item.style.fontWeight = '600';
+          } else {
+            item.style.opacity = '0.4';
+            item.style.fontWeight = '400';
+          }
+        } else {
+          item.style.opacity = '1';
+          item.style.fontWeight = '400';
+        }
+      });
+    }
+
+    // Add click handlers to summary cards
+    document.querySelectorAll('.platform-summary-card').forEach(card => {
+      card.addEventListener('click', function(event) {
+        event.stopPropagation();
+        const platform = this.dataset.platform;
+
+        // Toggle selection
+        if (selectedPlatform === platform) {
+          selectedPlatform = null;
+        } else {
+          selectedPlatform = platform;
+        }
+
+        updateChartFilter();
+        updateSummaryCards();
+      });
+    });
+
+    // Add click handlers to legend items
+    document.querySelectorAll('.legend-item').forEach(item => {
+      item.addEventListener('click', function(event) {
+        event.stopPropagation();
+        const platform = this.dataset.platform;
+
+        // Toggle selection
+        if (selectedPlatform === platform) {
+          selectedPlatform = null;
+        } else {
+          selectedPlatform = platform;
+        }
+
+        updateChartFilter();
+        updateSummaryCards();
+      });
+    });
+
+    // Click outside to deselect
+    document.addEventListener('click', function(event) {
+      if (!event.target.closest('#platform-comparison-chart') &&
+          !event.target.closest('.platform-summary-card') &&
+          !event.target.closest('.legend-item')) {
+        if (selectedPlatform) {
+          selectedPlatform = null;
+          updateChartFilter();
+          updateSummaryCards();
+        }
+      }
+    });
+
+    // Create chart
+    createGroupedBarChart();
+
+    // Responsive resize
+    window.addEventListener('resize', () => {
+      createGroupedBarChart();
+    });
+
+  {% endif %}
+})();
+</script>

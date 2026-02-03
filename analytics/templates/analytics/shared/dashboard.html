@@ -92,8 +92,18 @@
       </div>
     </div>
 
-    <!-- Top Performing Post Section -->
-    {% include 'analytics/shared/partials/top_post.html' %}
+    <!-- Insights Grid: Top Post, Engagement Insights (Distribution + Top Engagers) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- Top Performing Post Card -->
+      <div>
+        {% include 'analytics/shared/partials/top_post.html' %}
+      </div>
+
+      <!-- Unified Engagement Insights Card -->
+      <div>
+        {% include 'analytics/shared/partials/engagement_insights_card.html' %}
+      </div>
+    </div>
 
     <!-- Posts Section with Sort -->
     {% if posts %}

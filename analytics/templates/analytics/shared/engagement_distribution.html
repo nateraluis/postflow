@@ -1,0 +1,441 @@
+{% extends "postflow/_base.html" %}
+{% load static %}
+{% load analytics_filters %}
+{% load humanize %}
+
+{% block title %}Engagement Distribution - {{ platform.name}} Analytics{% endblock %}
+
+{% block main %}
+<div class="mt-4 sm:mt-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center mb-2">
+            <a href="{% build_url platform.url_namespace 'dashboard' %}"
+               class="text-gray-500 hover:text-gray-700 mr-3">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Engagement Distribution</h1>
+        </div>
+        <p class="text-sm sm:text-base text-gray-600 ml-8">Understanding your audience's engagement patterns</p>
+    </div>
+
+    {% if has_data %}
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            <!-- Total Engagement -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <svg class="h-6 w-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Total Engagement</dt>
+                                <dd class="text-lg font-semibold text-gray-900">{{ total_engagement|intcomma }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Likes/Favourites -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            {% include 'analytics/shared/components/icons.html#heart-icon' with size='h-6 w-6' color='gray-400' %}
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">
+                                    {% if platform.slug == 'mastodon' %}Favourites{% else %}Likes{% endif %}
+                                </dt>
+                                <dd class="flex items-baseline">
+                                    <span class="text-lg font-semibold text-gray-900">{{ total_likes|intcomma }}</span>
+                                    <span class="ml-2 text-sm text-gray-500">{{ likes_percentage|floatformat:0 }}%</span>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comments/Replies -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            {% include 'analytics/shared/components/icons.html#comment-icon' with size='h-6 w-6' color='gray-400' %}
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">
+                                    {% if platform.slug == 'mastodon' %}Replies{% else %}Comments{% endif %}
+                                </dt>
+                                <dd class="flex items-baseline">
+                                    <span class="text-lg font-semibold text-gray-900">{{ total_comments|intcomma }}</span>
+                                    <span class="ml-2 text-sm text-gray-500">{{ comments_percentage|floatformat:0 }}%</span>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shares/Reblogs/Saved -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            {% if platform.slug == 'instagram' %}
+                                {% include 'analytics/shared/components/icons.html#bookmark-icon' with size='h-6 w-6' color='gray-400' %}
+                            {% else %}
+                                {% include 'analytics/shared/components/icons.html#share-icon' with size='h-6 w-6' color='gray-400' %}
+                            {% endif %}
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">
+                                    {% if platform.slug == 'mastodon' %}Reblogs{% elif platform.slug == 'instagram' %}Saved{% else %}Shares{% endif %}
+                                </dt>
+                                <dd class="flex items-baseline">
+                                    <span class="text-lg font-semibold text-gray-900">{{ total_shares|intcomma }}</span>
+                                    <span class="ml-2 text-sm text-gray-500">{{ shares_percentage|floatformat:0 }}%</span>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-6">Distribution Breakdown</h2>
+
+            <div class="flex flex-col lg:flex-row items-center gap-8">
+                <!-- Chart -->
+                <div class="flex-shrink-0">
+                    <div id="donut-chart" class="w-64 h-64 sm:w-80 sm:h-80"></div>
+                </div>
+
+                <!-- Legend -->
+                <div class="flex-1 w-full space-y-4">
+                    {% if likes_percentage > 0 %}
+                    <div class="metric-legend-item transition-all duration-300 cursor-pointer hover:bg-gray-50 rounded-lg p-3" data-metric="likes">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-amber-500 mr-2"></div>
+                                <span class="text-sm font-medium text-gray-700">
+                                    {% if platform.slug == 'mastodon' %}Favourites{% else %}Likes{% endif %}
+                                </span>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-900">{{ likes_percentage|floatformat:1 }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-amber-500 h-2 rounded-full transition-all duration-300" style="width: {{ likes_percentage }}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">{{ total_likes|intcomma }} interactions</p>
+                    </div>
+                    {% endif %}
+
+                    {% if comments_percentage > 0 %}
+                    <div class="metric-legend-item transition-all duration-300 cursor-pointer hover:bg-gray-50 rounded-lg p-3" data-metric="comments">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-violet-500 mr-2"></div>
+                                <span class="text-sm font-medium text-gray-700">
+                                    {% if platform.slug == 'mastodon' %}Replies{% else %}Comments{% endif %}
+                                </span>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-900">{{ comments_percentage|floatformat:1 }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-violet-500 h-2 rounded-full transition-all duration-300" style="width: {{ comments_percentage }}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">{{ total_comments|intcomma }} interactions</p>
+                    </div>
+                    {% endif %}
+
+                    {% if shares_percentage > 0 %}
+                    <div class="metric-legend-item transition-all duration-300 cursor-pointer hover:bg-gray-50 rounded-lg p-3" data-metric="shares">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-pink-500 mr-2"></div>
+                                <span class="text-sm font-medium text-gray-700">
+                                    {% if platform.slug == 'mastodon' %}Reblogs{% elif platform.slug == 'instagram' %}Saved{% else %}Shares{% endif %}
+                                </span>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-900">{{ shares_percentage|floatformat:1 }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-pink-500 h-2 rounded-full transition-all duration-300" style="width: {{ shares_percentage }}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">{{ total_shares|intcomma }} interactions</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Engagers (Not shown for Instagram) -->
+        {% if top_engagers and platform.slug != 'instagram' %}
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-gray-900">Top Engagers</h2>
+                <!-- Loading Indicator -->
+                <div id="sort-indicator" class="htmx-indicator">
+                    <svg class="animate-spin h-5 w-5 text-violet-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200" id="engagers-table">
+                    {% include 'analytics/shared/partials/engagers_table.html' %}
+                </table>
+            </div>
+
+            <div class="mt-4 text-xs text-gray-500">
+                <p>* Engagement score is weighted: Comments ×3, {% if platform.slug == 'mastodon' %}Reblogs{% else %}Shares{% endif %} ×2, {% if platform.slug == 'mastodon' %}Favourites{% else %}Likes{% endif %} ×1</p>
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="bg-white shadow rounded-lg p-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-gray-900">No engagement data yet</h3>
+            <p class="mt-2 text-sm text-gray-500">
+                Sync posts and fetch engagement from your connected accounts to see engagement distribution.
+            </p>
+            <div class="mt-6">
+                <a href="{% build_url platform.url_namespace 'dashboard' %}"
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900">
+                    Go to Dashboard
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- D3.js Script -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+{% if has_data %}
+(function() {
+  const data = [
+      {
+        value: {{ total_likes }},
+        color: '#f59e0b',  // amber-500
+        metric: 'likes',
+        label: '{% if platform.slug == "mastodon" %}Favourites{% else %}Likes{% endif %}'
+      },
+      {
+        value: {{ total_comments }},
+        color: '#8b5cf6',  // violet-500
+        metric: 'comments',
+        label: '{% if platform.slug == "mastodon" %}Replies{% else %}Comments{% endif %}'
+      },
+      {
+        value: {{ total_shares }},
+        color: '#ec4899',  // pink-500
+        metric: 'shares',
+        label: '{% if platform.slug == "mastodon" %}Reblogs{% elif platform.slug == "instagram" %}Saved{% else %}Shares{% endif %}'
+      }
+  ].filter(d => d.value > 0);
+
+  const width = window.innerWidth < 640 ? 256 : 320;
+  const height = window.innerWidth < 640 ? 256 : 320;
+  const radius = Math.min(width, height) / 2;
+
+  let selectedMetric = null;
+
+  const svg = d3.select('#donut-chart')
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+      .append('g')
+      .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+  const arc = d3.arc()
+      .innerRadius(radius * 0.6)
+      .outerRadius(radius);
+
+  const arcHover = d3.arc()
+      .innerRadius(radius * 0.6)
+      .outerRadius(radius * 1.05);
+
+  const pie = d3.pie()
+      .value(d => d.value)
+      .sort(null);
+
+  // Create tooltip
+  const tooltip = d3.select('body').selectAll('.donut-tooltip-dist').data([null]);
+  const tooltipEnter = tooltip.enter().append('div')
+      .attr('class', 'donut-tooltip-dist')
+      .style('position', 'absolute')
+      .style('visibility', 'hidden')
+      .style('background-color', 'rgba(17, 24, 39, 0.95)')
+      .style('color', 'white')
+      .style('padding', '10px 14px')
+      .style('border-radius', '8px')
+      .style('font-size', '0.875rem')
+      .style('pointer-events', 'none')
+      .style('z-index', '1000')
+      .style('box-shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1)');
+
+  const tooltipDiv = tooltip.merge(tooltipEnter);
+
+  const paths = svg.selectAll('path')
+      .data(pie(data))
+      .enter()
+      .append('path')
+      .attr('d', arc)
+      .attr('fill', d => d.data.color)
+      .attr('stroke', 'white')
+      .attr('stroke-width', 3)
+      .style('opacity', 0.9)
+      .style('cursor', 'pointer')
+      .style('transition', 'all 0.3s ease')
+      .on('mouseover', function(event, d) {
+        if (selectedMetric && selectedMetric !== d.data.metric) return;
+
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('d', arcHover)
+          .style('opacity', 1);
+
+        tooltipDiv
+          .style('visibility', 'visible')
+          .html(`
+            <div style="font-weight: 600; margin-bottom: 4px;">${d.data.label}</div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: ${d.data.color};">
+              ${d.data.value.toLocaleString()}
+            </div>
+            <div style="color: #d1d5db; font-size: 0.75rem; margin-top: 2px;">
+              ${((d.data.value / {{ total_engagement }}) * 100).toFixed(1)}%
+            </div>
+          `);
+      })
+      .on('mousemove', function(event) {
+        tooltipDiv
+          .style('top', (event.pageY - 10) + 'px')
+          .style('left', (event.pageX + 10) + 'px');
+      })
+      .on('mouseout', function(event, d) {
+        if (selectedMetric && selectedMetric !== d.data.metric) return;
+
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('d', arc)
+          .style('opacity', selectedMetric ? 1 : 0.9);
+
+        tooltipDiv.style('visibility', 'hidden');
+      })
+      .on('click', function(event, d) {
+        event.stopPropagation();
+
+        if (selectedMetric === d.data.metric) {
+          selectedMetric = null;
+        } else {
+          selectedMetric = d.data.metric;
+        }
+
+        updateDonutFilter();
+        updateLegendItems();
+      });
+
+  // Center text
+  const centerText = svg.append('g');
+  centerText.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '-0.2em')
+      .style('font-size', '2rem')
+      .style('font-weight', 'bold')
+      .style('fill', '#111827')
+      .text('{{ total_engagement|intcomma }}');
+
+  centerText.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '1.2em')
+      .style('font-size', '0.875rem')
+      .style('fill', '#6b7280')
+      .text('Total');
+
+  function updateDonutFilter() {
+    paths.transition()
+      .duration(300)
+      .attr('d', arc)
+      .style('opacity', function(d) {
+        if (!selectedMetric) return 0.9;
+        return d.data.metric === selectedMetric ? 1 : 0.3;
+      });
+  }
+
+  function updateLegendItems() {
+    const items = document.querySelectorAll('.metric-legend-item');
+    items.forEach(item => {
+      const metric = item.dataset.metric;
+      if (selectedMetric) {
+        if (metric === selectedMetric) {
+          item.style.opacity = '1';
+          item.style.transform = 'scale(1.02)';
+          item.style.backgroundColor = 'rgb(249, 250, 251)';
+        } else {
+          item.style.opacity = '0.4';
+          item.style.transform = 'scale(1)';
+          item.style.backgroundColor = 'transparent';
+        }
+      } else {
+        item.style.opacity = '1';
+        item.style.transform = 'scale(1)';
+        item.style.backgroundColor = 'transparent';
+      }
+    });
+  }
+
+  // Add click handlers to legend items
+  document.querySelectorAll('.metric-legend-item').forEach(item => {
+    item.addEventListener('click', function(event) {
+      event.stopPropagation();
+      const metric = this.dataset.metric;
+
+      if (selectedMetric === metric) {
+        selectedMetric = null;
+      } else {
+        selectedMetric = metric;
+      }
+
+      updateDonutFilter();
+      updateLegendItems();
+    });
+  });
+
+  // Click outside to deselect
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('#donut-chart') &&
+        !event.target.closest('.metric-legend-item')) {
+      if (selectedMetric) {
+        selectedMetric = null;
+        updateDonutFilter();
+        updateLegendItems();
+      }
+    }
+  });
+})();
+{% endif %}
+</script>
+{% endblock %}
