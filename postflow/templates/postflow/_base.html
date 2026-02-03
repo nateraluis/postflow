@@ -52,6 +52,15 @@
             setUserTimezone();  // Ensures timezone is set before HTMX request
         });
 
+        // Close mobile menu after HTMX navigation
+        document.addEventListener("htmx:afterSwap", function (event) {
+            // Check if the swap target is the main content area (indicates navigation)
+            if (event.detail.target.id === "content-area") {
+                // Dispatch custom event to close mobile menu via Alpine.js
+                window.dispatchEvent(new CustomEvent('close-mobile-menu'));
+            }
+        });
+
         function setUserTimezone() {
             let timezoneInput = document.getElementById("user_timezone");
             if (!timezoneInput) {
@@ -68,7 +77,7 @@
       </script>
     {% endblock %}
   </head>
-  <body hx-ext="debug, event-header" :class="{ 'overflow-hidden': mobileOpen }" x-data="{ mobileOpen: false }">
+  <body hx-ext="debug, event-header" :class="{ 'overflow-hidden': mobileOpen }" x-data="{ mobileOpen: false }" @close-mobile-menu.window="mobileOpen = false">
     <div class="lg:flex">
       <!-- Sidebar -->
     <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col bg-gray-900">
