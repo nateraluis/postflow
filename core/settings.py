@@ -155,7 +155,7 @@ else:
     AWS_STORAGE_BUCKET_NAME = env("S3_AWS_STORAGE_BUCKET_NAME")
     AWS_STORAGE_MEDIA_BUCKET_NAME = env("AWS_STORAGE_MEDIA_BUCKET_NAME")
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
-    AWS_S3_MEDIA_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+    AWS_S3_MEDIA_DOMAIN = f"{AWS_STORAGE_MEDIA_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
 
     STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
     MEDIA_URL = f"https://{AWS_S3_MEDIA_DOMAIN}/media/"
@@ -198,9 +198,12 @@ else:
             "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
             "OPTIONS": {
                 "bucket_name": AWS_STORAGE_MEDIA_BUCKET_NAME,
-                "access_key": AWS_ACCESS_KEY_ID,  # 🔹 Use MEDIA_ACCESS_KEY
-                "secret_key": AWS_SECRET_ACCESS_KEY,  # 🔹 Use MEDIA_SECRET_ACCESS_KEY
+                "access_key": MEDIA_ACCESS_KEY_ID,
+                "secret_key": MEDIA_SECRET_ACCESS_KEY,
                 "region_name": AWS_S3_REGION_NAME,
+                "querystring_auth": True,  # Require signed URLs
+                "querystring_expire": 3600,  # Signed URLs expire after 1 hour
+                "default_acl": None,  # No public ACL
                 },
             },
         }
