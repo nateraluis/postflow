@@ -93,9 +93,11 @@ def mastodon_callback(request):
             try:
                 from django.core.management import call_command
                 call_command('sync_pixelfed_posts', account_id=account.id, limit=40)
-                logger.info(f"Successfully synced Pixelfed posts for @{account.username}")
+                logger.info(f"Fetching engagement for new Pixelfed account @{account.username}")
+                call_command('fetch_pixelfed_engagement', account_id=account.id, limit=30)
+                logger.info(f"Successfully synced Pixelfed posts and engagement for @{account.username}")
             except Exception as e:
-                logger.error(f"Error syncing Pixelfed posts: {e}")
+                logger.error(f"Error syncing Pixelfed posts/engagement: {e}")
                 # Don't fail the connection if sync fails
 
     return redirect("accounts")

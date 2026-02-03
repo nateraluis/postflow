@@ -90,15 +90,17 @@ def mastodon_callback(request):
         action = "connected" if created else "updated"
         logger.info(f"Mastodon account {action}: {username}@{instance_url}")
 
-        # Auto-sync historical posts for new accounts
+        # Auto-sync historical posts and fetch engagement for new accounts
         if created:
             logger.info(f"New Mastodon account connected, syncing historical posts for @{username}")
             try:
                 from django.core.management import call_command
                 call_command('sync_mastodon_posts', account_id=account.id, limit=40)
-                logger.info(f"Successfully synced Mastodon posts for @{username}")
+                logger.info(f"Fetching engagement for new Mastodon account @{username}")
+                call_command('fetch_mastodon_engagement', account_id=account.id, limit=30)
+                logger.info(f"Successfully synced Mastodon posts and engagement for @{username}")
             except Exception as e:
-                logger.error(f"Error syncing Mastodon posts: {e}")
+                logger.error(f"Error syncing Mastodon posts/engagement: {e}")
                 # Don't fail the connection if sync fails
 
     except Exception as e:

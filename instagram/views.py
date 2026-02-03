@@ -246,12 +246,14 @@ def instagram_business_callback(request):
     )
     logger.info(f"Instagram account {'created' if created else 'updated'} for user {request.user.email}: {data.get('username')}")
 
-    # Auto-sync historical posts for new accounts
+    # Auto-sync historical posts and fetch engagement for new accounts
     if created:
         logger.info(f"New Instagram account connected, syncing historical posts for @{account.username}")
         try:
             from django.core.management import call_command
             call_command('sync_instagram_posts', account_id=account.id, limit=50)
+            logger.info(f"Fetching insights for new Instagram account @{account.username}")
+            call_command('fetch_instagram_insights', account_id=account.id, limit=30)
             logger.info(f"Successfully synced Instagram posts for @{account.username}")
         except Exception as e:
             logger.error(f"Error syncing Instagram posts: {e}")
