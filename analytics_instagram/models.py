@@ -302,6 +302,7 @@ class InstagramComment(models.Model):
             models.Index(fields=['timestamp']),
             models.Index(fields=['username']),
             models.Index(fields=['parent_comment_id']),
+            models.Index(fields=['post', 'username']),  # Composite index for top engagers query
         ]
         ordering = ['timestamp']  # Oldest first for conversation flow
         verbose_name = 'Instagram Comment'
@@ -389,6 +390,13 @@ class InstagramEngagementSummary(models.Model):
 
     class Meta:
         db_table = 'analytics_instagram_engagement_summary'
+        indexes = [
+            models.Index(fields=['-total_engagement']),  # For sorting by engagement (descending)
+            models.Index(fields=['-total_likes']),  # For sorting by likes
+            models.Index(fields=['-total_comments']),  # For sorting by comments
+            models.Index(fields=['-total_saved']),  # For sorting by saves
+            models.Index(fields=['-total_reach']),  # For sorting by reach
+        ]
         verbose_name = 'Instagram Engagement Summary'
         verbose_name_plural = 'Instagram Engagement Summaries'
 

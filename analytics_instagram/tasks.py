@@ -6,6 +6,8 @@ Note: Instagram has strict rate limits (200 calls/hour), so we process fewer pos
 """
 import logging
 from time import sleep
+from datetime import timedelta
+from django.utils import timezone
 from django_tasks import task
 from instagram.models import InstagramBusinessAccount
 from .fetcher import InstagramAnalyticsFetcher
@@ -49,6 +51,13 @@ def fetch_all_instagram_insights():
     for account in instagram_accounts:
         try:
             logger.info(f"Fetching insights for @{account.username}")
+
+            # Update last sync timestamp at start
+            now = timezone.now()
+            account.last_insights_sync_at = now
+            account.next_insights_sync_at = now + timedelta(hours=2)  # Next sync in 2 hours
+            account.save(update_fields=['last_insights_sync_at', 'next_insights_sync_at'])
+
             fetcher = InstagramAnalyticsFetcher(account)
 
             # Fetch insights for recent posts (max 30 to manage rate limits)
@@ -117,6 +126,13 @@ def sync_all_instagram_posts():
     for account in instagram_accounts:
         try:
             logger.info(f"Syncing posts for @{account.username}")
+
+            # Update last sync timestamp at start
+            now = timezone.now()
+            account.last_posts_sync_at = now
+            account.next_posts_sync_at = now + timedelta(hours=1)  # Next sync in 1 hour
+            account.save(update_fields=['last_posts_sync_at', 'next_posts_sync_at'])
+
             fetcher = InstagramAnalyticsFetcher(account)
 
             # Sync last 50 posts
@@ -170,6 +186,12 @@ def fetch_account_insights(account_id: int, limit_posts: int = 50):
         account = InstagramBusinessAccount.objects.get(pk=account_id)
 
         logger.info(f"Fetching insights for @{account.username}")
+
+        # Update last sync timestamp at start (manual fetch)
+        now = timezone.now()
+        account.last_insights_sync_at = now
+        account.next_insights_sync_at = now + timedelta(hours=2)  # Next auto-sync in 2 hours
+        account.save(update_fields=['last_insights_sync_at', 'next_insights_sync_at'])
 
         fetcher = InstagramAnalyticsFetcher(account)
         stats = fetcher.fetch_all_insights(limit_posts=limit_posts)

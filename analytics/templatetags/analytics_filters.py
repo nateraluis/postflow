@@ -2,6 +2,8 @@
 Template tags and filters for analytics apps.
 """
 from django import template
+from django.utils import timezone
+from datetime import timedelta
 
 register = template.Library()
 
@@ -66,3 +68,60 @@ def build_url(url_namespace, view_name, *args):
     if args:
         return reverse(full_name, args=args)
     return reverse(full_name)
+
+
+@register.filter
+def time_ago(timestamp):
+    """
+    Format a timestamp as relative time ago (e.g., "5 mins ago", "2 hours ago").
+
+    Usage: {{ account.last_posts_sync_at|time_ago }}
+    """
+    if not timestamp:
+        return "Never"
+
+    now = timezone.now()
+    diff = now - timestamp
+
+    if diff < timedelta(minutes=1):
+        return "Just now"
+    elif diff < timedelta(hours=1):
+        mins = int(diff.total_seconds() / 60)
+        return f"{mins} min{'s' if mins != 1 else ''} ago"
+    elif diff < timedelta(days=1):
+        hours = int(diff.total_seconds() / 3600)
+        return f"{hours} hour{'s' if hours != 1 else ''} ago"
+    elif diff < timedelta(days=7):
+        days = int(diff.total_seconds() / 86400)
+        return f"{days} day{'s' if days != 1 else ''} ago"
+    else:
+        return timestamp.strftime("%b %d, %Y")
+
+
+@register.filter
+def time_until(timestamp):
+    """
+    Format a future timestamp as time until (e.g., "in 5 mins", "in 2 hours").
+
+    Usage: {{ account.next_posts_sync_at|time_until }}
+    """
+    if not timestamp:
+        return "Not scheduled"
+
+    now = timezone.now()
+    if timestamp <= now:
+        return "Soon"
+
+    diff = timestamp - now
+
+    if diff < timedelta(minutes=1):
+        return "In less than a minute"
+    elif diff < timedelta(hours=1):
+        mins = int(diff.total_seconds() / 60)
+        return f"In {mins} min{'s' if mins != 1 else ''}"
+    elif diff < timedelta(days=1):
+        hours = int(diff.total_seconds() / 3600)
+        return f"In {hours} hour{'s' if hours != 1 else ''}"
+    else:
+        days = int(diff.total_seconds() / 86400)
+        return f"In {days} day{'s' if days != 1 else ''}"

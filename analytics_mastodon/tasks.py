@@ -5,6 +5,8 @@ These tasks run hourly to fetch engagement metrics from connected Mastodon accou
 """
 import logging
 from time import sleep
+from datetime import timedelta
+from django.utils import timezone
 from django_tasks import task
 from mastodon_native.models import MastodonAccount
 from .fetcher import MastodonAnalyticsFetcher
@@ -48,6 +50,13 @@ def fetch_all_mastodon_engagement():
     for account in mastodon_accounts:
         try:
             logger.info(f"Fetching engagement for @{account.username} on {account.instance_url}")
+
+            # Update last sync timestamp at start
+            now = timezone.now()
+            account.last_engagement_sync_at = now
+            account.next_engagement_sync_at = now + timedelta(hours=2)  # Next sync in 2 hours
+            account.save(update_fields=['last_engagement_sync_at', 'next_engagement_sync_at'])
+
             fetcher = MastodonAnalyticsFetcher(account)
 
             # Fetch engagement for recent posts (last 24 hours, max 30 posts)
@@ -118,6 +127,13 @@ def sync_all_mastodon_posts():
     for account in mastodon_accounts:
         try:
             logger.info(f"Syncing posts for @{account.username} on {account.instance_url}")
+
+            # Update last sync timestamp at start
+            now = timezone.now()
+            account.last_posts_sync_at = now
+            account.next_posts_sync_at = now + timedelta(hours=1)  # Next sync in 1 hour
+            account.save(update_fields=['last_posts_sync_at', 'next_posts_sync_at'])
+
             fetcher = MastodonAnalyticsFetcher(account)
 
             # Sync last 50 posts

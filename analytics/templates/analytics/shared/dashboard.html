@@ -90,6 +90,9 @@
                   </button>
                 </div>
               </div>
+
+              <!-- Sync Status -->
+              {% include 'analytics/shared/partials/sync_status.html' with account=account platform=platform %}
             </div>
           </li>
           {% endfor %}

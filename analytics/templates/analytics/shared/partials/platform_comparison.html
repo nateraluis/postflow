@@ -534,12 +534,34 @@ Shows comparative bar charts for engagement metrics across Instagram, Mastodon, 
       }
     });
 
+    // Function to safely render chart
+    function tryRenderChart() {
+      // Check if D3 is loaded
+      if (typeof d3 === 'undefined') {
+        console.warn('[Platform Chart] D3 not loaded, retrying in 100ms...');
+        setTimeout(tryRenderChart, 100);
+        return;
+      }
+
+      // Check if container exists
+      if (!document.getElementById('platform-comparison-chart')) {
+        console.warn('[Platform Chart] Container not found, retrying in 100ms...');
+        setTimeout(tryRenderChart, 100);
+        return;
+      }
+
+      console.log('[Platform Chart] Rendering...');
+      createGroupedBarChart();
+    }
+
     // Create chart
-    createGroupedBarChart();
+    tryRenderChart();
 
     // Responsive resize
     window.addEventListener('resize', () => {
-      createGroupedBarChart();
+      if (typeof d3 !== 'undefined' && document.getElementById('platform-comparison-chart')) {
+        createGroupedBarChart();
+      }
     });
 
   {% endif %}

@@ -328,6 +328,7 @@ class MastodonFavourite(models.Model):
             models.Index(fields=['favourited_at']),
             models.Index(fields=['first_seen_at']),
             models.Index(fields=['username']),
+            models.Index(fields=['post', 'username']),  # Composite index for top engagers query
         ]
         ordering = ['-favourited_at']
         verbose_name = 'Mastodon Favourite'
@@ -401,6 +402,7 @@ class MastodonReply(models.Model):
             models.Index(fields=['replied_at']),
             models.Index(fields=['username']),
             models.Index(fields=['in_reply_to_id']),
+            models.Index(fields=['post', 'username']),  # Composite index for top engagers query
         ]
         ordering = ['replied_at']  # Oldest first for conversation flow
         verbose_name = 'Mastodon Reply'
@@ -473,6 +475,7 @@ class MastodonReblog(models.Model):
             models.Index(fields=['reblogged_at']),
             models.Index(fields=['first_seen_at']),
             models.Index(fields=['username']),
+            models.Index(fields=['post', 'username']),  # Composite index for top engagers query
         ]
         ordering = ['-reblogged_at']
         verbose_name = 'Mastodon Reblog'
@@ -531,6 +534,12 @@ class MastodonEngagementSummary(models.Model):
 
     class Meta:
         db_table = 'analytics_mastodon_engagement_summary'
+        indexes = [
+            models.Index(fields=['-total_engagement']),  # For sorting by engagement (descending)
+            models.Index(fields=['-total_favourites']),  # For sorting by favourites
+            models.Index(fields=['-total_replies']),  # For sorting by replies
+            models.Index(fields=['-total_reblogs']),  # For sorting by reblogs
+        ]
         verbose_name = 'Mastodon Engagement Summary'
         verbose_name_plural = 'Mastodon Engagement Summaries'
 

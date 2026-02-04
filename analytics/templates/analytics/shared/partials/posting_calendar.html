@@ -75,9 +75,45 @@
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
 (function() {
+    'use strict';
+
     // Parse calendar data from Django
-    const calendarData = {{ calendar_data.calendar_data|safe }};
-    const summaryData = {{ calendar_data.summary|safe }};
+    var calendarData = {{ calendar_data.calendar_data|safe }};
+    var summaryData = {{ calendar_data.summary|safe }};
+    var renderAttempts = 0;
+    var maxAttempts = 10;
+
+    function tryRender() {
+        // Check if D3 is loaded
+        if (typeof d3 === 'undefined') {
+            renderAttempts++;
+            if (renderAttempts < maxAttempts) {
+                setTimeout(tryRender, 100);
+            }
+            return;
+        }
+
+        // Check if container exists
+        var container = document.getElementById('posting-calendar-container');
+        if (!container) {
+            renderAttempts++;
+            if (renderAttempts < maxAttempts) {
+                setTimeout(tryRender, 100);
+            }
+            return;
+        }
+
+        // Check if already rendered
+        var calendarDiv = document.getElementById('posting-calendar');
+        if (calendarDiv && calendarDiv.querySelector('svg')) {
+            return; // Already rendered
+        }
+
+        // All good, proceed with render
+        render();
+    }
+
+    function render() {
 
     // Create a map for quick date lookups
     const dataByDate = {};
@@ -283,6 +319,10 @@
             .attr('font-weight', '500')
             .text(monthLabels[pos.month]);
     });
+    }
+
+    // Start trying to render
+    tryRender();
 })();
 </script>
 {% endif %}

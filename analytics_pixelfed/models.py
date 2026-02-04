@@ -325,6 +325,7 @@ class PixelfedLike(models.Model):
             models.Index(fields=['liked_at']),
             models.Index(fields=['first_seen_at']),
             models.Index(fields=['username']),
+            models.Index(fields=['post', 'username']),  # Composite index for top engagers query
         ]
         ordering = ['-liked_at']
         verbose_name = 'Pixelfed Like'
@@ -398,6 +399,7 @@ class PixelfedComment(models.Model):
             models.Index(fields=['commented_at']),
             models.Index(fields=['username']),
             models.Index(fields=['in_reply_to_id']),
+            models.Index(fields=['post', 'username']),  # Composite index for top engagers query
         ]
         ordering = ['commented_at']  # Oldest first for conversation flow
         verbose_name = 'Pixelfed Comment'
@@ -470,6 +472,7 @@ class PixelfedShare(models.Model):
             models.Index(fields=['shared_at']),
             models.Index(fields=['first_seen_at']),
             models.Index(fields=['username']),
+            models.Index(fields=['post', 'username']),  # Composite index for top engagers query
         ]
         ordering = ['-shared_at']
         verbose_name = 'Pixelfed Share'
@@ -528,6 +531,12 @@ class PixelfedEngagementSummary(models.Model):
 
     class Meta:
         db_table = 'analytics_pixelfed_engagement_summary'
+        indexes = [
+            models.Index(fields=['-total_engagement']),  # For sorting by engagement (descending)
+            models.Index(fields=['-total_likes']),  # For sorting by likes
+            models.Index(fields=['-total_comments']),  # For sorting by comments
+            models.Index(fields=['-total_shares']),  # For sorting by shares
+        ]
         verbose_name = 'Pixelfed Engagement Summary'
         verbose_name_plural = 'Pixelfed Engagement Summaries'
 
