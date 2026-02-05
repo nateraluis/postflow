@@ -1,5 +1,28 @@
 # PostFlow TODO
 
+## 📸 Marketing & Landing Page
+
+### Take Analytics Screenshots for Landing Page
+**Priority**: High
+**Location**: `postflow/static/postflow/screenshots/`
+
+Take screenshots of the following analytics dashboards and save them with these exact filenames:
+- `top-engagers.png` - Top Engagers/Super Fans dashboard
+- `engagement-timeline.png` - Engagement timeline chart/graph
+- `posting-calendar.png` - Posting calendar heatmap (once implemented)
+- `platform-comparison.png` - Cross-platform analytics comparison view
+
+**Tips**:
+- Use actual data (blur sensitive usernames if needed)
+- Resize to ~800-1000px wide
+- Optimize/compress images for web
+- PNG or JPG format
+- Capture the most impressive/engaging parts of the dashboards
+
+**Note**: The landing page works without these (images hide gracefully with `onerror`), but having them will significantly improve conversion rates by showing visitors what PostFlow looks like.
+
+---
+
 ## Analytics Improvements - Priority Ranking
 
 ### 🚀 High Priority (Implement First)

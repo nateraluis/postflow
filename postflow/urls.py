@@ -17,4 +17,10 @@ urlpatterns = [
     path('feedback/', views.feedback_view, name='feedback'),
     path("privacy/", views.privacy_policy, name="privacy_policy"),
     path("subscribe/", views.subscribe, name="subscribe"),
+
+    # Analytics Preview Routes
+    path('analytics-preview/', views.analytics_preview_landing, name='analytics_preview_landing'),
+    path('analytics-preview/connect/', views.analytics_preview_connect, name='analytics_preview_connect'),
+    path('analytics-preview/callback/', views.analytics_preview_callback, name='analytics_preview_callback'),
+    path('analytics-preview/dashboard/', views.analytics_preview_dashboard, name='analytics_preview_dashboard'),
 ]

@@ -7,6 +7,11 @@
   <div class="sm:mx-auto sm:w-full sm:max-w-sm">
     <img class="mx-auto h-10 w-auto" src="{% static 'postflow/icons/logo.png' %}" alt="PostFlow">
     <h2 class="mt-10 text-center text-2xl/9 font-bold tracking-tight text-gray-900">Create your account</h2>
+    {% if from_preview %}
+    <p class="mt-4 text-center text-sm text-indigo-600 bg-indigo-50 px-4 py-2 rounded-lg">
+      ✨ You're registering from your analytics preview for @{{ preview_username }}
+    </p>
+    {% endif %}
   </div>
   <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
     <form method="POST" hx-post="{% url 'register' %}" hx-trigger="submit" hx-push-url="true" hx-target="#main">
@@ -69,5 +74,18 @@
     </form>
   </div>
 </div>
+
+{% if from_preview %}
+<script>
+// Track preview conversion
+if (typeof plausible !== 'undefined') {
+    plausible('Preview Conversion', {
+        props: {
+            source: 'analytics_preview'
+        }
+    });
+}
+</script>
+{% endif %}
 {% endblock %}
 

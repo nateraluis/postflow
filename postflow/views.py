@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from django.conf import settings
 import logging
+from mastodon import Mastodon
 
 logger = logging.getLogger("postflow")
 
@@ -58,6 +59,13 @@ def register(request):
     context = {}
     form = CustomUserCreationForm()
     context["form"] = form
+
+    # Check if user came from preview
+    from_preview = request.session.get('preview_mode', False)
+    if from_preview:
+        context['from_preview'] = True
+        context['preview_username'] = request.session.get('preview_username')
+
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
@@ -70,6 +78,14 @@ def register(request):
             )
             if user:
                 login(request, user)
+
+                # Track conversion source
+                if from_preview:
+                    # Clear preview session but remember conversion source
+                    request.session.pop('preview_mode', None)
+                    request.session.pop('preview_access_token', None)
+                    request.session['conversion_source'] = 'analytics_preview'
+                    logger.info(f"User registered from analytics preview: {username}")
             else:
                 logger.debug("❌ Authentication failed for:", username)
 
@@ -555,3 +571,189 @@ def posted_history_view(request):
 
     # Regular page load (full page)
     return render(request, "postflow/pages/calendar.html", context)
+
+
+# Analytics Preview Views (No Registration Required)
+
+@require_http_methods(["GET"])
+def analytics_preview_landing(request):
+    """Landing page for analytics preview feature"""
+    return render(request, 'postflow/analytics_preview_landing.html')
+
+
+@require_http_methods(["POST"])
+def analytics_preview_connect(request):
+    """
+    Initiate OAuth connection for analytics preview.
+    Similar to existing Mastodon OAuth but stores in session, not database.
+    """
+    instance_url = request.POST.get("instance_url", "").strip().rstrip("/")
+    if not instance_url.startswith("https://"):
+        instance_url = f"https://{instance_url}"
+
+    try:
+        # Create Mastodon app with read-only scope
+        client_id, client_secret = Mastodon.create_app(
+            client_name="PostFlow Analytics Preview",
+            scopes=["read"],
+            redirect_uris=request.build_absolute_uri('/analytics-preview/callback/'),
+            website="https://postflow.photo",
+            api_base_url=instance_url,
+        )
+
+        if client_id:
+            # Store in session (not database)
+            request.session['preview_instance_url'] = instance_url
+            request.session['preview_client_id'] = client_id
+            request.session['preview_client_secret'] = client_secret
+            request.session['preview_mode'] = True
+
+            auth_url = f"{instance_url}/oauth/authorize?client_id={client_id}&scope=read&redirect_uri={request.build_absolute_uri('/analytics-preview/callback/')}&response_type=code"
+            logger.info(f"Analytics preview: redirecting to {instance_url}")
+            return redirect(auth_url)
+        else:
+            logger.error("Failed to create Mastodon app for preview")
+            return render(request, 'postflow/analytics_preview_landing.html', {
+                'error': 'Failed to connect to instance. Please try again.'
+            })
+    except Exception as e:
+        logger.error(f"Error initiating preview OAuth: {e}")
+        return render(request, 'postflow/analytics_preview_landing.html', {
+            'error': f'Could not connect to {instance_url}. Please check the instance URL.'
+        })
+
+
+@require_http_methods(["GET"])
+def analytics_preview_callback(request):
+    """
+    OAuth callback for preview mode.
+    Creates temporary session-based connection without saving to database.
+    """
+    code = request.GET.get('code')
+    instance_url = request.session.get('preview_instance_url')
+    client_id = request.session.get('preview_client_id')
+    client_secret = request.session.get('preview_client_secret')
+
+    if not all([code, instance_url, client_id, client_secret]):
+        logger.error("Missing OAuth parameters in preview callback")
+        return redirect('analytics_preview_landing')
+
+    try:
+        # Exchange code for access token (temporary, session-only)
+        mastodon = Mastodon(
+            client_id=client_id,
+            client_secret=client_secret,
+            api_base_url=instance_url
+        )
+
+        access_token = mastodon.log_in(
+            code=code,
+            redirect_uri=request.build_absolute_uri('/analytics-preview/callback/'),
+            scopes=['read']
+        )
+
+        # Store access token in session (NOT database)
+        request.session['preview_access_token'] = access_token
+
+        # Get account info
+        account_info = mastodon.account_verify_credentials()
+        request.session['preview_username'] = account_info.get('username', account_info.get('acct', 'unknown'))
+        request.session['preview_account_id'] = account_info['id']
+
+        logger.info(f"Analytics preview connected for @{request.session['preview_username']}")
+
+        return redirect('analytics_preview_dashboard')
+
+    except Exception as e:
+        logger.error(f"Preview OAuth failed: {e}")
+        return render(request, 'postflow/analytics_preview_landing.html', {
+            'error': 'Authentication failed. Please try again.'
+        })
+
+
+@require_http_methods(["GET"])
+def analytics_preview_dashboard(request):
+    """
+    Show limited analytics preview without requiring registration.
+    Fetches real data from user's connected account (session-based).
+    """
+    # Check if user has preview session
+    if not request.session.get('preview_access_token'):
+        return redirect('analytics_preview_landing')
+
+    # If user is already registered, redirect to full dashboard
+    if request.user.is_authenticated:
+        return redirect('analytics_pixelfed:dashboard')
+
+    try:
+        # Create temporary Mastodon client from session
+        mastodon = Mastodon(
+            access_token=request.session['preview_access_token'],
+            api_base_url=request.session['preview_instance_url']
+        )
+
+        # Fetch recent posts (limited to 10 for preview)
+        account_statuses = mastodon.account_statuses(
+            request.session['preview_account_id'],
+            limit=10,
+            exclude_replies=True,
+            only_media=True
+        )
+
+        # Process posts into preview format
+        preview_posts = []
+        total_likes = 0
+        total_comments = 0
+        total_shares = 0
+
+        for status in account_statuses:
+            post_data = {
+                'id': status['id'],
+                'caption': (status['content'][:100] + '...') if len(status['content']) > 100 else status['content'],
+                'media_url': status['media_attachments'][0]['url'] if status['media_attachments'] else None,
+                'posted_at': status['created_at'],
+                'likes_count': status['favourites_count'],
+                'comments_count': status['replies_count'],
+                'shares_count': status['reblogs_count'],
+                'url': status['url']
+            }
+            preview_posts.append(post_data)
+
+            total_likes += status['favourites_count']
+            total_comments += status['replies_count']
+            total_shares += status['reblogs_count']
+
+        # Calculate engagement distribution
+        total_engagement = total_likes + total_comments + total_shares
+        if total_engagement > 0:
+            engagement_data = {
+                'total_likes': total_likes,
+                'total_comments': total_comments,
+                'total_shares': total_shares,
+                'total_engagement': total_engagement,
+                'likes_percentage': round((total_likes / total_engagement) * 100, 1),
+                'comments_percentage': round((total_comments / total_engagement) * 100, 1),
+                'shares_percentage': round((total_shares / total_engagement) * 100, 1),
+                'has_data': True
+            }
+        else:
+            engagement_data = {'has_data': False}
+
+        context = {
+            'preview_mode': True,
+            'username': request.session['preview_username'],
+            'instance_url': request.session['preview_instance_url'],
+            'posts': preview_posts,
+            'total_posts': len(preview_posts),
+            'total_likes': total_likes,
+            'total_comments': total_comments,
+            'total_shares': total_shares,
+            'engagement_data': engagement_data,
+            'preview_limit_message': 'Showing your 10 most recent posts. Sign up for full analytics history.',
+        }
+
+        return render(request, 'postflow/analytics_preview_dashboard.html', context)
+
+    except Exception as e:
+        logger.error(f"Error fetching preview analytics: {e}")
+        return render(request, 'postflow/analytics_preview_error.html', {'error': str(e)})

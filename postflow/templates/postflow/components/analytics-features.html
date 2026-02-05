@@ -1,0 +1,84 @@
+{% load static plausible_tags %}
+<!-- Analytics Features Section -->
+<div class="bg-white py-24 sm:py-32">
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="mx-auto max-w-2xl text-center mb-16">
+      <h2 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">Understand your audience like never before</h2>
+      <p class="mt-6 text-lg leading-8 text-gray-600">Get insights that Instagram and other platforms hide from you. See exactly who's engaging with your photography.</p>
+    </div>
+
+    <div class="mx-auto grid max-w-2xl grid-cols-1 gap-12 lg:mx-0 lg:max-w-none lg:grid-cols-2">
+      <!-- Feature 1: Top Engagers -->
+      <div class="flex flex-col">
+        <div class="flex-1">
+          <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">Top Engagers Dashboard</h3>
+          <p class="text-base text-gray-600 mb-4">See who's liking, commenting, and sharing your work most. Build relationships with your superfans and grow your community authentically.</p>
+        </div>
+        <div class="mt-4">
+          <img src="{% static 'postflow/screenshots/top-engagers.png' %}" alt="Top Engagers Dashboard" class="rounded-lg shadow-lg border border-gray-200" onerror="this.style.display='none'">
+        </div>
+      </div>
+
+      <!-- Feature 2: Engagement Timeline -->
+      <div class="flex flex-col">
+        <div class="flex-1">
+          <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">Engagement Timeline</h3>
+          <p class="text-base text-gray-600 mb-4">Track how your posts perform over time. Identify which content resonates with your followers and when they're most active.</p>
+        </div>
+        <div class="mt-4">
+          <img src="{% static 'postflow/screenshots/engagement-timeline.png' %}" alt="Engagement Timeline" class="rounded-lg shadow-lg border border-gray-200" onerror="this.style.display='none'">
+        </div>
+      </div>
+
+      <!-- Feature 3: Posting Calendar Heatmap -->
+      <div class="flex flex-col">
+        <div class="flex-1">
+          <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">Posting Calendar Heatmap</h3>
+          <p class="text-base text-gray-600 mb-4">Visualize your posting patterns. Find your optimal posting schedule based on engagement data, not guesswork.</p>
+        </div>
+        <div class="mt-4">
+          <img src="{% static 'postflow/screenshots/posting-calendar.png' %}" alt="Posting Calendar Heatmap" class="rounded-lg shadow-lg border border-gray-200" onerror="this.style.display='none'">
+        </div>
+      </div>
+
+      <!-- Feature 4: Cross-Platform Analytics -->
+      <div class="flex flex-col">
+        <div class="flex-1">
+          <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">Cross-Platform Analytics</h3>
+          <p class="text-base text-gray-600 mb-4">Compare performance across Instagram, Pixelfed, and Mastodon. One dashboard, all your insights. No more jumping between apps.</p>
+        </div>
+        <div class="mt-4">
+          <img src="{% static 'postflow/screenshots/platform-comparison.png' %}" alt="Cross-Platform Analytics" class="rounded-lg shadow-lg border border-gray-200" onerror="this.style.display='none'">
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA within analytics features -->
+    <div class="mt-16 text-center">
+      <a href="{% url 'analytics_preview_landing' %}" {% plausible_event "Analytics Preview Click" source="features" %} class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-8 py-4 text-lg font-semibold text-white shadow-lg hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all duration-200 transform hover:scale-105">
+        See Your Analytics Now
+      </a>
+      <p class="mt-4 text-sm text-gray-600">Connect your Mastodon/Pixelfed account • No signup required</p>
+    </div>
+  </div>
+</div>
