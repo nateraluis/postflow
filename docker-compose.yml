@@ -37,7 +37,8 @@ services:
       - ./certbot/conf:/etc/letsencrypt
 
   certbot-renewer:
-    image: certbot/certbot
+    build:
+      context: ./AWS/certbot
     container_name: certbot_renewer
     restart: always
     volumes:
