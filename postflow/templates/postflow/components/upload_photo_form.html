@@ -21,8 +21,19 @@
 
         <!-- Upload Photos -->
         <label class="block mb-2 text-sm font-medium text-gray-700">Upload Photos (up to 10 images)</label>
-        <input type="file" name="photos" accept="image/*" multiple class="w-full p-2 border rounded-md" id="photoInput" onchange="handlePhotoSelect(this)">
+        <input type="file" name="photos" accept="image/*" multiple class="w-full p-2 border rounded-md text-sm" id="photoInput" onchange="handlePhotoSelect(this)">
         <p class="text-xs text-gray-500 mt-1">Select one or more images to upload</p>
+
+        <!-- Carousel suggestion -->
+        <div id="carousel-suggestion" class="hidden mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+            Carousels get 10% higher engagement on average. Your images will be posted as a carousel.
+        </div>
+
+        <!-- Image preview with drag-to-reorder -->
+        <div id="image-preview-container" class="hidden mt-3">
+            <p class="text-xs text-gray-500 mb-1">Drag to reorder slides:</p>
+            <div id="image-previews" class="flex gap-2 overflow-x-auto pb-2"></div>
+        </div>
 
         <!-- Alt Text Inputs (shown per selected image) -->
         <div id="alt-text-container" class="mt-2 hidden">
@@ -192,18 +203,134 @@
     function handlePhotoSelect(input) {
         const container = document.getElementById('alt-text-container');
         const fields = document.getElementById('alt-text-fields');
+        const previewContainer = document.getElementById('image-preview-container');
+        const previews = document.getElementById('image-previews');
+        const suggestion = document.getElementById('carousel-suggestion');
+
         if (input.files.length > 0) {
             container.classList.remove('hidden');
             fields.innerHTML = '';
-            for (let i = 0; i < input.files.length; i++) {
-                const div = document.createElement('div');
-                div.innerHTML = `<input type="text" name="alt_texts" placeholder="Alt text for image ${i + 1}" class="w-full p-2 border rounded-md text-sm" maxlength="1000">`;
+            previews.innerHTML = '';
+
+            // Show carousel suggestion for 3+ images
+            if (input.files.length >= 3) {
+                suggestion.classList.remove('hidden');
+            } else {
+                suggestion.classList.add('hidden');
+            }
+
+            // Show preview container for 2+ images
+            if (input.files.length >= 2) {
+                previewContainer.classList.remove('hidden');
+            } else {
+                previewContainer.classList.add('hidden');
+            }
+
+            for (var i = 0; i < input.files.length; i++) {
+                // Alt text field
+                var div = document.createElement('div');
+                div.innerHTML = '<input type="text" name="alt_texts" placeholder="Alt text for image ' + (i + 1) + '" class="w-full p-2 border rounded-md text-sm" maxlength="1000">';
                 fields.appendChild(div);
+
+                // Image preview thumbnail
+                if (input.files.length >= 2) {
+                    var thumb = document.createElement('div');
+                    thumb.className = 'w-20 h-20 flex-shrink-0 rounded border-2 border-transparent relative';
+                    thumb.draggable = true;
+                    thumb.dataset.index = i;
+                    thumb.addEventListener('dragstart', handleDragStart);
+                    thumb.addEventListener('dragover', handleDragOver);
+                    thumb.addEventListener('drop', handleDrop);
+                    thumb.addEventListener('dragend', handleDragEnd);
+                    // Touch events for mobile
+                    thumb.addEventListener('touchstart', handleTouchStart, {passive: false});
+                    thumb.addEventListener('touchmove', handleTouchMove, {passive: false});
+                    thumb.addEventListener('touchend', handleTouchEnd);
+
+                    var img = document.createElement('img');
+                    img.className = 'w-full h-full object-cover rounded';
+                    img.src = URL.createObjectURL(input.files[i]);
+                    var badge = document.createElement('span');
+                    badge.className = 'absolute -top-1 -left-1 w-5 h-5 bg-gray-800 text-white text-xs rounded-full flex items-center justify-center';
+                    badge.textContent = i + 1;
+                    thumb.appendChild(img);
+                    thumb.appendChild(badge);
+                    previews.appendChild(thumb);
+                }
             }
         } else {
             container.classList.add('hidden');
             fields.innerHTML = '';
+            previewContainer.classList.add('hidden');
+            previews.innerHTML = '';
+            suggestion.classList.add('hidden');
         }
+    }
+
+    // Drag and drop for reordering
+    var dragSrcEl = null;
+    function handleDragStart(e) {
+        dragSrcEl = this;
+        this.style.opacity = '0.4';
+        this.classList.add('border-blue-500');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.dataset.index);
+    }
+    function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+    function handleDrop(e) {
+        e.preventDefault();
+        if (dragSrcEl !== this) {
+            var parent = this.parentNode;
+            var allItems = Array.from(parent.children);
+            var fromIdx = allItems.indexOf(dragSrcEl);
+            var toIdx = allItems.indexOf(this);
+            if (fromIdx < toIdx) {
+                parent.insertBefore(dragSrcEl, this.nextSibling);
+            } else {
+                parent.insertBefore(dragSrcEl, this);
+            }
+            // Update badge numbers
+            Array.from(parent.children).forEach(function(el, i) {
+                el.querySelector('span').textContent = i + 1;
+                el.dataset.index = i;
+            });
+        }
+    }
+    function handleDragEnd() {
+        this.style.opacity = '1';
+        this.classList.remove('border-blue-500');
+    }
+
+    // Touch-based drag for mobile
+    var touchSrcEl = null;
+    var touchClone = null;
+    function handleTouchStart(e) {
+        touchSrcEl = this;
+        this.classList.add('border-blue-500');
+    }
+    function handleTouchMove(e) { e.preventDefault(); }
+    function handleTouchEnd(e) {
+        if (touchSrcEl) touchSrcEl.classList.remove('border-blue-500');
+        // Simple swap: find element under touch point
+        var touch = e.changedTouches[0];
+        var target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target) target = target.closest('[draggable]');
+        if (target && target !== touchSrcEl && target.parentNode === touchSrcEl.parentNode) {
+            var parent = target.parentNode;
+            var allItems = Array.from(parent.children);
+            var fromIdx = allItems.indexOf(touchSrcEl);
+            var toIdx = allItems.indexOf(target);
+            if (fromIdx < toIdx) {
+                parent.insertBefore(touchSrcEl, target.nextSibling);
+            } else {
+                parent.insertBefore(touchSrcEl, target);
+            }
+            Array.from(parent.children).forEach(function(el, i) {
+                el.querySelector('span').textContent = i + 1;
+                el.dataset.index = i;
+            });
+        }
+        touchSrcEl = null;
     }
 
     function toggleAltTexts() {
@@ -316,10 +443,14 @@
         // Reset dynamic UI
         document.getElementById('alt-text-container').classList.add('hidden');
         document.getElementById('alt-text-fields').innerHTML = '';
+        document.getElementById('image-preview-container').classList.add('hidden');
+        document.getElementById('image-previews').innerHTML = '';
+        document.getElementById('carousel-suggestion').classList.add('hidden');
         document.getElementById('hashtag-counter').classList.add('hidden');
         document.getElementById('instagram-fields').classList.add('hidden');
         document.getElementById('caption-length').textContent = '0';
         document.getElementById('first-line-preview').classList.add('hidden');
+        document.getElementById('time-suggestion').classList.add('hidden');
         clearLocation();
 
         let errorContainer = document.querySelector("#form-container .bg-red-100");
