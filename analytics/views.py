@@ -19,6 +19,7 @@ from instagram.models import InstagramBusinessAccount
 from analytics_pixelfed.models import PixelfedPost, PixelfedEngagementSummary
 from analytics_mastodon.models import MastodonPost, MastodonEngagementSummary
 from analytics_instagram.models import InstagramPost, InstagramEngagementSummary
+from django.views.decorators.http import require_http_methods
 from analytics.utils import (
     get_posting_calendar_data,
     get_best_posting_times,
@@ -271,3 +272,128 @@ def hashtag_performance_view(request):
     if request.headers.get("HX-Request"):
         return render(request, 'analytics/hashtag_performance_content.html', context)
     return render(request, 'analytics/hashtag_performance.html', context)
+
+
+@login_required
+def comments_inbox(request):
+    """Unified comment inbox across all platforms."""
+    from analytics_pixelfed.models import PixelfedComment
+    from analytics_mastodon.models import MastodonReply
+
+    days = int(request.GET.get('days', 7))
+    cutoff = timezone.now() - timedelta(days=days)
+
+    # Fetch Pixelfed comments
+    pixelfed_accounts = PixelfedMastodonAccount.objects.filter(
+        user=request.user, instance_url__icontains='pixelfed'
+    )
+    pixelfed_comments = []
+    if pixelfed_accounts.exists():
+        pixelfed_comments = list(
+            PixelfedComment.objects.filter(
+                post__account__in=pixelfed_accounts,
+                commented_at__gte=cutoff,
+            ).select_related('post', 'post__account').order_by('-commented_at')[:50]
+        )
+
+    # Fetch Mastodon replies
+    mastodon_accounts = MastodonNativeAccount.objects.filter(user=request.user)
+    mastodon_replies = []
+    if mastodon_accounts.exists():
+        mastodon_replies = list(
+            MastodonReply.objects.filter(
+                post__account__in=mastodon_accounts,
+                replied_at__gte=cutoff,
+            ).select_related('post', 'post__account').order_by('-replied_at')[:50]
+        )
+
+    # Merge into unified list
+    comments = []
+    for c in pixelfed_comments:
+        comments.append({
+            'platform': 'pixelfed',
+            'username': c.username,
+            'display_name': c.display_name or c.username,
+            'content': c.content,
+            'timestamp': c.commented_at,
+            'post_caption': (c.post.caption or '')[:80],
+            'post_url': c.post.post_url,
+            'post_id': c.post.pixelfed_post_id,
+            'comment_id': c.comment_id,
+            'instance_url': c.post.instance_url,
+            'is_recent': (timezone.now() - c.commented_at).total_seconds() < 3600,
+        })
+    for r in mastodon_replies:
+        comments.append({
+            'platform': 'mastodon',
+            'username': r.username,
+            'display_name': r.display_name or r.username,
+            'content': r.content,
+            'timestamp': r.replied_at,
+            'post_caption': (r.post.content or '')[:80],
+            'post_url': r.post.post_url,
+            'post_id': r.post.mastodon_post_id,
+            'comment_id': r.reply_id,
+            'instance_url': r.post.instance_url,
+            'is_recent': (timezone.now() - r.replied_at).total_seconds() < 3600,
+        })
+
+    # Sort by timestamp descending
+    comments.sort(key=lambda x: x['timestamp'], reverse=True)
+
+    context = {
+        'active_page': 'comments',
+        'comments': comments,
+        'days': days,
+        'total_comments': len(comments),
+        'recent_count': sum(1 for c in comments if c['is_recent']),
+    }
+
+    if request.headers.get("HX-Request"):
+        sidebar_context = {**context, 'is_htmx_request': True}
+        content = render(request, 'analytics/comments_inbox_content.html', context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
+    return render(request, 'analytics/comments_inbox.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def reply_comment(request):
+    """Quick-reply to a comment via Mastodon/Pixelfed API."""
+    from mastodon import Mastodon as MastodonClient
+    import requests as http_requests
+
+    platform = request.POST.get('platform')
+    instance_url = request.POST.get('instance_url')
+    comment_id = request.POST.get('comment_id')
+    reply_text = request.POST.get('reply_text', '').strip()
+
+    if not reply_text:
+        return HttpResponse('<span class="text-red-500 text-xs">Reply cannot be empty</span>')
+
+    try:
+        if platform == 'mastodon':
+            account = MastodonNativeAccount.objects.filter(
+                user=request.user, instance_url=instance_url
+            ).first()
+            if account:
+                client = MastodonClient(access_token=account.access_token, api_base_url=account.instance_url)
+                client.status_post(status=reply_text, in_reply_to_id=comment_id, visibility="public")
+                return HttpResponse('<span class="text-green-600 text-xs">Reply sent</span>')
+
+        elif platform == 'pixelfed':
+            account = PixelfedMastodonAccount.objects.filter(
+                user=request.user, instance_url=instance_url
+            ).first()
+            if account:
+                headers = {"Authorization": f"Bearer {account.access_token}", "Accept": "application/json"}
+                url = f"{account.instance_url}/api/v1/statuses"
+                data = {"status": reply_text, "in_reply_to_id": comment_id, "visibility": "public"}
+                resp = http_requests.post(url, headers=headers, data=data, timeout=15)
+                resp.raise_for_status()
+                return HttpResponse('<span class="text-green-600 text-xs">Reply sent</span>')
+
+        return HttpResponse('<span class="text-red-500 text-xs">Account not found</span>')
+    except Exception as e:
+        return HttpResponse(f'<span class="text-red-500 text-xs">Error: {str(e)[:50]}</span>')

@@ -15,4 +15,6 @@ urlpatterns = [
     path('media-type/', views.media_type_view, name='media_type'),
     path('engagement-velocity/', views.engagement_velocity_view, name='engagement_velocity'),
     path('hashtag-performance/', views.hashtag_performance_view, name='hashtag_performance'),
+    path('comments/', views.comments_inbox, name='comments_inbox'),
+    path('comments/reply/', views.reply_comment, name='reply_comment'),
 ]
