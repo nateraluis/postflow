@@ -56,6 +56,36 @@
                 <p class="text-sm font-semibold text-gray-700">Growth</p>
                 <p class="text-xs text-gray-500 mt-1">Week-over-week</p>
             </a>
+            <a href="{% url 'analytics:timeline' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Timeline</p>
+                <p class="text-xs text-gray-500 mt-1">Engagement over time</p>
+            </a>
+            <a href="{% url 'analytics:decay' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Decay</p>
+                <p class="text-xs text-gray-500 mt-1">Long-tail content</p>
+            </a>
+            <a href="{% url 'analytics:caption_length' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Captions</p>
+                <p class="text-xs text-gray-500 mt-1">Length vs engagement</p>
+            </a>
+            <a href="{% url 'analytics:viral' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Virality</p>
+                <p class="text-xs text-gray-500 mt-1">Share-to-like ratio</p>
+            </a>
+            <a href="{% url 'analytics:themes' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Themes</p>
+                <p class="text-xs text-gray-500 mt-1">Content patterns</p>
+            </a>
+            <a href="{% url 'analytics:conversations' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Threads</p>
+                <p class="text-xs text-gray-500 mt-1">Comment chains</p>
+            </a>
         </div>
 
         <!-- Platform Comparison Section -->

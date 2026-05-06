@@ -1,0 +1,98 @@
+{% if conversation_data.has_data %}
+
+<!-- Thread Cards -->
+<div class="space-y-4">
+    {% for thread in conversation_data.threads %}
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+         x-data="{ expanded: false }">
+        <!-- Thread Header (clickable) -->
+        <button @click="expanded = !expanded"
+                class="w-full text-left px-4 py-4 hover:bg-gray-50 transition focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-inset">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                <!-- Post Info -->
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate" title="{{ thread.post_caption }}">
+                        {{ thread.post_caption|truncatewords:15 }}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ thread.posted_at|date:"M d, Y" }}</p>
+                </div>
+
+                <!-- Badges and Toggle -->
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <!-- Comment Count -->
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-800">
+                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                        {{ thread.comment_count }} comment{{ thread.comment_count|pluralize }}
+                    </span>
+
+                    <!-- Participant Count -->
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                        </svg>
+                        {{ thread.unique_participants }}
+                    </span>
+
+                    <!-- View Post Link -->
+                    {% if thread.post_url %}
+                    <a href="{{ thread.post_url }}" target="_blank" rel="noopener noreferrer"
+                       @click.stop
+                       class="text-violet-600 hover:text-violet-700"
+                       title="View original post">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+
+                    <!-- Expand/Collapse Arrow -->
+                    <svg class="w-5 h-5 text-gray-400 transition-transform" :class="{ 'rotate-180': expanded }"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+            </div>
+        </button>
+
+        <!-- Comment List (expandable) -->
+        <div x-show="expanded" x-collapse>
+            <div class="border-t border-gray-200 bg-gray-50">
+                <div class="divide-y divide-gray-200">
+                    {% for comment in thread.comments %}
+                    <div class="px-4 py-3 {% if comment.is_reply %}pl-10{% endif %}">
+                        <div class="flex items-start gap-3">
+                            <!-- Reply Indicator -->
+                            {% if comment.is_reply %}
+                            <svg class="w-4 h-4 text-gray-300 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                            {% endif %}
+
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-sm font-medium text-gray-900">{{ comment.username }}</span>
+                                    <span class="text-xs text-gray-400">{{ comment.commented_at|date:"M d, Y H:i" }}</span>
+                                </div>
+                                <p class="text-sm text-gray-700">{{ comment.content }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="p-8 bg-gray-50 border border-gray-200 rounded-lg text-center">
+    <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+    </svg>
+    <p class="text-gray-500 mb-1 font-medium">No conversations yet</p>
+    <p class="text-sm text-gray-400">When your posts receive comments, their threads will appear here.</p>
+</div>
+{% endif %}

@@ -30,6 +30,12 @@ from analytics.utils import (
     get_consistency_score,
     get_engagement_quality,
     get_growth_momentum,
+    get_engagement_timeline,
+    get_engagement_decay,
+    get_caption_length_analysis,
+    get_viral_coefficient,
+    get_content_themes,
+    get_conversation_threads,
 )
 
 
@@ -320,6 +326,81 @@ def growth_view(request):
     if request.headers.get("HX-Request"):
         return render(request, 'analytics/growth_content.html', context)
     return render(request, 'analytics/growth.html', context)
+
+
+@login_required
+def timeline_view(request):
+    """Enhanced engagement timeline with aggregation and CSV export."""
+    days = int(request.GET.get('days', 90))
+    agg = request.GET.get('agg', 'daily')
+    data = get_engagement_timeline(request.user, days=days, aggregation=agg)
+
+    # CSV download
+    if request.GET.get('format') == 'csv':
+        from django.http import HttpResponse as DjangoResponse
+        response = DjangoResponse(data['csv'], content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="engagement_timeline.csv"'
+        return response
+
+    context = {'active_page': 'analytics', 'timeline_data': data, 'days': days, 'agg': agg}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/timeline_content.html', context)
+    return render(request, 'analytics/timeline.html', context)
+
+
+@login_required
+def decay_view(request):
+    """Engagement decay curve."""
+    days = int(request.GET.get('days', 90))
+    data = get_engagement_decay(request.user, days=days)
+    context = {'active_page': 'analytics', 'decay_data': data, 'days': days}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/decay_content.html', context)
+    return render(request, 'analytics/decay.html', context)
+
+
+@login_required
+def caption_length_view(request):
+    """Caption length vs engagement analysis."""
+    days = int(request.GET.get('days', 90))
+    data = get_caption_length_analysis(request.user, days=days)
+    context = {'active_page': 'analytics', 'caption_data': data, 'days': days}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/caption_length_content.html', context)
+    return render(request, 'analytics/caption_length.html', context)
+
+
+@login_required
+def viral_view(request):
+    """Viral coefficient tracker."""
+    days = int(request.GET.get('days', 90))
+    data = get_viral_coefficient(request.user, days=days)
+    context = {'active_page': 'analytics', 'viral_data': data, 'days': days}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/viral_content.html', context)
+    return render(request, 'analytics/viral.html', context)
+
+
+@login_required
+def themes_view(request):
+    """Best performing content themes."""
+    days = int(request.GET.get('days', 90))
+    data = get_content_themes(request.user, days=days)
+    context = {'active_page': 'analytics', 'themes_data': data, 'days': days}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/themes_content.html', context)
+    return render(request, 'analytics/themes.html', context)
+
+
+@login_required
+def conversations_view(request):
+    """Community conversation map."""
+    days = int(request.GET.get('days', 30))
+    data = get_conversation_threads(request.user, days=days)
+    context = {'active_page': 'analytics', 'conversation_data': data, 'days': days}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/conversations_content.html', context)
+    return render(request, 'analytics/conversations.html', context)
 
 
 @login_required

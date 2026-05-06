@@ -1,0 +1,107 @@
+{% if decay_data.has_data %}
+
+<div class="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+    <p class="text-sm text-gray-700">
+        Track how engagement accumulates after posting. Posts marked "Long tail" continue gaining meaningful engagement beyond the first week.
+    </p>
+</div>
+
+<!-- Decay Table -->
+<div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-200">
+                    <th class="text-left px-4 py-3 font-semibold text-gray-700">Post</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">Total</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">Day 1</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">Day 3</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">Day 7</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">Day 30</th>
+                    <th class="px-4 py-3 font-semibold text-gray-700 text-center">Decay Curve</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for post in decay_data.posts %}
+                <tr class="hover:bg-gray-50">
+                    <!-- Post Info -->
+                    <td class="px-4 py-3 max-w-xs">
+                        <div class="flex items-center gap-2">
+                            {% if post.post_url %}
+                            <a href="{{ post.post_url }}" target="_blank" rel="noopener noreferrer"
+                               class="text-gray-900 truncate hover:text-violet-600" title="{{ post.caption }}">
+                                {{ post.caption|truncatewords:10 }}
+                            </a>
+                            {% else %}
+                            <span class="text-gray-900 truncate" title="{{ post.caption }}">
+                                {{ post.caption|truncatewords:10 }}
+                            </span>
+                            {% endif %}
+                            {% if post.is_long_tail %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 flex-shrink-0">
+                                Long tail
+                            </span>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs text-gray-400">{{ post.posted_at|date:"M d, Y" }}</span>
+                    </td>
+
+                    <!-- Total -->
+                    <td class="px-4 py-3 text-right font-semibold text-gray-900">{{ post.total }}</td>
+
+                    <!-- Day 1 -->
+                    <td class="px-4 py-3 text-right">
+                        <span class="text-gray-700">{{ post.day1 }}</span>
+                        <div class="mt-1 w-full bg-gray-100 rounded-full h-1.5">
+                            <div class="bg-amber-400 h-1.5 rounded-full" style="width: {{ post.pct_day1 }}%"></div>
+                        </div>
+                    </td>
+
+                    <!-- Day 3 -->
+                    <td class="px-4 py-3 text-right">
+                        <span class="text-gray-700">{{ post.day3 }}</span>
+                    </td>
+
+                    <!-- Day 7 -->
+                    <td class="px-4 py-3 text-right">
+                        <span class="text-gray-700">{{ post.day7 }}</span>
+                        <div class="mt-1 w-full bg-gray-100 rounded-full h-1.5">
+                            <div class="bg-violet-500 h-1.5 rounded-full" style="width: {{ post.pct_day7 }}%"></div>
+                        </div>
+                    </td>
+
+                    <!-- Day 30 -->
+                    <td class="px-4 py-3 text-right text-gray-700">{{ post.day30 }}</td>
+
+                    <!-- Visual Decay Curve -->
+                    <td class="px-4 py-3">
+                        <div class="flex items-end gap-0.5 h-8 justify-center">
+                            {% if post.total > 0 %}
+                            <div class="w-3 bg-amber-400 rounded-t" style="height: {% widthratio post.day1 post.total 32 %}px" title="Day 1: {{ post.day1 }}"></div>
+                            <div class="w-3 bg-amber-300 rounded-t" style="height: {% widthratio post.day3 post.total 32 %}px" title="Day 3: {{ post.day3 }}"></div>
+                            <div class="w-3 bg-violet-400 rounded-t" style="height: {% widthratio post.day7 post.total 32 %}px" title="Day 7: {{ post.day7 }}"></div>
+                            <div class="w-3 bg-violet-300 rounded-t" style="height: {% widthratio post.day30 post.total 32 %}px" title="Day 30: {{ post.day30 }}"></div>
+                            {% else %}
+                            <div class="w-3 h-1 bg-gray-200 rounded-t"></div>
+                            <div class="w-3 h-1 bg-gray-200 rounded-t"></div>
+                            <div class="w-3 h-1 bg-gray-200 rounded-t"></div>
+                            <div class="w-3 h-1 bg-gray-200 rounded-t"></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<div class="p-8 bg-gray-50 border border-gray-200 rounded-lg text-center">
+    <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+    </svg>
+    <p class="text-gray-500 mb-1 font-medium">No decay data available</p>
+    <p class="text-sm text-gray-400">Posts need at least 30 days of engagement history to analyze decay patterns.</p>
+</div>
+{% endif %}

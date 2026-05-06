@@ -1,0 +1,84 @@
+{% if viral_data.has_data %}
+
+<div class="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+    <p class="text-sm text-gray-700">
+        The viral coefficient is the ratio of shares to likes. A ratio above 0.1 indicates content that people actively spread beyond just appreciating it.
+    </p>
+</div>
+
+<!-- Viral Posts List -->
+<div class="space-y-3">
+    {% for post in viral_data.posts %}
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition
+        {% if post.is_viral %}ring-2 ring-pink-300{% endif %}">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4">
+            <!-- Ratio Score -->
+            <div class="flex-shrink-0 w-20 text-center">
+                <div class="text-2xl font-bold {% if post.is_viral %}text-pink-600{% else %}text-gray-700{% endif %}">
+                    {{ post.ratio|floatformat:2 }}
+                </div>
+                <div class="text-xs text-gray-400 uppercase tracking-wide">ratio</div>
+            </div>
+
+            <!-- Post Details -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    {% if post.is_viral %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-800">
+                        Viral
+                    </span>
+                    {% endif %}
+                    <span class="text-xs text-gray-400">{{ post.posted_at|date:"M d, Y" }}</span>
+                </div>
+                {% if post.post_url %}
+                <a href="{{ post.post_url }}" target="_blank" rel="noopener noreferrer"
+                   class="text-sm text-gray-900 hover:text-violet-600 line-clamp-2" title="{{ post.caption }}">
+                    {{ post.caption|truncatewords:20 }}
+                </a>
+                {% else %}
+                <p class="text-sm text-gray-900 line-clamp-2" title="{{ post.caption }}">
+                    {{ post.caption|truncatewords:20 }}
+                </p>
+                {% endif %}
+            </div>
+
+            <!-- Metrics -->
+            <div class="flex items-center gap-6 flex-shrink-0">
+                <div class="text-center">
+                    <p class="text-sm font-semibold text-amber-600">{{ post.likes }}</p>
+                    <p class="text-xs text-gray-400">Likes</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm font-semibold text-pink-600">{{ post.shares }}</p>
+                    <p class="text-xs text-gray-400">Shares</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Legend -->
+<div class="mt-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">Viral Coefficient Guide</h3>
+    <div class="flex flex-wrap gap-4 text-xs">
+        <div class="flex items-center gap-1.5">
+            <span class="inline-block w-3 h-3 rounded-full bg-pink-500"></span>
+            <span class="text-gray-600">Above 0.10: Viral content</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="inline-block w-3 h-3 rounded-full bg-gray-400"></span>
+            <span class="text-gray-600">Below 0.10: Standard engagement</span>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="p-8 bg-gray-50 border border-gray-200 rounded-lg text-center">
+    <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+    </svg>
+    <p class="text-gray-500 mb-1 font-medium">No viral data available</p>
+    <p class="text-sm text-gray-400">Posts need both likes and shares to calculate a viral coefficient.</p>
+</div>
+{% endif %}

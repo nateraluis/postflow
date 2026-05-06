@@ -632,6 +632,276 @@ def get_growth_momentum(user, days=90):
     return {'weeks': result, 'max_engagement': max_eng, 'has_data': len(result) > 0}
 
 
+def get_engagement_timeline(user, days=90, aggregation='daily'):
+    """Enhanced engagement timeline with daily/weekly/monthly aggregation."""
+    from analytics_pixelfed.models import PixelfedPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'data': [], 'has_data': False}
+
+    posts = PixelfedPost.objects.filter(
+        account__in=accounts, posted_at__gte=start_date,
+    ).select_related('engagement_summary').order_by('posted_at')
+
+    buckets = defaultdict(lambda: {'likes': 0, 'comments': 0, 'shares': 0, 'posts': 0})
+
+    for p in posts:
+        eng = p.engagement_summary if hasattr(p, 'engagement_summary') and p.engagement_summary else None
+        dt = p.posted_at.date()
+
+        if aggregation == 'weekly':
+            key = (dt - timedelta(days=dt.weekday())).isoformat()
+        elif aggregation == 'monthly':
+            key = dt.replace(day=1).isoformat()
+        else:
+            key = dt.isoformat()
+
+        buckets[key]['posts'] += 1
+        if eng:
+            buckets[key]['likes'] += eng.total_likes or 0
+            buckets[key]['comments'] += eng.total_comments or 0
+            buckets[key]['shares'] += eng.total_shares or 0
+
+    data = []
+    for key in sorted(buckets.keys()):
+        b = buckets[key]
+        data.append({
+            'date': key,
+            'likes': b['likes'],
+            'comments': b['comments'],
+            'shares': b['shares'],
+            'total': b['likes'] + b['comments'] + b['shares'],
+            'posts': b['posts'],
+        })
+
+    # CSV data
+    csv_lines = ['date,likes,comments,shares,total,posts']
+    for d in data:
+        csv_lines.append(f"{d['date']},{d['likes']},{d['comments']},{d['shares']},{d['total']},{d['posts']}")
+
+    max_total = max((d['total'] for d in data), default=1) or 1
+
+    return {'data': data, 'csv': '\n'.join(csv_lines), 'max_total': max_total, 'has_data': len(data) > 0}
+
+
+def get_engagement_decay(user, days=90, limit=10):
+    """Engagement over time after posting - identify long-tail content."""
+    from analytics_pixelfed.models import PixelfedPost, PixelfedLike
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'posts': [], 'has_data': False}
+
+    posts = PixelfedPost.objects.filter(
+        account__in=accounts, posted_at__gte=start_date,
+    ).select_related('engagement_summary').filter(
+        engagement_summary__total_engagement__gt=0
+    ).order_by('-engagement_summary__total_engagement')[:limit]
+
+    result = []
+    for p in posts:
+        total = p.engagement_summary.total_engagement
+        # Count likes by time buckets
+        day1 = p.likes.filter(first_seen_at__lte=p.posted_at + timedelta(hours=24)).count()
+        day3 = p.likes.filter(first_seen_at__lte=p.posted_at + timedelta(days=3)).count()
+        day7 = p.likes.filter(first_seen_at__lte=p.posted_at + timedelta(days=7)).count()
+        day30 = p.likes.filter(first_seen_at__lte=p.posted_at + timedelta(days=30)).count()
+
+        result.append({
+            'caption': (p.caption or '')[:60],
+            'post_url': p.post_url,
+            'posted_at': p.posted_at,
+            'total': total,
+            'day1': day1,
+            'day3': day3,
+            'day7': day7,
+            'day30': day30,
+            'pct_day1': round(day1 / max(total, 1) * 100),
+            'pct_day7': round(day7 / max(total, 1) * 100),
+            'is_long_tail': day7 < total * 0.7,  # <70% in first week = long tail
+        })
+
+    return {'posts': result, 'has_data': len(result) > 0}
+
+
+def get_caption_length_analysis(user, days=90):
+    """Caption length vs engagement correlation."""
+    from analytics_pixelfed.models import PixelfedPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'posts': [], 'has_data': False, 'sweet_spot': None}
+
+    posts = PixelfedPost.objects.filter(
+        account__in=accounts, posted_at__gte=start_date,
+    ).select_related('engagement_summary')
+
+    data = []
+    length_buckets = defaultdict(lambda: {'count': 0, 'total_eng': 0})
+
+    for p in posts:
+        eng = p.engagement_summary.total_engagement if hasattr(p, 'engagement_summary') and p.engagement_summary else 0
+        caption_len = len(p.caption or '')
+        data.append({'length': caption_len, 'engagement': eng, 'caption': (p.caption or '')[:40]})
+
+        # Bucket by 50-char ranges
+        bucket = (caption_len // 50) * 50
+        length_buckets[bucket]['count'] += 1
+        length_buckets[bucket]['total_eng'] += eng
+
+    # Find sweet spot (bucket with highest avg engagement, min 3 posts)
+    sweet_spot = None
+    best_avg = 0
+    buckets_list = []
+    for bucket, stats in sorted(length_buckets.items()):
+        avg = stats['total_eng'] / stats['count'] if stats['count'] > 0 else 0
+        buckets_list.append({
+            'range': f"{bucket}-{bucket + 49}",
+            'count': stats['count'],
+            'avg_engagement': round(avg, 1),
+        })
+        if stats['count'] >= 3 and avg > best_avg:
+            best_avg = avg
+            sweet_spot = f"{bucket}-{bucket + 49} chars"
+
+    return {'posts': data, 'buckets': buckets_list, 'sweet_spot': sweet_spot, 'has_data': len(data) > 0}
+
+
+def get_viral_coefficient(user, days=90):
+    """Shares-to-likes ratio as virality indicator."""
+    from analytics_pixelfed.models import PixelfedPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'posts': [], 'has_data': False}
+
+    posts = PixelfedPost.objects.filter(
+        account__in=accounts, posted_at__gte=start_date,
+    ).select_related('engagement_summary').filter(
+        engagement_summary__total_likes__gt=0
+    ).order_by('-posted_at')[:30]
+
+    result = []
+    for p in posts:
+        eng = p.engagement_summary
+        likes = eng.total_likes or 0
+        shares = eng.total_shares or 0
+        ratio = round(shares / max(likes, 1), 3)
+        result.append({
+            'caption': (p.caption or '')[:60],
+            'post_url': p.post_url,
+            'posted_at': p.posted_at,
+            'likes': likes,
+            'shares': shares,
+            'ratio': ratio,
+            'is_viral': ratio > 0.1,
+        })
+
+    result.sort(key=lambda x: x['ratio'], reverse=True)
+    return {'posts': result, 'has_data': len(result) > 0}
+
+
+def get_content_themes(user, days=90, limit=20):
+    """Hashtag/keyword frequency analysis in high-engagement posts."""
+    from analytics_pixelfed.models import PixelfedPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+    import re
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'tags': [], 'has_data': False}
+
+    posts = PixelfedPost.objects.filter(
+        account__in=accounts, posted_at__gte=start_date,
+    ).select_related('engagement_summary')
+
+    tag_stats = defaultdict(lambda: {'count': 0, 'total_eng': 0})
+
+    for p in posts:
+        eng = p.engagement_summary.total_engagement if hasattr(p, 'engagement_summary') and p.engagement_summary else 0
+        # Extract hashtags from caption
+        hashtags = re.findall(r'#(\w+)', p.caption or '')
+        for tag in hashtags:
+            tag_lower = tag.lower()
+            tag_stats[tag_lower]['count'] += 1
+            tag_stats[tag_lower]['total_eng'] += eng
+
+    tags = []
+    for tag, stats in tag_stats.items():
+        avg = stats['total_eng'] / stats['count'] if stats['count'] > 0 else 0
+        tags.append({
+            'tag': tag,
+            'count': stats['count'],
+            'total_engagement': stats['total_eng'],
+            'avg_engagement': round(avg, 1),
+        })
+
+    tags.sort(key=lambda x: x['avg_engagement'], reverse=True)
+    max_count = max((t['count'] for t in tags), default=1) or 1
+
+    return {'tags': tags[:limit], 'max_count': max_count, 'has_data': len(tags) > 0}
+
+
+def get_conversation_threads(user, days=30, limit=20):
+    """Thread view of comment chains for community conversation map."""
+    from analytics_pixelfed.models import PixelfedComment, PixelfedPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'threads': [], 'has_data': False}
+
+    # Get posts with multiple comments (conversations)
+    from django.db.models import Count
+    posts_with_threads = PixelfedPost.objects.filter(
+        account__in=accounts, posted_at__gte=start_date,
+    ).annotate(
+        comment_count=Count('comments')
+    ).filter(comment_count__gte=2).order_by('-comment_count')[:limit]
+
+    threads = []
+    for post in posts_with_threads:
+        comments = list(post.comments.order_by('commented_at')[:20])
+        threads.append({
+            'post_caption': (post.caption or '')[:60],
+            'post_url': post.post_url,
+            'posted_at': post.posted_at,
+            'comment_count': len(comments),
+            'comments': [{
+                'username': c.username,
+                'content': c.content[:200],
+                'commented_at': c.commented_at,
+                'is_reply': c.is_reply,
+            } for c in comments],
+            'unique_participants': len(set(c.username for c in comments)),
+        })
+
+    return {'threads': threads, 'has_data': len(threads) > 0}
+
+
 def get_posting_calendar_data(user, platform=None, days=365):
     """
     Aggregate posting calendar data across platforms or for a specific platform.
