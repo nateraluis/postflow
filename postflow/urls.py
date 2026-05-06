@@ -23,6 +23,7 @@ urlpatterns = [
     path('caption-templates/<int:template_id>/delete/', views.delete_caption_template, name='delete_caption_template'),
     path('caption-templates/<int:template_id>/content/', views.get_template_content, name='get_template_content'),
     path('settings/defaults/', views.user_defaults_view, name='user_defaults'),
+    path('digest/', views.weekly_digest_preview, name='digest_preview'),
     path('feedback/', views.feedback_view, name='feedback'),
     path("privacy/", views.privacy_policy, name="privacy_policy"),
     path("subscribe/", views.subscribe, name="subscribe"),

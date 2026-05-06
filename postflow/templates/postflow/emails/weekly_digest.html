@@ -1,0 +1,104 @@
+<div style="max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937;">
+    <div style="background: #4f46e5; color: white; padding: 24px; border-radius: 8px 8px 0 0;">
+        <h1 style="margin: 0; font-size: 20px;">PostFlow Weekly Digest</h1>
+        <p style="margin: 4px 0 0; font-size: 14px; opacity: 0.8;">{{ digest.week_start|date:"M d" }} - {{ digest.week_end|date:"M d, Y" }}</p>
+    </div>
+
+    <div style="background: white; padding: 24px; border: 1px solid #e5e7eb; border-top: none;">
+
+        {% if not digest.has_data %}
+        <p style="color: #6b7280; text-align: center; padding: 32px 0;">No activity this week. Connect your accounts and start posting to see insights here.</p>
+        {% else %}
+
+        <!-- Consistency -->
+        {% if digest.consistency.has_data %}
+        <div style="margin-bottom: 24px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+            <h2 style="margin: 0 0 8px; font-size: 16px; color: #374151;">This Week</h2>
+            <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                <div>
+                    <span style="font-size: 28px; font-weight: bold; color: {% if digest.consistency.score >= 70 %}#059669{% elif digest.consistency.score >= 40 %}#d97706{% else %}#dc2626{% endif %};">{{ digest.consistency.score }}</span>
+                    <span style="font-size: 12px; color: #6b7280;">/100 consistency</span>
+                </div>
+                <div>
+                    <span style="font-size: 28px; font-weight: bold; color: #4f46e5;">{{ digest.consistency.days_posted }}</span>
+                    <span style="font-size: 12px; color: #6b7280;">days posted</span>
+                </div>
+                {% if digest.consistency.current_streak > 0 %}
+                <div>
+                    <span style="font-size: 28px; font-weight: bold; color: #059669;">{{ digest.consistency.current_streak }}</span>
+                    <span style="font-size: 12px; color: #6b7280;">day streak</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Top Posts -->
+        {% if digest.top_posts %}
+        <div style="margin-bottom: 24px;">
+            <h2 style="margin: 0 0 12px; font-size: 16px; color: #374151;">Top Posts</h2>
+            {% for post in digest.top_posts %}
+            <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px;">
+                <p style="margin: 0 0 4px; font-size: 14px; color: #1f2937;">{{ post.caption|truncatewords:15 }}</p>
+                <div style="font-size: 12px; color: #6b7280;">
+                    {{ post.likes }} likes &middot; {{ post.comments }} comments &middot; {{ post.shares }} shares
+                    <span style="font-weight: bold; color: #4f46e5;">&middot; {{ post.total_engagement }} total</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Hashtag Performance -->
+        {% if digest.hashtag_groups %}
+        <div style="margin-bottom: 24px;">
+            <h2 style="margin: 0 0 12px; font-size: 16px; color: #374151;">Hashtag Performance</h2>
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <th style="text-align: left; padding: 6px 0; color: #6b7280;">Group</th>
+                    <th style="text-align: right; padding: 6px 0; color: #6b7280;">Posts</th>
+                    <th style="text-align: right; padding: 6px 0; color: #6b7280;">Avg Engagement</th>
+                </tr>
+                {% for g in digest.hashtag_groups %}
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding: 6px 0;">{{ g.group_name }}</td>
+                    <td style="text-align: right; padding: 6px 0;">{{ g.post_count }}</td>
+                    <td style="text-align: right; padding: 6px 0; font-weight: bold;">{{ g.avg_engagement }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Suggestions -->
+        {% if digest.suggestions %}
+        <div style="margin-bottom: 24px; padding: 16px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <h2 style="margin: 0 0 8px; font-size: 16px; color: #1e40af;">Suggestions</h2>
+            <ul style="margin: 0; padding-left: 16px; font-size: 14px; color: #1e3a5f;">
+                {% for s in digest.suggestions %}
+                <li style="margin-bottom: 4px;">{{ s }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Best Times -->
+        {% if digest.best_times %}
+        <div style="margin-bottom: 16px;">
+            <h2 style="margin: 0 0 8px; font-size: 16px; color: #374151;">Optimal Posting Times</h2>
+            <div style="font-size: 14px; color: #6b7280;">
+                {% for t in digest.best_times %}
+                {{ t.day }} at {{ t.hour }}:00{% if not forloop.last %} &middot; {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% endif %}
+    </div>
+
+    <div style="padding: 16px; text-align: center; font-size: 12px; color: #9ca3af;">
+        <p style="margin: 0;">PostFlow - Your photography scheduling workflow</p>
+        <p style="margin: 4px 0 0;"><a href="https://postflow.photo" style="color: #4f46e5;">postflow.photo</a></p>
+    </div>
+</div>

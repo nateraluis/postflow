@@ -872,6 +872,18 @@ def user_defaults_view(request):
     return render(request, "postflow/pages/user_defaults.html", context)
 
 
+@login_required
+@require_http_methods(["GET"])
+def weekly_digest_preview(request):
+    """Preview the weekly digest for the current user."""
+    from postflow.digest import generate_digest
+    digest = generate_digest(request.user)
+    context = {"digest": digest, "active_page": "analytics"}
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/emails/weekly_digest.html", context)
+    return render(request, "postflow/pages/digest_preview.html", context)
+
+
 # Analytics Preview Views (No Registration Required)
 
 @require_http_methods(["GET"])
