@@ -1,0 +1,51 @@
+<div class="max-w-4xl mx-auto p-4">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Drafts</h2>
+
+    {% if drafts %}
+        <div class="space-y-4">
+            {% for draft in drafts %}
+                <div class="bg-white p-4 rounded-lg shadow border" id="draft-{{ draft.id }}">
+                    <div class="flex gap-4">
+                        {% if draft.image_urls %}
+                            <div class="flex-shrink-0">
+                                <img src="{{ draft.image_urls.0 }}" alt="Draft image" class="w-20 h-20 object-cover rounded">
+                                {% if draft.image_urls|length > 1 %}
+                                    <span class="text-xs text-gray-500">+{{ draft.image_urls|length|add:"-1" }} more</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm text-gray-800 truncate">{{ draft.caption|default:"No caption" }}</p>
+                            {% if draft.hashtags %}
+                                <p class="text-xs text-blue-500 mt-1">
+                                    {% for tag in draft.hashtags %}{{ tag.display_name }} {% endfor %}
+                                </p>
+                            {% endif %}
+                            <p class="text-xs text-gray-400 mt-1">Created {{ draft.created_at|timesince }} ago</p>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <button
+                                class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                                hx-post="{% url 'edit_post' draft.id %}"
+                                hx-vals='{"action": "schedule"}'
+                                hx-target="#draft-{{ draft.id }}"
+                                hx-swap="outerHTML">
+                                Schedule
+                            </button>
+                            <button
+                                class="text-xs bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200"
+                                hx-delete="{% url 'delete_post' draft.id %}"
+                                hx-target="#draft-{{ draft.id }}"
+                                hx-swap="outerHTML"
+                                hx-confirm="Delete this draft?">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-gray-500">No drafts yet. Save a post as draft from the composer.</p>
+    {% endif %}
+</div>

@@ -240,6 +240,11 @@ def schedule_post(request):
     mastodon_native_account_ids = request.POST.getlist("mastodon_native_accounts")
     instagram_account_ids = request.POST.getlist("instagram_accounts")
     images = request.FILES.getlist("photos")
+    alt_texts = request.POST.getlist("alt_texts")
+    location_id = request.POST.get("location_id", "").strip()
+    collaborators = request.POST.get("collaborators", "").strip()
+    action = request.POST.get("action", "schedule")
+    is_draft = action == "draft"
 
     context = {
         "hours": range(0, 24),
@@ -264,51 +269,79 @@ def schedule_post(request):
         response['HX-Retarget'] = '#form-container'
         return response
 
-    # Validation: Ensure date & time are selected
-    if not post_date or not post_hour or not post_minute:
-        context["error"] = "Please select a valid date and time."
-        response = render(request, "postflow/components/upload_photo_form.html", context)
-        response['HX-Retarget'] = '#form-container'
-        logger.error("Invalid date and time selected.")
-        return response
+    # Banned hashtag check for Instagram
+    if instagram_account_ids and hashtag_group_ids:
+        from postflow.hashtag_utils import check_banned_hashtags
+        all_tags = list(Tag.objects.filter(
+            tag_groups__id__in=hashtag_group_ids
+        ).distinct().values_list("name", flat=True))
+        banned = check_banned_hashtags(all_tags)
+        if banned:
+            context["error"] = f"Banned hashtags detected: {', '.join('#' + h for h in banned)}. Remove them to avoid Instagram shadowban."
+            response = render(request, "postflow/components/upload_photo_form.html", context)
+            response['HX-Retarget'] = '#form-container'
+            return response
 
-    # Convert user-selected date & time to UTC
-    try:
-        scheduled_datetime = f"{post_date} {post_hour}:{post_minute}:00"
-        user_tz = pytz.timezone(user_timezone)
-        naive_dt = datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S")
-        localized_datetime = user_tz.localize(naive_dt)
-        utc_datetime = localized_datetime.astimezone(pytz.UTC)
-        print(utc_datetime)
-
-    except Exception as e:
-        context["error"] = "Invalid date and time selected."
-        response = render(request, "postflow/components/upload_photo_form.html", context)
-        response['HX-Retarget'] = '#form-container'
-        logger.error(f"Invalid date and time: {e}")
-        return response
-
-    # Ensure the scheduled time is in the future (at least 30 seconds)
+    # Drafts don't require date/time
+    utc_datetime = None
     current_utc_time = now()
-    min_allowed_time = current_utc_time + timedelta(seconds=30)
 
-    if utc_datetime < min_allowed_time:
-        context["error"] = "The scheduled time must be at least 5 minutes in the future."
-        response = render(request, "postflow/components/upload_photo_form.html", context)
-        response['HX-Retarget'] = '#form-container'
-        logger.error(f"Invalid scheduled time: {utc_datetime}")
-        return response
+    if not is_draft:
+        # Validation: Ensure date & time are selected
+        if not post_date or not post_hour or not post_minute:
+            context["error"] = "Please select a valid date and time."
+            response = render(request, "postflow/components/upload_photo_form.html", context)
+            response['HX-Retarget'] = '#form-container'
+            logger.error("Invalid date and time selected.")
+            return response
+
+        # Convert user-selected date & time to UTC
+        try:
+            scheduled_datetime = f"{post_date} {post_hour}:{post_minute}:00"
+            user_tz = pytz.timezone(user_timezone)
+            naive_dt = datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S")
+            localized_datetime = user_tz.localize(naive_dt)
+            utc_datetime = localized_datetime.astimezone(pytz.UTC)
+
+        except Exception as e:
+            context["error"] = "Invalid date and time selected."
+            response = render(request, "postflow/components/upload_photo_form.html", context)
+            response['HX-Retarget'] = '#form-container'
+            logger.error(f"Invalid date and time: {e}")
+            return response
+
+        # Ensure the scheduled time is in the future (at least 30 seconds)
+        min_allowed_time = current_utc_time + timedelta(seconds=30)
+
+        if utc_datetime < min_allowed_time:
+            context["error"] = "The scheduled time must be at least 5 minutes in the future."
+            response = render(request, "postflow/components/upload_photo_form.html", context)
+            response['HX-Retarget'] = '#form-container'
+            logger.error(f"Invalid scheduled time: {utc_datetime}")
+            return response
 
     # Save the uploaded images and create the ScheduledPost
     try:
-        # First create the ScheduledPost without images
+        # Resolve location if provided
+        post_location = None
+        if location_id:
+            from postflow.models import Location
+            post_location = Location.objects.filter(id=location_id, user=request.user).first()
+            if post_location:
+                post_location.use_count += 1
+                post_location.save(update_fields=["use_count"])
+
+        # Create the ScheduledPost
         scheduled_post = ScheduledPost.objects.create(
             user=request.user,
             caption=caption,
-            post_date=utc_datetime,
+            post_date=utc_datetime or now(),
             user_timezone=user_timezone,
+            status="draft" if is_draft else "pending",
+            location=post_location,
+            collaborators=collaborators,
         )
-        logger.info(f"New Scheduled Post created: {scheduled_post}")
+        logger.info(f"New {'Draft' if is_draft else 'Scheduled'} Post created: {scheduled_post}")
 
         # Upload and create PostImage records for each image
         from postflow.models import PostImage
@@ -320,7 +353,6 @@ def schedule_post(request):
 
             saved_path = upload_to_s3(image, file_path)
             if not saved_path:
-                # If any image fails to upload, delete the post and return error
                 scheduled_post.delete()
                 context["error"] = f"Failed to upload image {index + 1} to S3."
                 response = render(request, "postflow/components/upload_photo_form.html", context)
@@ -328,11 +360,13 @@ def schedule_post(request):
                 logger.error(f"Failed to upload image {index + 1} to S3.")
                 return response
 
-            # Create PostImage record
+            # Create PostImage record with alt text
+            alt_text = alt_texts[index] if index < len(alt_texts) else ""
             PostImage.objects.create(
                 scheduled_post=scheduled_post,
                 image=saved_path,
-                order=index
+                order=index,
+                alt_text=alt_text,
             )
             logger.info(f"Image {index + 1}/{len(images)} uploaded for post {scheduled_post.id}")
 
@@ -571,6 +605,162 @@ def posted_history_view(request):
 
     # Regular page load (full page)
     return render(request, "postflow/pages/calendar.html", context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def location_search(request):
+    """HTMX endpoint for searching Facebook Places (locations) for Instagram tagging."""
+    query = request.GET.get("location_search", "").strip()
+    if len(query) < 2:
+        return HttpResponse("")
+
+    from postflow.models import Location
+
+    # First show user's saved locations matching query
+    saved = Location.objects.filter(
+        user=request.user,
+        name__icontains=query,
+    )[:5]
+
+    html = ""
+    for loc in saved:
+        html += (
+            f'<div class="p-2 hover:bg-gray-100 cursor-pointer text-sm border-b" '
+            f'onclick="selectLocation(\'{loc.id}\', \'{loc.name}\')">'
+            f'{loc.name} <span class="text-xs text-gray-400">(saved)</span></div>'
+        )
+
+    if not saved.exists():
+        html += '<div class="p-2 text-xs text-gray-400">No saved locations found. Location search via Facebook Places API requires FACEBOOK_APP_ID configuration.</div>'
+
+    return HttpResponse(html)
+
+
+@login_required
+@require_http_methods(["GET"])
+def drafts_view(request):
+    """Display user's draft posts."""
+    drafts = ScheduledPost.objects.filter(
+        user=request.user,
+        status="draft",
+    ).prefetch_related("images", "hashtag_groups__tags").order_by("-created_at")
+
+    for post in drafts:
+        if post.images.exists():
+            post.image_urls = [get_s3_signed_url(img.image.name) for img in post.images.all()]
+        elif post.image:
+            post.image_urls = [get_s3_signed_url(post.image.name)]
+        else:
+            post.image_urls = []
+        post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
+
+    context = {"drafts": drafts, "active_page": "drafts"}
+
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/components/drafts_list.html", context)
+
+    return render(request, "postflow/pages/drafts.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def edit_post(request, post_id):
+    """Edit a pending or draft scheduled post."""
+    post = get_object_or_404(ScheduledPost, id=post_id, user=request.user)
+
+    if post.status not in ("pending", "draft"):
+        return JsonResponse({"error": "Can only edit pending or draft posts."}, status=400)
+
+    # Check if editing a post within 5 minutes of publishing
+    if post.status == "pending" and post.post_date:
+        time_until_publish = (post.post_date - now()).total_seconds()
+        if 0 < time_until_publish < 300:
+            return JsonResponse(
+                {"error": "Cannot edit a post within 5 minutes of its scheduled time. Delete and recreate instead."},
+                status=400,
+            )
+
+    # Update fields
+    caption = request.POST.get("caption")
+    if caption is not None:
+        post.caption = caption
+
+    post_date = request.POST.get("post_date")
+    post_hour = request.POST.get("post_hour")
+    post_minute = request.POST.get("post_minute")
+    user_timezone = request.POST.get("user_timezone", post.user_timezone)
+
+    if post_date and post_hour and post_minute:
+        try:
+            scheduled_datetime = f"{post_date} {post_hour}:{post_minute}:00"
+            user_tz = pytz.timezone(user_timezone)
+            naive_dt = datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S")
+            localized_datetime = user_tz.localize(naive_dt)
+            post.post_date = localized_datetime.astimezone(pytz.UTC)
+            post.user_timezone = user_timezone
+        except Exception:
+            return JsonResponse({"error": "Invalid date/time."}, status=400)
+
+    collaborators = request.POST.get("collaborators")
+    if collaborators is not None:
+        post.collaborators = collaborators
+
+    # Handle scheduling a draft
+    action = request.POST.get("action")
+    if action == "schedule" and post.status == "draft":
+        if not post.post_date or post.post_date <= now():
+            return JsonResponse({"error": "Set a future date/time before scheduling."}, status=400)
+        post.status = "pending"
+
+    post.save()
+
+    # Update M2M relations if provided
+    hashtag_group_ids = request.POST.getlist("hashtag_groups")
+    if hashtag_group_ids:
+        post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
+
+    return JsonResponse({"success": True, "status": post.status})
+
+
+@login_required
+@require_http_methods(["POST", "DELETE"])
+def delete_post(request, post_id):
+    """Delete a scheduled or draft post before it's published."""
+    post = get_object_or_404(ScheduledPost, id=post_id, user=request.user)
+
+    if post.status == "posted":
+        return JsonResponse({"error": "Cannot delete a post that has already been published."}, status=400)
+
+    post_id_deleted = post.id
+    post.delete()
+    logger.info(f"Post {post_id_deleted} deleted by user {request.user.email}")
+
+    if "HX-Request" in request.headers:
+        return HttpResponse("")
+
+    return JsonResponse({"success": True})
+
+
+@login_required
+@require_http_methods(["GET"])
+def check_banned_hashtags_view(request):
+    """HTMX endpoint to check hashtags against banned list."""
+    from postflow.hashtag_utils import check_banned_hashtags
+    group_ids = request.GET.getlist("group_ids")
+    if not group_ids:
+        return HttpResponse("")
+
+    tags = list(Tag.objects.filter(
+        tag_groups__id__in=group_ids
+    ).distinct().values_list("name", flat=True))
+
+    banned = check_banned_hashtags(tags)
+    if banned:
+        html = f'<span class="text-red-600">Banned: {", ".join("#" + h for h in banned)}</span>'
+        return HttpResponse(html)
+
+    return HttpResponse("")
 
 
 # Analytics Preview Views (No Registration Required)

@@ -42,6 +42,23 @@
           </a>
         </li>
 
+        <!-- Drafts Link -->
+        <li>
+          <a href="{% url 'drafts' %}"
+             hx-get="{% url 'drafts' %}"
+             hx-target="#content-area"
+             hx-swap="innerHTML"
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'drafts' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+            {% if not mobile_view %}
+            <svg class="size-6 shrink-0 {% if active_page == 'drafts' %}text-white{% else %}text-gray-400 group-hover:text-white{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            {% endif %}
+            Drafts
+          </a>
+        </li>
+
         <!-- Analytics Link -->
         <li>
           <a href="{% url 'analytics:dashboard' %}"

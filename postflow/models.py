@@ -119,6 +119,7 @@ class TagGroup(models.Model):
 
 class ScheduledPost(models.Model):
     STATUS_CHOICES = [
+        ("draft", "Draft"),
         ("pending", "Pending"),
         ("scheduled", "Scheduled"),
         ("posted", "Posted"),
@@ -134,6 +135,8 @@ class ScheduledPost(models.Model):
     mastodon_accounts = models.ManyToManyField("pixelfed.MastodonAccount", blank=True, help_text="Pixelfed/Mastodon-compatible instances")
     mastodon_native_accounts = models.ManyToManyField("mastodon_native.MastodonAccount", blank=True, help_text="Native Mastodon instances")
     instagram_accounts = models.ManyToManyField("instagram.InstagramBusinessAccount", blank=True)
+    location = models.ForeignKey("Location", on_delete=models.SET_NULL, blank=True, null=True, help_text="Location tag for Instagram posts")
+    collaborators = models.CharField(max_length=500, blank=True, default="", help_text="Comma-separated Instagram collaborator usernames (max 3)")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     mastodon_media_id = models.CharField(max_length=255, blank=True, null=True)  # Stores media ID from Mastodon
     mastodon_post_id = models.CharField(max_length=255, blank=True, null=True)  # Stores the scheduled post ID
@@ -216,6 +219,11 @@ class PostImage(models.Model):
         upload_to="scheduled_posts/",
         help_text="Image file for this post"
     )
+    alt_text = models.TextField(
+        blank=True,
+        default="",
+        help_text="Alt text for accessibility (passed to all platforms)"
+    )
     order = models.PositiveIntegerField(
         default=0,
         help_text="Order of this image in the post (0-indexed)"
@@ -250,6 +258,77 @@ class PostImage(models.Model):
         except Exception as e:
             print(f"❌ Error downloading image from S3: {e}")
             return None
+
+
+class Location(models.Model):
+    """Saved locations for Instagram location tagging."""
+    name = models.CharField(max_length=255)
+    facebook_page_id = models.CharField(max_length=255, help_text="Facebook Places page ID for Instagram API")
+    latitude = models.FloatField(blank=True, null=True)
+    longitude = models.FloatField(blank=True, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="locations")
+    use_count = models.PositiveIntegerField(default=0, help_text="Track usage for frequently-used sorting")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["facebook_page_id", "user"], name="unique_location_per_user")
+        ]
+        ordering = ["-use_count", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class UserTag(models.Model):
+    """User/account tags for posts. Positional (x,y) for Instagram, mention-based for Mastodon/Pixelfed."""
+    PLATFORM_CHOICES = [
+        ("instagram", "Instagram"),
+        ("mastodon", "Mastodon"),
+        ("pixelfed", "Pixelfed"),
+    ]
+    scheduled_post = models.ForeignKey(ScheduledPost, on_delete=models.CASCADE, related_name="user_tags")
+    post_image = models.ForeignKey(PostImage, on_delete=models.CASCADE, related_name="user_tags", blank=True, null=True)
+    username = models.CharField(max_length=255, help_text="Username to tag (e.g., @user or @user@instance)")
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES, default="instagram")
+    x = models.FloatField(blank=True, null=True, help_text="X position (0-1) for Instagram image tags")
+    y = models.FloatField(blank=True, null=True, help_text="Y position (0-1) for Instagram image tags")
+
+    class Meta:
+        verbose_name = "User Tag"
+        verbose_name_plural = "User Tags"
+
+    def __str__(self):
+        return f"@{self.username} on {self.platform}"
+
+
+class DefaultTag(models.Model):
+    """Accounts that a user always wants to tag (auto-filled in composer)."""
+    PLATFORM_CHOICES = UserTag.PLATFORM_CHOICES
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="default_tags")
+    username = models.CharField(max_length=255)
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES, default="instagram")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "username", "platform"], name="unique_default_tag")
+        ]
+
+    def __str__(self):
+        return f"@{self.username} ({self.platform})"
+
+
+class HashtagUsage(models.Model):
+    """Tracks which hashtags were used on each post for rotation and analytics."""
+    scheduled_post = models.ForeignKey(ScheduledPost, on_delete=models.CASCADE, related_name="hashtag_usages")
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name="usages")
+    platform = models.CharField(max_length=20, default="all")
+    used_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-used_at"]
+
+    def __str__(self):
+        return f"#{self.tag.name} used on post {self.scheduled_post_id}"
 
 
 class Feedback(models.Model):

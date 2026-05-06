@@ -32,26 +32,12 @@ class PostPayload:
     collaborators: list[str] = field(default_factory=list)
 
     def get_hashtag_string(self, platform: str = "default") -> str:
-        """Get formatted hashtag string respecting platform limits."""
-        tags = list(self.pinned_hashtags)
-
-        if platform == "instagram":
-            remaining_slots = INSTAGRAM_HASHTAG_LIMIT - len(tags)
-            non_pinned = [h for h in self.hashtags if h not in tags]
-            tags.extend(non_pinned[:remaining_slots])
-        else:
-            non_pinned = [h for h in self.hashtags if h not in tags]
-            tags.extend(non_pinned)
-
-        # Deduplicate while preserving order
-        seen = set()
-        unique_tags = []
-        for tag in tags:
-            if tag not in seen:
-                seen.add(tag)
-                unique_tags.append(tag)
-
-        return " ".join(f"#{t}" for t in unique_tags)
+        """Get formatted hashtag string respecting platform limits and filtering banned tags."""
+        from .hashtag_utils import select_hashtags_for_platform
+        selected = select_hashtags_for_platform(
+            self.hashtags, self.pinned_hashtags, platform
+        )
+        return " ".join(f"#{t}" for t in selected)
 
     def get_full_caption(self, platform: str = "default") -> str:
         """Get caption + hashtags assembled for a specific platform."""
