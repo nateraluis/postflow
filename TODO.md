@@ -215,110 +215,110 @@ Mastodon/Pixelfed features degrade gracefully on Instagram, and Instagram-only f
 
 ### Must-Have (Cultural & Functional Necessities)
 
-#### F.1 Content Warning (CW) / Spoiler Text Support
+#### F.1 ~~Content Warning (CW) / Spoiler Text~~ COMPLETED (CW) / Spoiler Text Support
 CW is a strong cultural norm on the fediverse. Without this, PostFlow is tone-deaf.
 Instagram has no equivalent — skip silently.
 
-- [ ] Add `spoiler_text` field to `ScheduledPost`
-- [ ] Add CW input in composer (collapsible, above caption)
-- [ ] Pass `spoiler_text` param in Mastodon/Pixelfed status creation
-- [ ] Mark post as `sensitive=true` when CW is set
-- [ ] Instagram: ignore spoiler_text (no API support)
+- [x] Add `spoiler_text` field to `ScheduledPost`
+- [x] Add CW input in composer (collapsible, above caption)
+- [x] Pass `spoiler_text` param in Mastodon/Pixelfed status creation
+- [x] Mark post as `sensitive=true` when CW is set
+- [x] Instagram: ignore spoiler_text (no API support)
 
-#### F.2 Visibility Controls Per Post
+#### F.2 ~~Visibility Controls Per Post~~ COMPLETED Per Post
 Many fediverse users prefer `unlisted` for scheduled/automated content.
 Instagram has no equivalent — always public via API.
 
-- [ ] Add `visibility` field to `ScheduledPost` (public/unlisted/private/direct)
-- [ ] Add visibility selector in composer (default: public)
-- [ ] Pass `visibility` param in Mastodon/Pixelfed status creation
-- [ ] Instagram: always public (ignore visibility setting)
+- [x] Add `visibility` field to `ScheduledPost` (public/unlisted/private/direct)
+- [x] Add visibility selector in composer (default: public)
+- [x] Pass `visibility` param in Mastodon/Pixelfed status creation
+- [x] Instagram: always public (ignore visibility setting)
 
-#### F.3 Post Language Tagging
+#### F.3 ~~Post Language Tagging~~ COMPLETED
 Important for the fediverse's international userbase. Helps with content filtering.
 Instagram: skip (no API support for language).
 
-- [ ] Add `language` field to `ScheduledPost` (ISO 639-1 code)
-- [ ] Add language selector in composer (auto-detect or manual)
-- [ ] Pass `language` param in Mastodon/Pixelfed status creation
-- [ ] Instagram: ignore language param
+- [x] Add `language` field to `ScheduledPost` (ISO 639-1 code)
+- [x] Add language selector in composer (auto-detect or manual)
+- [x] Pass `language` param in Mastodon/Pixelfed status creation
+- [x] Instagram: ignore language param
 
-#### F.4 Thread Scheduling (Multi-Post Chains)
+#### F.4 ~~Thread Scheduling (Multi-Post Chains)~~ COMPLETED (Multi-Post Chains)
 Split long-form content into connected reply chains. No fediverse tool offers this.
 Instagram: post only first item as a regular post.
 
-- [ ] Add `ScheduledThread` model grouping ordered `ScheduledPost` entries
-- [ ] Thread composer UI: add/remove/reorder posts in a thread
-- [ ] Publish sequentially using `in_reply_to_id` from each created status
-- [ ] 1-second delay between posts to avoid rate limits
-- [ ] Instagram: publish first post only (skip thread chain)
-- [ ] Show thread preview in composer
+- [x] Add `ScheduledThread` model grouping ordered `ScheduledPost` entries
+- [x] Thread composer UI: add/remove/reorder posts in a thread
+- [x] Publish sequentially using `in_reply_to_id` from each created status
+- [x] 1-second delay between posts to avoid rate limits
+- [x] Instagram: publish first post only (skip thread chain)
+- [x] Show thread preview in composer
 
-#### F.5 Follower Growth Tracking
+#### F.5 ~~Follower Growth Tracking~~ COMPLETED
 Poll account endpoints daily, store time series. Simple to implement, high value.
 
-- [ ] Create `FollowerSnapshot` model: account FK, date, followers, following, posts count
-- [ ] Scheduler job: daily poll of `verify_credentials` for all connected accounts
-- [ ] Dashboard view with growth chart (line graph over time)
-- [ ] Works for Mastodon, Pixelfed, and Instagram accounts
+- [x] Create `FollowerSnapshot` model: account FK, date, followers, following, posts count
+- [x] Scheduler job: daily poll of `verify_credentials` for all connected accounts
+- [x] Dashboard view with growth chart (line graph over time)
+- [x] Works for Mastodon, Pixelfed, and Instagram accounts
 
-#### F.6 Quote Post Support (Mastodon 4.5+)
+#### F.6 ~~Quote Post Support~~ COMPLETED (Mastodon 4.5+)
 Mastodon 4.5 added `quoted_status_id`. Instagram: not applicable.
 
-- [ ] Add `quoted_status_url` field to `ScheduledPost`
-- [ ] Resolve status URL to ID via instance API before publishing
-- [ ] Pass `quoted_status_id` in Mastodon/Pixelfed status creation
-- [ ] Detect instance version to conditionally enable
-- [ ] Instagram: ignore (no quote post concept)
+- [x] Add `quoted_status_url` field to `ScheduledPost`
+- [x] Resolve status URL to ID via instance API before publishing
+- [x] Pass `quoted_status_id` in Mastodon/Pixelfed status creation
+- [x] Detect instance version to conditionally enable
+- [x] Instagram: ignore (no quote post concept)
 
 ### Should-Have (Strong Differentiators)
 
-#### F.7 Poll Scheduling
+#### F.7 ~~Poll Scheduling~~ COMPLETED
 Create posts with polls. No fediverse scheduling tool offers this.
 Instagram: skip poll, post as image-only.
 
-- [ ] Add poll fields to `ScheduledPost`: options (JSON), expires_in, multiple, hide_totals
-- [ ] Poll builder in composer (add/remove options, set duration)
-- [ ] Pass `poll` params in Mastodon/Pixelfed status creation
-- [ ] Instagram: ignore poll fields (post image + caption only)
+- [x] Add poll fields to `ScheduledPost`: options (JSON), expires_in, multiple, hide_totals
+- [x] Poll builder in composer (add/remove options, set duration)
+- [x] Pass `poll` params in Mastodon/Pixelfed status creation
+- [x] Instagram: ignore poll fields (post image + caption only)
 
-#### F.8 Boost/Reblog Scheduling
+#### F.8 ~~Boost/Reblog Scheduling~~ COMPLETED
 Schedule reblogs of others' content. Useful for curators and community managers.
 Instagram: not applicable.
 
-- [ ] Create `ScheduledBoost` model: target status URL, scheduled time, account FK
-- [ ] Boost composer: paste URL, pick time and accounts
-- [ ] Publish via `POST /api/v1/statuses/:id/reblog`
-- [ ] Dashboard showing scheduled boosts
-- [ ] Instagram: skip (no reblog concept)
+- [x] Create `ScheduledBoost` model: target status URL, scheduled time, account FK
+- [x] Boost composer: paste URL, pick time and accounts
+- [x] Publish via `POST /api/v1/statuses/:id/reblog`
+- [x] Dashboard showing scheduled boosts
+- [x] Instagram: skip (no reblog concept)
 
-#### F.9 Auto-Delete / Ephemeral Posting
+#### F.9 ~~Auto-Delete / Ephemeral Posting~~ COMPLETED / Ephemeral Posting
 Schedule post deletion after N hours/days. Growing demand for digital impermanence.
 Instagram: skip deletion (API doesn't support it).
 
-- [ ] Add `delete_after` field to `ScheduledPost` (hours, nullable)
-- [ ] Scheduler job: check posted posts past their TTL, delete via API
-- [ ] Show TTL badge in calendar/history views
-- [ ] Instagram: ignore (cannot delete via API)
+- [x] Add `delete_after` field to `ScheduledPost` (hours, nullable)
+- [x] Scheduler job: check posted posts past their TTL, delete via API
+- [x] Show TTL badge in calendar/history views
+- [x] Instagram: ignore (cannot delete via API)
 
-#### F.10 Hashtag Trending Dashboard
+#### F.10 ~~Hashtag Trending Dashboard~~ COMPLETED
 Use `GET /api/v1/trends/tags` to show what's trending on connected instances.
 Cross-reference with user's hashtag groups for optimization suggestions.
 
-- [ ] Fetch trending tags from each connected Mastodon/Pixelfed instance
-- [ ] Dashboard: trending hashtags with 7-day usage history
-- [ ] Cross-reference with user's TagGroups — highlight matches
-- [ ] Suggest new hashtags based on trending data
-- [ ] Instagram: not available (no public trending API)
+- [x] Fetch trending tags from each connected Mastodon/Pixelfed instance
+- [x] Dashboard: trending hashtags with 7-day usage history
+- [x] Cross-reference with user's TagGroups — highlight matches
+- [x] Suggest new hashtags based on trending data
+- [x] Instagram: not available (no public trending API)
 
-#### F.11 RSS-to-Fediverse Posting
+#### F.11 ~~RSS-to-Fediverse Posting~~ COMPLETED
 Monitor RSS feeds and auto-create posts from new entries. Captures blogger audience.
 
-- [ ] Create `RSSFeed` model: URL, poll interval, target accounts, caption template
-- [ ] Scheduler job: poll feeds, create ScheduledPosts from new entries
-- [ ] Template variables: {title}, {url}, {summary}, {author}
-- [ ] De-duplicate by tracking seen entry GUIDs
-- [ ] Instagram: include if user enables it per feed
+- [x] Create `RSSFeed` model: URL, poll interval, target accounts, caption template
+- [x] Scheduler job: poll feeds, create ScheduledPosts from new entries
+- [x] Template variables: {title}, {url}, {summary}, {author}
+- [x] De-duplicate by tracking seen entry GUIDs
+- [x] Instagram: include if user enables it per feed
 
 ### Nice-to-Have (Long-Term Differentiation)
 
