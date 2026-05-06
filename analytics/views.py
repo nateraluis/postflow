@@ -26,6 +26,10 @@ from analytics.utils import (
     get_media_type_performance,
     get_engagement_velocity,
     get_hashtag_performance,
+    get_top_performers,
+    get_consistency_score,
+    get_engagement_quality,
+    get_growth_momentum,
 )
 
 
@@ -272,6 +276,50 @@ def hashtag_performance_view(request):
     if request.headers.get("HX-Request"):
         return render(request, 'analytics/hashtag_performance_content.html', context)
     return render(request, 'analytics/hashtag_performance.html', context)
+
+
+@login_required
+def top_performers_view(request):
+    """Top performing posts by engagement."""
+    days = int(request.GET.get('days', 90))
+    data = get_top_performers(request.user, days=days)
+    context = {'active_page': 'analytics', 'performers_data': data, 'days': days}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/top_performers_content.html', context)
+    return render(request, 'analytics/top_performers.html', context)
+
+
+@login_required
+def consistency_view(request):
+    """Posting consistency score and streak."""
+    days = int(request.GET.get('days', 90))
+    data = get_consistency_score(request.user, days=days)
+    context = {'active_page': 'analytics', 'consistency': data, 'days': days}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/consistency_content.html', context)
+    return render(request, 'analytics/consistency.html', context)
+
+
+@login_required
+def quality_view(request):
+    """Engagement quality score (weighted)."""
+    days = int(request.GET.get('days', 90))
+    data = get_engagement_quality(request.user, days=days)
+    context = {'active_page': 'analytics', 'quality_data': data, 'days': days}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/quality_content.html', context)
+    return render(request, 'analytics/quality.html', context)
+
+
+@login_required
+def growth_view(request):
+    """Growth momentum dashboard."""
+    days = int(request.GET.get('days', 90))
+    data = get_growth_momentum(request.user, days=days)
+    context = {'active_page': 'analytics', 'growth_data': data, 'days': days}
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/growth_content.html', context)
+    return render(request, 'analytics/growth.html', context)
 
 
 @login_required

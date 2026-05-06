@@ -122,11 +122,11 @@ Help users understand which hashtags drive results.
 Carousels have the highest engagement (10.15%). PostFlow supports multi-image but the
 UX could be better.
 
-- [ ] Drag-and-drop slide reordering
+- [x] Drag-and-drop slide reordering
 - [x] Per-slide alt text input
 - [ ] Per-slide user tagging
 - [ ] Swipeable preview
-- [ ] Auto-suggest carousel when user uploads 3+ images
+- [x] Auto-suggest carousel when user uploads 3+ images
 
 ---
 
@@ -140,21 +140,21 @@ UX could be better.
 
 #### 15. ~~Draft & Template System~~ COMPLETED
 - [x] Save posts as drafts (`status="draft"`) for later editing and scheduling
-- [ ] Caption templates: reusable caption structures with placeholders
-- [ ] Default settings per user: default hashtag groups, accounts, location
+- [x] Caption templates: reusable caption structures with placeholders
+- [x] Default settings per user: default hashtag groups, accounts, location
 
 #### 16. ~~Post Editing & Deletion~~ COMPLETED
 - [x] Edit caption, hashtags, date/time, accounts on pending posts
 - [x] Delete scheduled posts before publishing
 - [x] Warn if editing a post within 5 minutes of publishing
 
-#### 17. Comment Management Dashboard
+#### 17. ~~Comment Management Dashboard~~ COMPLETED
 Fast comment replies boost algorithmic distribution (first-hour replies matter most).
 
-- [ ] Fetch comments via Instagram API and Mastodon API
-- [ ] Unified inbox: comments across all platforms in one view
-- [ ] Quick-reply from PostFlow
-- [ ] Highlight comments on recent posts
+- [x] Fetch comments via Mastodon/Pixelfed API
+- [x] Unified inbox: comments across all platforms in one view
+- [x] Quick-reply from PostFlow
+- [x] Highlight comments on recent posts
 
 ---
 
@@ -250,17 +250,17 @@ Document these clearly for users in the UI:
 - Cumulative vs new engagement views
 - Export data as CSV
 
-#### 9. **Top Performers Dashboard**
+#### 9. ~~**Top Performers Dashboard**~~ COMPLETED
 - Grid of top posts by engagement metric
 - Visual cards with thumbnail, metrics, engagement rate
 - Filter by time period
 
-#### 10. **Consistency Score Meter**
+#### 10. ~~**Consistency Score Meter**~~ COMPLETED
 - Posting frequency regularity score (0-100)
 - Posting streak counter
 - Recommendations to maintain consistency
 
-#### 11. **Engagement Quality Score**
+#### 11. ~~**Engagement Quality Score**~~ COMPLETED
 - Weighted: comments > shares > likes
 - Quality vs quantity comparison across posts
 
@@ -290,7 +290,7 @@ Document these clearly for users in the UI:
 - Tag cloud of hashtags/keywords in high-engagement posts
 - Keyword frequency analysis
 
-#### 18. **Growth Momentum Dashboard**
+#### 18. ~~**Growth Momentum Dashboard**~~ COMPLETED
 - Week-over-week engagement growth
 - Velocity indicators (accelerating/decelerating)
 

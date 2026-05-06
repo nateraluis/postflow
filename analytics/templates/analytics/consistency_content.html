@@ -1,0 +1,137 @@
+{% if consistency.has_data %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Score Gauge (large, center on mobile) -->
+    <div class="lg:col-span-1 flex justify-center">
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-8 w-full flex flex-col items-center">
+            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-6">Your Score</h2>
+
+            <!-- CSS Circle Gauge -->
+            <div class="relative w-44 h-44 mb-6">
+                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+                    <!-- Background circle -->
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+                    <!-- Score arc -->
+                    <circle cx="60" cy="60" r="52" fill="none"
+                        stroke="{% if consistency.score >= 70 %}#22c55e{% elif consistency.score >= 40 %}#eab308{% else %}#ef4444{% endif %}"
+                        stroke-width="10"
+                        stroke-linecap="round"
+                        stroke-dasharray="{% widthratio consistency.score 100 327 %} 327"/>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span class="text-4xl font-bold {% if consistency.score >= 70 %}text-green-600{% elif consistency.score >= 40 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                        {{ consistency.score }}
+                    </span>
+                    <span class="text-sm text-gray-500">out of 100</span>
+                </div>
+            </div>
+
+            <!-- Score Label -->
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                {% if consistency.score >= 70 %}bg-green-100 text-green-800
+                {% elif consistency.score >= 40 %}bg-yellow-100 text-yellow-800
+                {% else %}bg-red-100 text-red-800{% endif %}">
+                {% if consistency.score >= 70 %}Consistent
+                {% elif consistency.score >= 40 %}Moderate
+                {% else %}Needs Work{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <!-- Current Streak -->
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-orange-100 rounded-lg">
+                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-medium text-gray-500">Current Streak</h3>
+            </div>
+            <p class="text-3xl font-bold text-gray-900">{{ consistency.current_streak }}</p>
+            <p class="text-sm text-gray-500 mt-1">consecutive days with posts</p>
+        </div>
+
+        <!-- Days Posted -->
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-violet-100 rounded-lg">
+                    <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-medium text-gray-500">Days Posted</h3>
+            </div>
+            <p class="text-3xl font-bold text-gray-900">{{ consistency.days_posted }}</p>
+            <p class="text-sm text-gray-500 mt-1">out of {{ consistency.total_days }} days</p>
+        </div>
+
+        <!-- Posting Frequency -->
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-blue-100 rounded-lg">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-medium text-gray-500">Posting Frequency</h3>
+            </div>
+            <p class="text-3xl font-bold text-gray-900">{{ consistency.frequency_pct }}%</p>
+            <p class="text-sm text-gray-500 mt-1">of days had at least one post</p>
+
+            <!-- Frequency Bar -->
+            <div class="mt-3 w-full bg-gray-200 rounded-full h-2">
+                <div class="h-2 rounded-full {% if consistency.frequency_pct >= 70 %}bg-green-500{% elif consistency.frequency_pct >= 40 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                     style="width: {{ consistency.frequency_pct }}%"></div>
+            </div>
+        </div>
+
+        <!-- Average Per Week -->
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-green-100 rounded-lg">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-medium text-gray-500">Avg. Per Week</h3>
+            </div>
+            <p class="text-3xl font-bold text-gray-900">{{ consistency.avg_per_week }}</p>
+            <p class="text-sm text-gray-500 mt-1">posts per week on average</p>
+        </div>
+
+    </div>
+</div>
+
+<!-- Score Legend -->
+<div class="mt-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">Consistency Score Guide</h3>
+    <div class="flex flex-wrap gap-4 text-xs">
+        <div class="flex items-center gap-1.5">
+            <span class="inline-block w-3 h-3 rounded-full bg-green-500"></span>
+            <span class="text-gray-600">70-100: Consistent -- you are building strong habits</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="inline-block w-3 h-3 rounded-full bg-yellow-500"></span>
+            <span class="text-gray-600">40-69: Moderate -- some gaps in your schedule</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="inline-block w-3 h-3 rounded-full bg-red-500"></span>
+            <span class="text-gray-600">0-39: Needs work -- try scheduling posts in advance</span>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="p-8 bg-gray-50 border border-gray-200 rounded-lg text-center">
+    <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+    </svg>
+    <p class="text-gray-500 mb-1 font-medium">No posting data available</p>
+    <p class="text-sm text-gray-400">Schedule and publish some posts to start tracking your consistency score.</p>
+</div>
+{% endif %}

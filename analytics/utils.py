@@ -451,6 +451,187 @@ def get_hashtag_performance(user, days=90):
     }
 
 
+def get_top_performers(user, days=90, limit=10):
+    """Top posts by engagement across all platforms."""
+    from analytics_pixelfed.models import PixelfedPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    posts = []
+    if accounts.exists():
+        qs = PixelfedPost.objects.filter(
+            account__in=accounts, posted_at__gte=start_date,
+        ).select_related('engagement_summary', 'account').order_by(
+            '-engagement_summary__total_engagement'
+        )[:limit]
+        for p in qs:
+            eng = p.engagement_summary if hasattr(p, 'engagement_summary') and p.engagement_summary else None
+            posts.append({
+                'platform': 'pixelfed',
+                'caption': (p.caption or '')[:80],
+                'media_url': p.media_url,
+                'post_url': p.post_url,
+                'posted_at': p.posted_at,
+                'total_engagement': eng.total_engagement if eng else 0,
+                'likes': eng.total_likes if eng else 0,
+                'comments': eng.total_comments if eng else 0,
+                'shares': eng.total_shares if eng else 0,
+            })
+
+    posts.sort(key=lambda x: x['total_engagement'], reverse=True)
+    return {'posts': posts[:limit], 'has_data': len(posts) > 0}
+
+
+def get_consistency_score(user, days=90):
+    """Calculate posting consistency score (0-100) and streak."""
+    from analytics_pixelfed.models import PixelfedPost
+    from analytics_mastodon.models import MastodonPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    posting_days = set()
+
+    pf_accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if pf_accounts.exists():
+        dates = PixelfedPost.objects.filter(
+            account__in=pf_accounts, posted_at__gte=start_date,
+        ).values_list('posted_at', flat=True)
+        for d in dates:
+            posting_days.add(d.date())
+
+    m_accounts = MastodonNativeAccount.objects.filter(user=user)
+    if m_accounts.exists():
+        dates = MastodonPost.objects.filter(
+            account__in=m_accounts, posted_at__gte=start_date,
+        ).values_list('posted_at', flat=True)
+        for d in dates:
+            posting_days.add(d.date())
+
+    total_days = days
+    days_posted = len(posting_days)
+    frequency = days_posted / total_days if total_days > 0 else 0
+
+    # Score: 100 if posting every day, scaled down
+    # Adjusted: posting 3x/week (43%) = score 70
+    score = min(100, int(frequency * 230))
+
+    # Calculate current streak
+    current_streak = 0
+    for i in range(days):
+        check = (end_date - timedelta(days=i)).date()
+        if check in posting_days:
+            current_streak += 1
+        else:
+            break
+
+    # Weekly breakdown
+    weeks = defaultdict(int)
+    for d in posting_days:
+        week_num = d.isocalendar()[1]
+        weeks[week_num] += 1
+
+    avg_per_week = sum(weeks.values()) / max(len(weeks), 1)
+
+    return {
+        'score': score,
+        'days_posted': days_posted,
+        'total_days': total_days,
+        'frequency_pct': round(frequency * 100, 1),
+        'current_streak': current_streak,
+        'avg_per_week': round(avg_per_week, 1),
+        'has_data': days_posted > 0,
+    }
+
+
+def get_engagement_quality(user, days=90):
+    """Weighted engagement quality: comments 3x > shares 2x > likes 1x."""
+    from analytics_pixelfed.models import PixelfedPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'posts': [], 'has_data': False}
+
+    posts = PixelfedPost.objects.filter(
+        account__in=accounts, posted_at__gte=start_date,
+    ).select_related('engagement_summary').order_by('-posted_at')[:30]
+
+    result = []
+    for p in posts:
+        eng = p.engagement_summary if hasattr(p, 'engagement_summary') and p.engagement_summary else None
+        if not eng:
+            continue
+        likes = eng.total_likes or 0
+        comments = eng.total_comments or 0
+        shares = eng.total_shares or 0
+        quality_score = likes + (comments * 3) + (shares * 2)
+        quantity = likes + comments + shares
+        result.append({
+            'caption': (p.caption or '')[:60],
+            'post_url': p.post_url,
+            'posted_at': p.posted_at,
+            'likes': likes,
+            'comments': comments,
+            'shares': shares,
+            'quality_score': quality_score,
+            'quantity': quantity,
+            'ratio': round(quality_score / max(quantity, 1), 2),
+        })
+
+    result.sort(key=lambda x: x['quality_score'], reverse=True)
+    return {'posts': result, 'has_data': len(result) > 0}
+
+
+def get_growth_momentum(user, days=90):
+    """Week-over-week engagement growth and velocity."""
+    from analytics_pixelfed.models import PixelfedPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'weeks': [], 'max_engagement': 1, 'has_data': False}
+
+    posts = PixelfedPost.objects.filter(
+        account__in=accounts, posted_at__gte=start_date,
+    ).select_related('engagement_summary').order_by('posted_at')
+
+    weekly = defaultdict(lambda: {'engagement': 0, 'posts': 0})
+    for p in posts:
+        week_start = p.posted_at.date() - timedelta(days=p.posted_at.weekday())
+        eng = p.engagement_summary.total_engagement if hasattr(p, 'engagement_summary') and p.engagement_summary else 0
+        weekly[week_start]['engagement'] += eng
+        weekly[week_start]['posts'] += 1
+
+    weeks_sorted = sorted(weekly.items())
+    result = []
+    for i, (week, data) in enumerate(weeks_sorted):
+        prev_eng = weeks_sorted[i-1][1]['engagement'] if i > 0 else 0
+        growth = ((data['engagement'] - prev_eng) / max(prev_eng, 1)) * 100 if i > 0 else 0
+        result.append({
+            'week': week.isoformat(),
+            'week_label': week.strftime('%b %d'),
+            'engagement': data['engagement'],
+            'posts': data['posts'],
+            'growth_pct': round(growth, 1),
+            'accelerating': growth > 0,
+        })
+
+    max_eng = max((w['engagement'] for w in result), default=1) or 1
+    return {'weeks': result, 'max_engagement': max_eng, 'has_data': len(result) > 0}
+
+
 def get_posting_calendar_data(user, platform=None, days=365):
     """
     Aggregate posting calendar data across platforms or for a specific platform.

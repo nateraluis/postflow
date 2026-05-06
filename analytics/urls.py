@@ -15,6 +15,10 @@ urlpatterns = [
     path('media-type/', views.media_type_view, name='media_type'),
     path('engagement-velocity/', views.engagement_velocity_view, name='engagement_velocity'),
     path('hashtag-performance/', views.hashtag_performance_view, name='hashtag_performance'),
+    path('top-performers/', views.top_performers_view, name='top_performers'),
+    path('consistency/', views.consistency_view, name='consistency'),
+    path('quality/', views.quality_view, name='quality'),
+    path('growth/', views.growth_view, name='growth'),
     path('comments/', views.comments_inbox, name='comments_inbox'),
     path('comments/reply/', views.reply_comment, name='reply_comment'),
 ]

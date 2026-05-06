@@ -15,26 +15,46 @@
         {% endif %}
 
         <!-- Analytics Tools -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-8">
             <a href="{% url 'analytics:best_times' %}"
-               class="p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
                 <p class="text-sm font-semibold text-gray-700">Best Times</p>
                 <p class="text-xs text-gray-500 mt-1">When to post</p>
             </a>
             <a href="{% url 'analytics:media_type' %}"
-               class="p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
                 <p class="text-sm font-semibold text-gray-700">Media Types</p>
                 <p class="text-xs text-gray-500 mt-1">Format comparison</p>
             </a>
             <a href="{% url 'analytics:engagement_velocity' %}"
-               class="p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
                 <p class="text-sm font-semibold text-gray-700">Velocity</p>
                 <p class="text-xs text-gray-500 mt-1">Engagement speed</p>
             </a>
             <a href="{% url 'analytics:hashtag_performance' %}"
-               class="p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
                 <p class="text-sm font-semibold text-gray-700">Hashtags</p>
                 <p class="text-xs text-gray-500 mt-1">Tag performance</p>
+            </a>
+            <a href="{% url 'analytics:top_performers' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Top Posts</p>
+                <p class="text-xs text-gray-500 mt-1">Best content</p>
+            </a>
+            <a href="{% url 'analytics:consistency' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Consistency</p>
+                <p class="text-xs text-gray-500 mt-1">Posting score</p>
+            </a>
+            <a href="{% url 'analytics:quality' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Quality</p>
+                <p class="text-xs text-gray-500 mt-1">Engagement depth</p>
+            </a>
+            <a href="{% url 'analytics:growth' %}"
+               class="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Growth</p>
+                <p class="text-xs text-gray-500 mt-1">Week-over-week</p>
             </a>
         </div>
 

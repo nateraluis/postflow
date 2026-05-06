@@ -1,0 +1,96 @@
+{% if growth_data.has_data %}
+
+<!-- Weekly Bars -->
+<div class="space-y-3">
+    {% for week in growth_data.weeks %}
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+
+            <!-- Week Label -->
+            <div class="sm:w-32 shrink-0">
+                <p class="text-sm font-semibold text-gray-900">{{ week.week_label }}</p>
+                <p class="text-xs text-gray-500">{{ week.posts }} post{{ week.posts|pluralize }}</p>
+            </div>
+
+            <!-- Bar -->
+            <div class="flex-1 min-w-0">
+                <div class="w-full bg-gray-100 rounded-full h-6 relative overflow-hidden">
+                    {% if week.engagement > 0 %}
+                    <div class="h-6 rounded-full flex items-center px-2 text-xs font-medium text-white transition-all
+                        {% if week.accelerating %}bg-green-500{% else %}bg-violet-500{% endif %}"
+                        style="width: {% widthratio week.engagement growth_data.max_engagement 100 %}%;">
+                        {% if week.engagement > 0 %}
+                        <span class="truncate">{{ week.engagement }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Growth Indicator -->
+            <div class="sm:w-28 shrink-0 flex items-center sm:justify-end gap-1">
+                {% if week.growth_pct is not None %}
+                    {% if week.growth_pct > 0 %}
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                    </svg>
+                    <span class="text-sm font-semibold text-green-600">+{{ week.growth_pct }}%</span>
+                    {% elif week.growth_pct < 0 %}
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                    <span class="text-sm font-semibold text-red-600">{{ week.growth_pct }}%</span>
+                    {% else %}
+                    <span class="text-sm font-medium text-gray-400">0%</span>
+                    {% endif %}
+
+                    {% if week.accelerating %}
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 ml-1" title="Accelerating growth">
+                        ACC
+                    </span>
+                    {% endif %}
+                {% else %}
+                <span class="text-xs text-gray-400">--</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Legend -->
+<div class="mt-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">Reading the Chart</h3>
+    <div class="flex flex-wrap gap-4 text-xs">
+        <div class="flex items-center gap-1.5">
+            <span class="inline-block w-3 h-3 rounded-full bg-violet-500"></span>
+            <span class="text-gray-600">Standard week</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <span class="inline-block w-3 h-3 rounded-full bg-green-500"></span>
+            <span class="text-gray-600">Accelerating (growing faster than the previous week)</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+            </svg>
+            <span class="text-gray-600">Positive growth vs. prior week</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+            <span class="text-gray-600">Negative growth vs. prior week</span>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="p-8 bg-gray-50 border border-gray-200 rounded-lg text-center">
+    <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+    </svg>
+    <p class="text-gray-500 mb-1 font-medium">No growth data available</p>
+    <p class="text-sm text-gray-400">At least two weeks of posting activity are needed to calculate growth momentum. Keep posting and check back soon.</p>
+</div>
+{% endif %}
