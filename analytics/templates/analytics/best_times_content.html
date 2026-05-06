@@ -1,0 +1,101 @@
+{% if best_times.use_benchmarks %}
+<div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+    <p class="text-sm text-amber-800">
+        <strong>Note:</strong> Not enough post data to determine your best times. Showing general benchmark suggestions instead. Post more to unlock personalized insights.
+    </p>
+</div>
+{% endif %}
+
+{% if best_times.total_posts_analyzed > 0 and not best_times.use_benchmarks %}
+<div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+    <p class="text-sm text-gray-700">
+        Based on <strong>{{ best_times.total_posts_analyzed }}</strong> post{{ best_times.total_posts_analyzed|pluralize }} analyzed over the last <strong>{{ days }}</strong> days.
+    </p>
+</div>
+{% endif %}
+
+<!-- Suggested Best Times -->
+{% if best_times.suggestions %}
+<div class="mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Suggested Times</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for suggestion in best_times.suggestions %}
+        <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-lg font-bold text-gray-900">{{ suggestion.day }}</span>
+                <span class="text-sm font-medium text-violet-600">{{ suggestion.hour }}:00</span>
+            </div>
+            {% if suggestion.note %}
+            <p class="text-sm text-gray-500">{{ suggestion.note }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Engagement Heatmap -->
+{% if best_times.heatmap %}
+<div class="mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Engagement Heatmap</h2>
+    <p class="text-sm text-gray-500 mb-4">Darker green indicates higher average engagement for posts published at that time.</p>
+
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4 overflow-x-auto">
+        <!-- Hour Labels -->
+        <div class="grid gap-px mb-1" style="grid-template-columns: 80px repeat(24, minmax(28px, 1fr));">
+            <div class="text-xs text-gray-400 font-medium"></div>
+            {% for h in "012345678901234567890123" %}
+            <div class="text-xs text-gray-400 text-center">{{ forloop.counter0 }}</div>
+            {% endfor %}
+        </div>
+
+        <!-- Heatmap Rows -->
+        {% for day in best_times.heatmap %}
+        <div class="grid gap-px mb-px" style="grid-template-columns: 80px repeat(24, minmax(28px, 1fr));">
+            <div class="text-xs text-gray-600 font-medium flex items-center pr-2">{{ day.day_name }}</div>
+            {% for hour_data in day.hours %}
+            <div class="aspect-square rounded-sm flex items-center justify-center text-xs cursor-default
+                {% if hour_data.post_count == 0 %}
+                    bg-gray-100 text-gray-400
+                {% elif hour_data.avg_engagement <= 2 %}
+                    bg-green-100 text-green-800
+                {% elif hour_data.avg_engagement <= 5 %}
+                    bg-green-200 text-green-900
+                {% elif hour_data.avg_engagement <= 10 %}
+                    bg-green-300 text-green-900
+                {% elif hour_data.avg_engagement <= 20 %}
+                    bg-green-400 text-white
+                {% elif hour_data.avg_engagement <= 50 %}
+                    bg-green-500 text-white
+                {% elif hour_data.avg_engagement <= 100 %}
+                    bg-green-600 text-white
+                {% else %}
+                    bg-green-700 text-white
+                {% endif %}"
+                 title="{{ day.day_name }} {{ hour_data.hour }}:00 - Avg: {{ hour_data.avg_engagement }} ({{ hour_data.post_count }} post{{ hour_data.post_count|pluralize }})">
+                {% if hour_data.post_count > 0 %}{{ hour_data.post_count }}{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+
+        <!-- Legend -->
+        <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+            <span class="text-xs text-gray-500">Less</span>
+            <div class="w-5 h-5 rounded-sm bg-gray-100"></div>
+            <div class="w-5 h-5 rounded-sm bg-green-100"></div>
+            <div class="w-5 h-5 rounded-sm bg-green-200"></div>
+            <div class="w-5 h-5 rounded-sm bg-green-300"></div>
+            <div class="w-5 h-5 rounded-sm bg-green-400"></div>
+            <div class="w-5 h-5 rounded-sm bg-green-500"></div>
+            <div class="w-5 h-5 rounded-sm bg-green-600"></div>
+            <div class="w-5 h-5 rounded-sm bg-green-700"></div>
+            <span class="text-xs text-gray-500">More</span>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="p-8 bg-gray-50 border border-gray-200 rounded-lg text-center">
+    <p class="text-gray-500">No posting data available for the selected time range. Start posting to see your engagement heatmap.</p>
+</div>
+{% endif %}

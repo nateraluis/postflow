@@ -1,0 +1,66 @@
+{% if media_data.has_data %}
+
+<!-- Bar Chart -->
+<div class="mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Average Engagement by Media Type</h2>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+        {% for item in media_data.types %}
+        <div class="mb-6 last:mb-0">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-sm font-medium text-gray-700">{{ item.label }}</span>
+                <span class="text-sm text-gray-500">{{ item.avg_engagement }} avg. engagement</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-6 overflow-hidden">
+                {% widthratio item.avg_engagement media_data.types.0.avg_engagement 100 as bar_width %}
+                <div class="h-6 rounded-full flex items-center pl-2 text-xs font-medium text-white
+                    {% if forloop.counter == 1 %}bg-violet-600
+                    {% elif forloop.counter == 2 %}bg-violet-500
+                    {% elif forloop.counter == 3 %}bg-violet-400
+                    {% else %}bg-violet-300{% endif %}"
+                     style="width: {% widthratio item.avg_engagement media_data.types.0.avg_engagement 100 %}%;">
+                    {{ item.count }} post{{ item.count|pluralize }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Detailed Table -->
+<div class="mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Detailed Breakdown</h2>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="text-left px-4 py-3 font-semibold text-gray-700">Media Type</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-700">Posts</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-700">Avg. Engagement</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-700">Total Likes</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-700">Total Comments</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-700">Total Shares</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for item in media_data.types %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium text-gray-900">{{ item.label }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ item.count }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ item.avg_engagement }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ item.total_likes }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ item.total_comments }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ item.total_shares }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="p-8 bg-gray-50 border border-gray-200 rounded-lg text-center">
+    <p class="text-gray-500">No media type data available for the selected time range. Start posting different media types to see their performance comparison.</p>
+</div>
+{% endif %}

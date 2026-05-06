@@ -1,0 +1,70 @@
+{% if hashtag_data.has_data %}
+
+<!-- Ranked Hashtag Groups -->
+<div class="space-y-4">
+    {% for group in hashtag_data.groups %}
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+        <div class="flex items-start justify-between mb-3">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-gray-400">#{{ forloop.counter }}</span>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ group.group_name }}</h3>
+                </div>
+                <p class="text-sm text-gray-500 mt-0.5">
+                    {{ group.tag_count }} tag{{ group.tag_count|pluralize }} -- used in {{ group.post_count }} post{{ group.post_count|pluralize }}
+                </p>
+            </div>
+            <div class="text-right">
+                <p class="text-2xl font-bold text-gray-900">{{ group.avg_engagement }}</p>
+                <p class="text-xs text-gray-500">avg. engagement</p>
+            </div>
+        </div>
+
+        <!-- Engagement Bar -->
+        <div class="mb-2">
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span>Total engagement</span>
+                <span>{{ group.total_engagement }}</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                {% if hashtag_data.groups.0.total_engagement > 0 %}
+                <div class="h-3 rounded-full
+                    {% if forloop.counter == 1 %}bg-violet-600
+                    {% elif forloop.counter == 2 %}bg-violet-500
+                    {% elif forloop.counter == 3 %}bg-violet-400
+                    {% else %}bg-violet-300{% endif %}"
+                     style="width: {% widthratio group.total_engagement hashtag_data.groups.0.total_engagement 100 %}%;">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="flex gap-6 mt-3 pt-3 border-t border-gray-100 text-sm">
+            <div>
+                <span class="text-gray-500">Posts:</span>
+                <span class="font-medium text-gray-700">{{ group.post_count }}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Tags:</span>
+                <span class="font-medium text-gray-700">{{ group.tag_count }}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Total:</span>
+                <span class="font-medium text-gray-700">{{ group.total_engagement }}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Avg:</span>
+                <span class="font-medium text-gray-700">{{ group.avg_engagement }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="p-8 bg-gray-50 border border-gray-200 rounded-lg text-center">
+    <p class="text-gray-500 mb-2">No hashtag performance data available for the selected time range.</p>
+    <p class="text-sm text-gray-400">Create hashtag groups and use them in your posts to track their performance.</p>
+</div>
+{% endif %}
