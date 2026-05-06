@@ -1,12 +1,9 @@
 {% extends "postflow/_base.html" %}
 {% block main %}
-<div class="max-w-2xl mx-auto p-4">
-    <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-bold text-gray-800">Weekly Digest Preview</h1>
+<div class="p-4">
+    <div class="max-w-2xl mx-auto mb-4 flex items-center justify-between">
         <a href="{% url 'analytics:dashboard' %}" class="text-sm text-violet-600 hover:underline">Back to Analytics</a>
     </div>
-    <div class="bg-white rounded-lg shadow border overflow-hidden">
-        {% include "postflow/emails/weekly_digest.html" %}
-    </div>
+    {% include "postflow/components/weekly_digest.html" %}
 </div>
 {% endblock %}

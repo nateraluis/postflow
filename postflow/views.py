@@ -880,7 +880,7 @@ def weekly_digest_preview(request):
     digest = generate_digest(request.user)
     context = {"digest": digest, "active_page": "analytics"}
     if "HX-Request" in request.headers:
-        return render(request, "postflow/emails/weekly_digest.html", context)
+        return render(request, "postflow/components/weekly_digest.html", context)
     return render(request, "postflow/pages/digest_preview.html", context)
 
 

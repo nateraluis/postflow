@@ -289,12 +289,11 @@ Document these clearly for users in the UI:
 - Week-over-week engagement growth
 - Velocity indicators (accelerating/decelerating)
 
-#### 19. ~~**Weekly Digest Email**~~ COMPLETED
+#### 19. ~~**Weekly Digest**~~ COMPLETED
 - Top performing posts, consistency score, hashtag performance
 - Actionable suggestions based on data
 - Optimal time recommendations
-- Scheduled every Monday at 09:00 UTC via APScheduler
-- Browser preview at /digest/
+- Online view at /digest/ (no email — online only)
 
 ---
 

@@ -216,16 +216,6 @@ class PostFlowScheduler:
         )
         logger.info("Added job: fetch_mastodon_engagement (every 2 hours at :50)")
 
-        # Add job: Send weekly digest every Monday at 09:00 UTC
-        self.scheduler.add_job(
-            func=self._send_weekly_digest,
-            trigger=CronTrigger(day_of_week='mon', hour=9, minute=0),
-            id='send_weekly_digest',
-            name='Send weekly digest emails',
-            replace_existing=True,
-        )
-        logger.info("Added job: send_weekly_digest (every Monday at 09:00 UTC)")
-
         # Start the scheduler
         self.scheduler.start()
         logger.info("PostFlow scheduler started successfully")
@@ -336,16 +326,6 @@ class PostFlowScheduler:
             logger.info(f"Enqueued fetch_all_mastodon_engagement task: {task.id}")
         except Exception as e:
             logger.exception(f"Error enqueueing fetch_all_mastodon_engagement: {e}")
-
-    def _send_weekly_digest(self):
-        """Send weekly digest emails to all active users."""
-        try:
-            from postflow.digest import send_all_digests
-            logger.info("Starting weekly digest send...")
-            sent, skipped = send_all_digests()
-            logger.info(f"Weekly digest complete: sent {sent}, skipped {skipped}")
-        except Exception as e:
-            logger.exception(f"Error sending weekly digests: {e}")
 
     def shutdown(self):
         """Gracefully shut down the scheduler and release lock."""
