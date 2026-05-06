@@ -206,6 +206,146 @@ Document these clearly for users in the UI:
 
 ---
 
+## Fediverse-Native Features
+
+Design principle: **respect the culture** — the fediverse values decentralization, privacy,
+accessibility, and human interaction. Every feature must be cross-platform compatible:
+Mastodon/Pixelfed features degrade gracefully on Instagram, and Instagram-only features
+(location, collaborators) are silently skipped on Mastodon/Pixelfed.
+
+### Must-Have (Cultural & Functional Necessities)
+
+#### F.1 Content Warning (CW) / Spoiler Text Support
+CW is a strong cultural norm on the fediverse. Without this, PostFlow is tone-deaf.
+Instagram has no equivalent — skip silently.
+
+- [ ] Add `spoiler_text` field to `ScheduledPost`
+- [ ] Add CW input in composer (collapsible, above caption)
+- [ ] Pass `spoiler_text` param in Mastodon/Pixelfed status creation
+- [ ] Mark post as `sensitive=true` when CW is set
+- [ ] Instagram: ignore spoiler_text (no API support)
+
+#### F.2 Visibility Controls Per Post
+Many fediverse users prefer `unlisted` for scheduled/automated content.
+Instagram has no equivalent — always public via API.
+
+- [ ] Add `visibility` field to `ScheduledPost` (public/unlisted/private/direct)
+- [ ] Add visibility selector in composer (default: public)
+- [ ] Pass `visibility` param in Mastodon/Pixelfed status creation
+- [ ] Instagram: always public (ignore visibility setting)
+
+#### F.3 Post Language Tagging
+Important for the fediverse's international userbase. Helps with content filtering.
+Instagram: skip (no API support for language).
+
+- [ ] Add `language` field to `ScheduledPost` (ISO 639-1 code)
+- [ ] Add language selector in composer (auto-detect or manual)
+- [ ] Pass `language` param in Mastodon/Pixelfed status creation
+- [ ] Instagram: ignore language param
+
+#### F.4 Thread Scheduling (Multi-Post Chains)
+Split long-form content into connected reply chains. No fediverse tool offers this.
+Instagram: post only first item as a regular post.
+
+- [ ] Add `ScheduledThread` model grouping ordered `ScheduledPost` entries
+- [ ] Thread composer UI: add/remove/reorder posts in a thread
+- [ ] Publish sequentially using `in_reply_to_id` from each created status
+- [ ] 1-second delay between posts to avoid rate limits
+- [ ] Instagram: publish first post only (skip thread chain)
+- [ ] Show thread preview in composer
+
+#### F.5 Follower Growth Tracking
+Poll account endpoints daily, store time series. Simple to implement, high value.
+
+- [ ] Create `FollowerSnapshot` model: account FK, date, followers, following, posts count
+- [ ] Scheduler job: daily poll of `verify_credentials` for all connected accounts
+- [ ] Dashboard view with growth chart (line graph over time)
+- [ ] Works for Mastodon, Pixelfed, and Instagram accounts
+
+#### F.6 Quote Post Support (Mastodon 4.5+)
+Mastodon 4.5 added `quoted_status_id`. Instagram: not applicable.
+
+- [ ] Add `quoted_status_url` field to `ScheduledPost`
+- [ ] Resolve status URL to ID via instance API before publishing
+- [ ] Pass `quoted_status_id` in Mastodon/Pixelfed status creation
+- [ ] Detect instance version to conditionally enable
+- [ ] Instagram: ignore (no quote post concept)
+
+### Should-Have (Strong Differentiators)
+
+#### F.7 Poll Scheduling
+Create posts with polls. No fediverse scheduling tool offers this.
+Instagram: skip poll, post as image-only.
+
+- [ ] Add poll fields to `ScheduledPost`: options (JSON), expires_in, multiple, hide_totals
+- [ ] Poll builder in composer (add/remove options, set duration)
+- [ ] Pass `poll` params in Mastodon/Pixelfed status creation
+- [ ] Instagram: ignore poll fields (post image + caption only)
+
+#### F.8 Boost/Reblog Scheduling
+Schedule reblogs of others' content. Useful for curators and community managers.
+Instagram: not applicable.
+
+- [ ] Create `ScheduledBoost` model: target status URL, scheduled time, account FK
+- [ ] Boost composer: paste URL, pick time and accounts
+- [ ] Publish via `POST /api/v1/statuses/:id/reblog`
+- [ ] Dashboard showing scheduled boosts
+- [ ] Instagram: skip (no reblog concept)
+
+#### F.9 Auto-Delete / Ephemeral Posting
+Schedule post deletion after N hours/days. Growing demand for digital impermanence.
+Instagram: skip deletion (API doesn't support it).
+
+- [ ] Add `delete_after` field to `ScheduledPost` (hours, nullable)
+- [ ] Scheduler job: check posted posts past their TTL, delete via API
+- [ ] Show TTL badge in calendar/history views
+- [ ] Instagram: ignore (cannot delete via API)
+
+#### F.10 Hashtag Trending Dashboard
+Use `GET /api/v1/trends/tags` to show what's trending on connected instances.
+Cross-reference with user's hashtag groups for optimization suggestions.
+
+- [ ] Fetch trending tags from each connected Mastodon/Pixelfed instance
+- [ ] Dashboard: trending hashtags with 7-day usage history
+- [ ] Cross-reference with user's TagGroups — highlight matches
+- [ ] Suggest new hashtags based on trending data
+- [ ] Instagram: not available (no public trending API)
+
+#### F.11 RSS-to-Fediverse Posting
+Monitor RSS feeds and auto-create posts from new entries. Captures blogger audience.
+
+- [ ] Create `RSSFeed` model: URL, poll interval, target accounts, caption template
+- [ ] Scheduler job: poll feeds, create ScheduledPosts from new entries
+- [ ] Template variables: {title}, {url}, {summary}, {author}
+- [ ] De-duplicate by tracking seen entry GUIDs
+- [ ] Instagram: include if user enables it per feed
+
+### Nice-to-Have (Long-Term Differentiation)
+
+#### F.12 Instance Reach Map
+Parse domains from interacting accounts. Visualize which instances content reaches.
+Unique analytics no one offers.
+
+- [ ] Parse account domains from likes/boosts/replies
+- [ ] Aggregate instance reach data per post and overall
+- [ ] Dashboard: instance map with reach counts
+
+#### F.13 Pixelfed Collections Management
+Portfolio/gallery feature unique to Pixelfed. Completely unserved.
+
+- [ ] Fetch user's collections via Pixelfed Collections API
+- [ ] Add/remove posts from collections from PostFlow
+- [ ] Create new collections
+
+#### F.14 Streaming API Live Engagement
+WebSocket to `user:notification` for real-time engagement notifications.
+
+- [ ] Connect to Mastodon streaming API on user login
+- [ ] Show live engagement counter on recently posted content
+- [ ] Real-time notification feed in PostFlow
+
+---
+
 ## Analytics Improvements
 
 ### High Priority
