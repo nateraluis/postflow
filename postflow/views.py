@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
-from .models import Tag, TagGroup, ScheduledPost, Subscriber
+from .models import Tag, TagGroup, ScheduledPost, Subscriber, CaptionTemplate, UserDefaults
 from .utils import get_s3_signed_url, upload_to_s3
 import pytz
 from datetime import datetime, timedelta
@@ -198,6 +198,10 @@ def calendar_view(request):
     for post in scheduled_posts:
         grouped_posts[post.post_date.date()].append(post)
 
+    # Get user defaults
+    user_defaults = UserDefaults.objects.filter(user=request.user).first()
+    caption_templates = CaptionTemplate.objects.filter(user=request.user)
+
     context = {
         "hours": range(0, 24),
         "minutes": range(0, 60, 5),
@@ -205,6 +209,8 @@ def calendar_view(request):
         "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
         "mastodon_native_accounts": MastodonNativeAccount.objects.filter(user=request.user),
         "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
+        "caption_templates": caption_templates,
+        "user_defaults": user_defaults,
         "grouped_posts": dict(grouped_posts),  # Convert defaultdict to dict
         "active_page": "calendar",
     }
@@ -761,6 +767,94 @@ def check_banned_hashtags_view(request):
         return HttpResponse(html)
 
     return HttpResponse("")
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def caption_templates_view(request):
+    """Manage caption templates."""
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        content = request.POST.get("content", "").strip()
+        template_id = request.POST.get("template_id")
+
+        if template_id:
+            # Edit existing
+            tpl = get_object_or_404(CaptionTemplate, id=template_id, user=request.user)
+            if name:
+                tpl.name = name
+            if content:
+                tpl.content = content
+            tpl.save()
+        elif name and content:
+            CaptionTemplate.objects.create(user=request.user, name=name, content=content)
+
+    templates = CaptionTemplate.objects.filter(user=request.user)
+    context = {"caption_templates": templates, "active_page": "templates"}
+
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/components/caption_templates.html", context)
+    return render(request, "postflow/pages/caption_templates.html", context)
+
+
+@login_required
+@require_http_methods(["POST", "DELETE"])
+def delete_caption_template(request, template_id):
+    """Delete a caption template."""
+    tpl = get_object_or_404(CaptionTemplate, id=template_id, user=request.user)
+    tpl.delete()
+    if "HX-Request" in request.headers:
+        return HttpResponse("")
+    return JsonResponse({"success": True})
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_template_content(request, template_id):
+    """HTMX endpoint to fetch template content for insertion."""
+    tpl = get_object_or_404(CaptionTemplate, id=template_id, user=request.user)
+    tpl.use_count += 1
+    tpl.save(update_fields=["use_count"])
+    return HttpResponse(tpl.content)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def user_defaults_view(request):
+    """Manage per-user posting defaults."""
+    from pixelfed.models import MastodonAccount
+    from instagram.models import InstagramBusinessAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+
+    defaults, created = UserDefaults.objects.get_or_create(user=request.user)
+
+    if request.method == "POST":
+        # Update M2M defaults
+        hashtag_ids = request.POST.getlist("default_hashtag_groups")
+        mastodon_ids = request.POST.getlist("default_mastodon_accounts")
+        native_ids = request.POST.getlist("default_mastodon_native_accounts")
+        instagram_ids = request.POST.getlist("default_instagram_accounts")
+
+        defaults.default_hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_ids))
+        defaults.default_mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_ids))
+        defaults.default_mastodon_native_accounts.set(MastodonNativeAccount.objects.filter(id__in=native_ids))
+        defaults.default_instagram_accounts.set(InstagramBusinessAccount.objects.filter(id__in=instagram_ids))
+
+        if "HX-Request" in request.headers:
+            return HttpResponse('<div class="text-sm text-green-600 p-2">Defaults saved.</div>')
+
+    context = {
+        "defaults": defaults,
+        "hashtag_groups": TagGroup.objects.filter(user=request.user),
+        "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
+        "mastodon_native_accounts": MastodonNativeAccount.objects.filter(user=request.user),
+        "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
+        "active_page": "settings",
+    }
+
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/components/user_defaults.html", context)
+    return render(request, "postflow/pages/user_defaults.html", context)
 
 
 # Analytics Preview Views (No Registration Required)

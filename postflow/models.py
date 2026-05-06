@@ -331,6 +331,41 @@ class HashtagUsage(models.Model):
         return f"#{self.tag.name} used on post {self.scheduled_post_id}"
 
 
+class CaptionTemplate(models.Model):
+    """Reusable caption structures with placeholders."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="caption_templates")
+    name = models.CharField(max_length=100)
+    content = models.TextField(help_text="Use {title}, {description}, {date} as placeholders")
+    created_at = models.DateTimeField(auto_now_add=True)
+    use_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-use_count", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["name", "user"], name="unique_template_per_user")
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class UserDefaults(models.Model):
+    """Per-user default settings for the post composer."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="posting_defaults")
+    default_hashtag_groups = models.ManyToManyField(TagGroup, blank=True, related_name="+")
+    default_mastodon_accounts = models.ManyToManyField("pixelfed.MastodonAccount", blank=True, related_name="+")
+    default_mastodon_native_accounts = models.ManyToManyField("mastodon_native.MastodonAccount", blank=True, related_name="+")
+    default_instagram_accounts = models.ManyToManyField("instagram.InstagramBusinessAccount", blank=True, related_name="+")
+    default_location = models.ForeignKey(Location, on_delete=models.SET_NULL, blank=True, null=True, related_name="+")
+    default_caption_template = models.ForeignKey(CaptionTemplate, on_delete=models.SET_NULL, blank=True, null=True, related_name="+")
+
+    class Meta:
+        verbose_name_plural = "User Defaults"
+
+    def __str__(self):
+        return f"Defaults for {self.user.email}"
+
+
 class Feedback(models.Model):
     CATEGORY_CHOICES = [
         ('improvement', 'Improvement'),

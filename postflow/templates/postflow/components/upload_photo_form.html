@@ -170,7 +170,19 @@
                     <span id="caption-length">0</span> / <span id="caption-limit">2200</span>
                 </span>
             </div>
-            <textarea name="caption" rows="4" class="w-full p-2 border rounded-md" placeholder="Write your caption..." oninput="updateCaptionCounter(this)"></textarea>
+            {% if caption_templates %}
+            <div class="mb-2">
+                <select id="template-picker" class="w-full p-2 border rounded-md text-sm text-gray-500"
+                        hx-get="" hx-swap="none"
+                        onchange="loadTemplate(this.value)">
+                    <option value="">Use a template...</option>
+                    {% for tpl in caption_templates %}
+                        <option value="{{ tpl.id }}">{{ tpl.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <textarea name="caption" id="captionTextarea" rows="4" class="w-full p-2 border rounded-md" placeholder="Write your caption..." oninput="updateCaptionCounter(this)"></textarea>
             <!-- First-line preview -->
             <div id="first-line-preview" class="hidden mt-1 text-xs text-gray-500">
                 Preview: <span id="first-line-text" class="italic"></span><span class="text-gray-400">...more</span>
@@ -412,6 +424,18 @@
     function clearLocation() {
         document.getElementById('location-id-input').value = '';
         document.getElementById('selected-location').classList.add('hidden');
+    }
+
+    function loadTemplate(templateId) {
+        if (!templateId) return;
+        fetch('{% url "caption_templates" %}' + templateId + '/content/')
+            .then(function(r) { return r.text(); })
+            .then(function(text) {
+                var textarea = document.getElementById('captionTextarea');
+                textarea.value = text;
+                updateCaptionCounter(textarea);
+            })
+            .catch(function() {});
     }
 
     function fetchTimeSuggestion() {

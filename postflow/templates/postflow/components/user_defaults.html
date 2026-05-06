@@ -1,0 +1,83 @@
+<div class="max-w-4xl mx-auto p-4">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">Posting Defaults</h2>
+    <p class="text-sm text-gray-500 mb-6">Set default selections for the post composer. These will be pre-selected when you create a new post.</p>
+
+    <form hx-post="{% url 'user_defaults' %}"
+          hx-target="#defaults-result"
+          hx-swap="innerHTML"
+          class="bg-white p-4 sm:p-6 rounded-lg shadow border">
+        {% csrf_token %}
+
+        <!-- Default Hashtag Groups -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Hashtag Groups</label>
+            <div class="flex flex-wrap gap-2">
+                {% for group in hashtag_groups %}
+                    <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border text-sm">
+                        <input type="checkbox" name="default_hashtag_groups" value="{{ group.id }}"
+                               {% if defaults and group in defaults.default_hashtag_groups.all %}checked{% endif %}
+                               class="mr-1">
+                        {{ group.name }}
+                    </label>
+                {% empty %}
+                    <p class="text-xs text-gray-400">No hashtag groups created yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Default Accounts -->
+        {% if mastodon_accounts %}
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Pixelfed/Mastodon Accounts</label>
+            <div class="flex flex-wrap gap-2">
+                {% for account in mastodon_accounts %}
+                    <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border text-sm">
+                        <input type="checkbox" name="default_mastodon_accounts" value="{{ account.id }}"
+                               {% if defaults and account in defaults.default_mastodon_accounts.all %}checked{% endif %}
+                               class="mr-1">
+                        {{ account.username }}
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if mastodon_native_accounts %}
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Mastodon Accounts</label>
+            <div class="flex flex-wrap gap-2">
+                {% for account in mastodon_native_accounts %}
+                    <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border text-sm">
+                        <input type="checkbox" name="default_mastodon_native_accounts" value="{{ account.id }}"
+                               {% if defaults and account in defaults.default_mastodon_native_accounts.all %}checked{% endif %}
+                               class="mr-1">
+                        {{ account.username }}
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if instagram_accounts %}
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Instagram Accounts</label>
+            <div class="flex flex-wrap gap-2">
+                {% for account in instagram_accounts %}
+                    <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border text-sm">
+                        <input type="checkbox" name="default_instagram_accounts" value="{{ account.id }}"
+                               {% if defaults and account in defaults.default_instagram_accounts.all %}checked{% endif %}
+                               class="mr-1">
+                        {{ account.username }}
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="defaults-result"></div>
+
+        <button type="submit" class="mt-2 bg-blue-600 text-white px-6 py-2 rounded-md text-sm hover:bg-blue-700">
+            Save Defaults
+        </button>
+    </form>
+</div>
