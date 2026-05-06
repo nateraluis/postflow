@@ -8,7 +8,7 @@
                 </div>
             {% else %}
                 <!-- Multiple images gallery -->
-                <div class="flex gap-2 overflow-x-auto max-w-md">
+                <div class="flex gap-2 overflow-x-auto max-w-full sm:max-w-md">
                     {% for image_url in post.image_urls %}
                         <div class="w-32 h-32 flex-shrink-0">
                             <img src="{{ image_url }}" alt="Post Image {{ forloop.counter }}" class="w-full h-full object-cover rounded-lg">
