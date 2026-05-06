@@ -245,10 +245,10 @@ Document these clearly for users in the UI:
 
 ### Medium Priority
 
-#### 8. **Engagement Timeline Enhancement**
-- Stacked area/line chart with daily/weekly/monthly aggregation toggle
-- Cumulative vs new engagement views
-- Export data as CSV
+#### 8. ~~**Engagement Timeline Enhancement**~~ COMPLETED
+- Stacked bars with daily/weekly/monthly aggregation toggle
+- CSV export
+- Day range selector
 
 #### 9. ~~**Top Performers Dashboard**~~ COMPLETED
 - Grid of top posts by engagement metric
@@ -270,35 +270,31 @@ Document these clearly for users in the UI:
 
 ### Low Priority
 
-#### 13. **Engagement Decay Curve**
-- Engagement over time after posting
-- Identify "long tail" content
+#### 13. ~~**Engagement Decay Curve**~~ COMPLETED
+- Engagement at day 1/3/7/30 with long-tail detection
 
-#### 14. **Caption Length vs Engagement Analysis**
-- Scatter plot: caption length vs total engagement
-- Find optimal length sweet spot
+#### 14. ~~**Caption Length vs Engagement Analysis**~~ COMPLETED
+- Length buckets with average engagement and sweet spot detection
 
-#### 15. **Community Conversation Map**
-- Visual thread view showing comment chains
-- Network graph of reply relationships
+#### 15. ~~**Community Conversation Map**~~ COMPLETED
+- Expandable thread cards with comment chains and participant counts
 
-#### 16. **Viral Coefficient Tracker**
-- Shares-to-likes ratio (virality indicator)
-- Trend over time
+#### 16. ~~**Viral Coefficient Tracker**~~ COMPLETED
+- Shares-to-likes ratio with viral badges (ratio > 0.1)
 
-#### 17. **Best Performing Content Themes**
-- Tag cloud of hashtags/keywords in high-engagement posts
-- Keyword frequency analysis
+#### 17. ~~**Best Performing Content Themes**~~ COMPLETED
+- Hashtag cloud with engagement-colored sizing and stats table
 
 #### 18. ~~**Growth Momentum Dashboard**~~ COMPLETED
 - Week-over-week engagement growth
 - Velocity indicators (accelerating/decelerating)
 
-#### 19. **Weekly Digest Email** (New)
-- Top performing posts of the week
-- Suggested improvements based on data
-- Hashtag performance report
+#### 19. ~~**Weekly Digest Email**~~ COMPLETED
+- Top performing posts, consistency score, hashtag performance
+- Actionable suggestions based on data
 - Optimal time recommendations
+- Scheduled every Monday at 09:00 UTC via APScheduler
+- Browser preview at /digest/
 
 ---
 
