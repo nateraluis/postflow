@@ -4,10 +4,11 @@ import logging
 logger = logging.getLogger("postflow")
 
 
-def post_pixelfed(scheduled_post):
+def post_pixelfed(scheduled_post, payload=None):
     """
     Posts to Pixelfed/Mastodon accounts with support for multiple images.
     Uses Mastodon-compatible API with media upload then status post.
+    Accepts an optional PostPayload for centralized caption/hashtag assembly.
     """
     # Get all images for this post
     image_files = scheduled_post.get_all_images()
@@ -33,11 +34,19 @@ def post_pixelfed(scheduled_post):
 
                 files = {"file": (f"image{idx}.jpg", image_file, "image/jpeg")}
 
+                # Add alt text (description) if available
+                data = {}
+                if payload:
+                    alt_text = payload.get_alt_text(idx)
+                    if alt_text:
+                        data["description"] = alt_text
+
                 logger.debug(f"Uploading image {idx + 1}/{len(image_files)} to Pixelfed")
                 media_response = requests.post(
                     media_upload_url,
                     headers=headers,
                     files=files,
+                    data=data if data else None,
                     timeout=30
                 )
                 media_response.raise_for_status()
@@ -53,15 +62,27 @@ def post_pixelfed(scheduled_post):
                 media_ids.append(media_id)
                 logger.debug(f"Uploaded image {idx + 1}/{len(image_files)} - Media ID: {media_id}")
 
-            # Step 2: Create status with all media IDs
-            hashtags = " ".join(
-                tag.hashtag
-                for tag_group in scheduled_post.hashtag_groups.all()
-                for tag in tag_group.tags.all()
-            )
-            status_text = scheduled_post.caption or ""
-            if hashtags:
-                status_text = f"{status_text}\n{hashtags}".strip()
+            # Step 2: Build status text
+            if payload:
+                status_text = payload.get_full_caption("pixelfed")
+                # Append user tag mentions for Mastodon/Pixelfed
+                mentions = []
+                for ut in payload.user_tags:
+                    if ut.get('platform') in ('mastodon', 'pixelfed') and ut.get('username'):
+                        mentions.append(ut['username'])
+                if mentions:
+                    mention_str = " ".join(mentions)
+                    status_text = f"{status_text}\n{mention_str}".strip()
+            else:
+                # Fallback: build from scheduled_post directly
+                hashtags = " ".join(
+                    tag.hashtag
+                    for tag_group in scheduled_post.hashtag_groups.all()
+                    for tag in tag_group.tags.all()
+                )
+                status_text = scheduled_post.caption or ""
+                if hashtags:
+                    status_text = f"{status_text}\n{hashtags}".strip()
 
             status_url = account.instance_url + "/api/v1/statuses"
             status_data = {
@@ -87,14 +108,12 @@ def post_pixelfed(scheduled_post):
             is_pixelfed = "pixelfed" in account.instance_url.lower()
 
             if is_pixelfed:
-                # Set both mastodon_post_id and pixelfed_post_id for Pixelfed instances
                 scheduled_post.pixelfed_post_id = post_id
                 scheduled_post.mastodon_post_id = post_id
                 scheduled_post.status = "posted"
                 scheduled_post.save(update_fields=["mastodon_post_id", "pixelfed_post_id", "status"])
                 logger.info(f"Successfully posted to Pixelfed @{account.username}, post ID: {post_id}")
             else:
-                # Set only mastodon_post_id for non-Pixelfed Mastodon-compatible instances
                 scheduled_post.mastodon_post_id = post_id
                 scheduled_post.status = "posted"
                 scheduled_post.save(update_fields=["mastodon_post_id", "status"])

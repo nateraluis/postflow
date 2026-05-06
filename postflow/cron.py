@@ -1,4 +1,5 @@
 from .models import ScheduledPost
+from .payload import build_payload
 import pytz
 import datetime
 from pixelfed.utils import post_pixelfed
@@ -12,7 +13,7 @@ logger = logging.getLogger("postflow")
 def post_scheduled():
     """
     Processes all pending scheduled posts that are due for publishing.
-    Attempts to post to Pixelfed, Mastodon, and Instagram accounts.
+    Builds a PostPayload once per post and passes it to each platform util.
     """
     # Get the current UTC date time
     now = datetime.datetime.now(pytz.utc)
@@ -30,24 +31,27 @@ def post_scheduled():
         try:
             logger.info(f"Processing post ID {post.id} scheduled for {post.post_date}")
 
+            # Build payload once for all platforms
+            payload = build_payload(post)
+
             # Post to Pixelfed/Mastodon-compatible instances
             if post.mastodon_accounts.exists():
                 logger.info(f"Posting to {post.mastodon_accounts.count()} Pixelfed account(s)")
-                post_pixelfed(post)
+                post_pixelfed(post, payload)
             else:
                 logger.debug(f"No Pixelfed accounts configured for post ID {post.id}")
 
             # Post to native Mastodon instances
             if post.mastodon_native_accounts.exists():
                 logger.info(f"Posting to {post.mastodon_native_accounts.count()} Mastodon account(s)")
-                post_mastodon(post)
+                post_mastodon(post, payload)
             else:
                 logger.debug(f"No Mastodon accounts configured for post ID {post.id}")
 
             # Post to Instagram
             if post.instagram_accounts.exists():
                 logger.info(f"Posting to {post.instagram_accounts.count()} Instagram account(s)")
-                post_instagram(post)
+                post_instagram(post, payload)
             else:
                 logger.debug(f"No Instagram accounts configured for post ID {post.id}")
 

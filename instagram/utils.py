@@ -68,19 +68,14 @@ def _parse_instagram_error(response) -> tuple:
         return ("unknown", response.text[:500])
 
 
-def post_instagram(scheduled_post, retry_count=0, max_retries=2):
+def post_instagram(scheduled_post, payload=None):
     """
     Publishes a scheduled post image(s) to all linked Instagram Business Accounts.
     Supports both single images and carousels (up to 10 images).
     Includes validation, error parsing, and retry logic.
-
-    Args:
-        scheduled_post: ScheduledPost instance to publish
-        retry_count: Current retry attempt (internal use)
-        max_retries: Maximum retry attempts for transient errors
+    Accepts an optional PostPayload for centralized caption/hashtag assembly.
     """
     from postflow.utils import get_s3_signed_url
-    from postflow.models import Tag
 
     # Get all images for this post
     image_urls = []
@@ -103,14 +98,17 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
         scheduled_post.save(update_fields=["status"])
         return
 
-    # Validate and combine caption + hashtags
-    caption = scheduled_post.caption or ""
-    hashtags = " ".join(
-        tag.hashtag
-        for tag_group in scheduled_post.hashtag_groups.all()
-        for tag in tag_group.tags.all()
-    )
-    full_caption = f"{caption}\n{hashtags}".strip() if caption or hashtags else ""
+    # Build caption from payload or fallback
+    if payload:
+        full_caption = payload.get_full_caption("instagram")
+    else:
+        caption = scheduled_post.caption or ""
+        hashtags = " ".join(
+            tag.hashtag
+            for tag_group in scheduled_post.hashtag_groups.all()
+            for tag in tag_group.tags.all()
+        )
+        full_caption = f"{caption}\n{hashtags}".strip() if caption or hashtags else ""
 
     # Validate caption length
     if not _validate_instagram_caption(full_caption):
@@ -153,6 +151,24 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
                         "is_carousel_item": "true",
                         "access_token": account.access_token,
                     }
+                    # Add alt text if available
+                    if payload:
+                        alt_text = payload.get_alt_text(idx)
+                        if alt_text:
+                            child_payload["alt_text"] = alt_text
+                        # Add user tags for this image
+                        image_tags = [
+                            ut for ut in payload.user_tags
+                            if ut.get('platform') == 'instagram'
+                            and ut.get('x') is not None
+                            and ut.get('y') is not None
+                        ]
+                        if image_tags:
+                            import json
+                            child_payload["user_tags"] = json.dumps([
+                                {"username": t['username'], "x": t['x'], "y": t['y']}
+                                for t in image_tags
+                            ])
 
                     child_response = None
                     for create_attempt in range(max_create_retries):
@@ -200,6 +216,12 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
                     "caption": full_caption,
                     "access_token": account.access_token,
                 }
+                if payload:
+                    if payload.location_id:
+                        carousel_payload["location_id"] = payload.location_id
+                    if payload.collaborators:
+                        import json
+                        carousel_payload["collaborators"] = json.dumps(payload.collaborators[:3])
 
                 logger.debug(f"Creating carousel parent container with {len(child_container_ids)} children")
                 media_response = requests.post(create_url, data=carousel_payload, timeout=15)
@@ -210,6 +232,28 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
                     "caption": full_caption,
                     "access_token": account.access_token,
                 }
+                if payload:
+                    alt_text = payload.get_alt_text(0)
+                    if alt_text:
+                        media_payload["alt_text"] = alt_text
+                    if payload.location_id:
+                        media_payload["location_id"] = payload.location_id
+                    if payload.collaborators:
+                        import json
+                        media_payload["collaborators"] = json.dumps(payload.collaborators[:3])
+                    # Add user tags for single image
+                    image_tags = [
+                        ut for ut in payload.user_tags
+                        if ut.get('platform') == 'instagram'
+                        and ut.get('x') is not None
+                        and ut.get('y') is not None
+                    ]
+                    if image_tags:
+                        import json
+                        media_payload["user_tags"] = json.dumps([
+                            {"username": t['username'], "x": t['x'], "y": t['y']}
+                            for t in image_tags
+                        ])
 
                 media_response = None
                 for create_attempt in range(max_create_retries):
