@@ -141,6 +141,7 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
 
             # Step 1: Create media container(s)
             create_url = f"https://graph.instagram.com/v22.0/{account.instagram_id}/media"
+            max_create_retries = 3
 
             if is_carousel:
                 # Create child containers for each image in carousel
@@ -153,12 +154,30 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
                         "access_token": account.access_token,
                     }
 
-                    logger.debug(f"Creating carousel child container {idx + 1}/{len(image_urls)}")
-                    child_response = requests.post(create_url, data=child_payload, timeout=15)
+                    child_response = None
+                    for create_attempt in range(max_create_retries):
+                        logger.debug(f"Creating carousel child container {idx + 1}/{len(image_urls)} (attempt {create_attempt + 1}/{max_create_retries})")
+                        child_response = requests.post(create_url, data=child_payload, timeout=15)
+
+                        if child_response.status_code == 200:
+                            break
+
+                        error_code, error_msg = _parse_instagram_error(child_response)
+                        # Retry on error 9004 (Instagram can't fetch image) or 5xx
+                        if (str(error_code) == "9004" or child_response.status_code >= 500) and create_attempt < max_create_retries - 1:
+                            wait_time = 3 * (create_attempt + 1)
+                            logger.warning(f"Transient error creating child container {idx + 1}: {error_msg}. Retrying in {wait_time}s (attempt {create_attempt + 1}/{max_create_retries})")
+                            time.sleep(wait_time)
+                            continue
+
+                        logger.error(f"Failed to create child container {idx + 1}: {error_msg}")
+                        scheduled_post.status = "failed"
+                        scheduled_post.save(update_fields=["status"])
+                        return
 
                     if child_response.status_code != 200:
-                        error_msg = _parse_instagram_error(child_response)
-                        logger.error(f"Failed to create child container {idx + 1}: {error_msg}")
+                        error_code, error_msg = _parse_instagram_error(child_response)
+                        logger.error(f"Failed to create child container {idx + 1} after {max_create_retries} attempts: {error_msg}")
                         scheduled_post.status = "failed"
                         scheduled_post.save(update_fields=["status"])
                         return
@@ -192,30 +211,31 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
                     "access_token": account.access_token,
                 }
 
-                logger.debug(f"Creating single image container at {create_url}")
-                media_response = requests.post(create_url, data=media_payload, timeout=15)
+                media_response = None
+                for create_attempt in range(max_create_retries):
+                    logger.debug(f"Creating single image container at {create_url} (attempt {create_attempt + 1}/{max_create_retries})")
+                    media_response = requests.post(create_url, data=media_payload, timeout=15)
+
+                    if media_response.status_code == 200:
+                        break
+
+                    error_code, error_msg = _parse_instagram_error(media_response)
+                    # Retry on error 9004 (Instagram can't fetch image) or 5xx
+                    if (str(error_code) == "9004" or media_response.status_code >= 500) and create_attempt < max_create_retries - 1:
+                        wait_time = 3 * (create_attempt + 1)
+                        logger.warning(f"Transient error creating container for @{account.username}: {error_msg}. Retrying in {wait_time}s (attempt {create_attempt + 1}/{max_create_retries})")
+                        time.sleep(wait_time)
+                        continue
+
+                    logger.error(f"Failed to create media container for @{account.username}: {error_msg}")
+                    scheduled_post.status = "failed"
+                    scheduled_post.save(update_fields=["status"])
+                    return
 
             # Check status before parsing
             if media_response.status_code != 200:
-                error_msg = _parse_instagram_error(media_response)
-                logger.error(f"Failed to create media container for @{account.username}: {error_msg}")
-
-                # Detect if it's a transient error (5xx) and retry
-                if media_response.status_code >= 500 and retry_count < max_retries:
-                    logger.warning(f"Transient server error. Retrying in 2 seconds (attempt {retry_count + 1}/{max_retries})")
-                    time.sleep(2)
-                    return post_instagram(scheduled_post, retry_count=retry_count + 1, max_retries=max_retries)
-
-                # Non-transient errors should mark as failed
-                scheduled_post.status = "failed"
-                scheduled_post.save(update_fields=["status"])
-                return
-
-            try:
-                media_response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                error_msg = _parse_instagram_error(media_response)
-                logger.error(f"HTTP error creating container: {error_msg}")
+                error_code, error_msg = _parse_instagram_error(media_response)
+                logger.error(f"Failed to create media container for @{account.username} after retries: {error_msg}")
                 scheduled_post.status = "failed"
                 scheduled_post.save(update_fields=["status"])
                 return
