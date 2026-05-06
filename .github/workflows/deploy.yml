@@ -67,7 +67,7 @@ jobs:
           chmod +x AWS/certbot/renewer.sh
 
           echo "📦 Rebuilding containers..."
-          docker-compose down
+          docker-compose down --remove-orphans || true
           # NOTE: do NOT use 'down -v' or you'll delete your certs (they live in ./certbot/conf)
           docker-compose up --build -d
 
