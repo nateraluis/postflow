@@ -117,6 +117,23 @@ class TagGroup(models.Model):
         return self.name or "Unnamed Tag Group"
 
 
+class ScheduledThread(models.Model):
+    """A thread groups multiple ScheduledPosts into a connected reply chain."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="threads")
+    title = models.CharField(max_length=255, blank=True, default="", help_text="Internal label for this thread")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title or f"Thread #{self.pk}"
+
+    @property
+    def post_count(self):
+        return self.posts.count()
+
+
 class ScheduledPost(models.Model):
     STATUS_CHOICES = [
         ("draft", "Draft"),
@@ -126,9 +143,19 @@ class ScheduledPost(models.Model):
         ("failed", "Failed"),
     ]
 
+    VISIBILITY_CHOICES = [
+        ("public", "Public"),
+        ("unlisted", "Unlisted"),
+        ("private", "Followers only"),
+        ("direct", "Direct message"),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     image = models.ImageField(upload_to="scheduled_posts/", blank=True, null=True)  # Kept for backward compatibility
     caption = models.TextField(blank=True, null=True)
+    spoiler_text = models.CharField(max_length=500, blank=True, default="", help_text="Content warning text (Mastodon/Pixelfed CW). Ignored on Instagram.")
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default="public", help_text="Post visibility on Mastodon/Pixelfed. Instagram is always public.")
+    language = models.CharField(max_length=10, blank=True, default="", help_text="ISO 639-1 language code (e.g. en, es, de). Used on Mastodon/Pixelfed.")
     post_date = models.DateTimeField()
     user_timezone = models.CharField(max_length=50, default="UTC")
     hashtag_groups = models.ManyToManyField("TagGroup", blank=True)
@@ -137,6 +164,9 @@ class ScheduledPost(models.Model):
     instagram_accounts = models.ManyToManyField("instagram.InstagramBusinessAccount", blank=True)
     location = models.ForeignKey("Location", on_delete=models.SET_NULL, blank=True, null=True, help_text="Location tag for Instagram posts")
     collaborators = models.CharField(max_length=500, blank=True, default="", help_text="Comma-separated Instagram collaborator usernames (max 3)")
+    delete_after_hours = models.PositiveIntegerField(blank=True, null=True, help_text="Auto-delete post after N hours (Mastodon/Pixelfed only)")
+    thread = models.ForeignKey("ScheduledThread", on_delete=models.CASCADE, blank=True, null=True, related_name="posts", help_text="Thread this post belongs to")
+    thread_order = models.PositiveIntegerField(default=0, help_text="Order within thread (0 = first post)")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     mastodon_media_id = models.CharField(max_length=255, blank=True, null=True)  # Stores media ID from Mastodon
     mastodon_post_id = models.CharField(max_length=255, blank=True, null=True)  # Stores the scheduled post ID
@@ -329,6 +359,84 @@ class HashtagUsage(models.Model):
 
     def __str__(self):
         return f"#{self.tag.name} used on post {self.scheduled_post_id}"
+
+
+class ScheduledBoost(models.Model):
+    """Schedule a reblog/boost of someone else's post."""
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("posted", "Posted"),
+        ("failed", "Failed"),
+    ]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="scheduled_boosts")
+    status_url = models.URLField(help_text="URL of the status to boost")
+    status_id = models.CharField(max_length=255, blank=True, default="", help_text="Resolved status ID on target instance")
+    boost_date = models.DateTimeField()
+    mastodon_accounts = models.ManyToManyField("pixelfed.MastodonAccount", blank=True)
+    mastodon_native_accounts = models.ManyToManyField("mastodon_native.MastodonAccount", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["boost_date"]
+
+    def __str__(self):
+        return f"Boost {self.status_url} at {self.boost_date}"
+
+
+class FollowerSnapshot(models.Model):
+    """Daily snapshot of follower/following/post counts for tracking growth."""
+    PLATFORM_CHOICES = [
+        ("pixelfed", "Pixelfed"),
+        ("mastodon", "Mastodon"),
+        ("mastodon_native", "Mastodon (Native)"),
+        ("instagram", "Instagram"),
+    ]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="follower_snapshots")
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES)
+    account_username = models.CharField(max_length=255)
+    instance_url = models.URLField(blank=True, default="")
+    date = models.DateField(db_index=True)
+    followers_count = models.PositiveIntegerField(default=0)
+    following_count = models.PositiveIntegerField(default=0)
+    posts_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "platform", "account_username", "date"],
+                name="unique_snapshot_per_day",
+            )
+        ]
+
+    def __str__(self):
+        return f"@{self.account_username} on {self.date}: {self.followers_count} followers"
+
+
+class RSSFeed(models.Model):
+    """RSS feed to monitor for auto-posting new entries."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="rss_feeds")
+    name = models.CharField(max_length=255, help_text="Label for this feed")
+    url = models.URLField(help_text="RSS/Atom feed URL")
+    caption_template = models.TextField(
+        default="{title}\n\n{url}",
+        help_text="Template for post caption. Variables: {title}, {url}, {summary}, {author}"
+    )
+    is_active = models.BooleanField(default=True)
+    include_instagram = models.BooleanField(default=False, help_text="Also post to Instagram accounts")
+    mastodon_accounts = models.ManyToManyField("pixelfed.MastodonAccount", blank=True)
+    mastodon_native_accounts = models.ManyToManyField("mastodon_native.MastodonAccount", blank=True)
+    instagram_accounts = models.ManyToManyField("instagram.InstagramBusinessAccount", blank=True)
+    last_checked_at = models.DateTimeField(blank=True, null=True)
+    last_entry_guid = models.CharField(max_length=500, blank=True, default="", help_text="GUID of last processed entry")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.name
 
 
 class CaptionTemplate(models.Model):

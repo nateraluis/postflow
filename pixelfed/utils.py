@@ -87,9 +87,14 @@ def post_pixelfed(scheduled_post, payload=None):
             status_url = account.instance_url + "/api/v1/statuses"
             status_data = {
                 "status": status_text,
-                "visibility": "public",
+                "visibility": payload.visibility if payload else "public",
                 "media_ids[]": media_ids,
             }
+            if payload and payload.spoiler_text:
+                status_data["spoiler_text"] = payload.spoiler_text
+                status_data["sensitive"] = "true"
+            if payload and payload.language:
+                status_data["language"] = payload.language
 
             logger.debug(f"Creating status with {len(media_ids)} media attachment(s)")
             response = requests.post(

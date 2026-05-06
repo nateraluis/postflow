@@ -250,6 +250,10 @@ def schedule_post(request):
     slide_user_tags = request.POST.getlist("slide_user_tags")
     location_id = request.POST.get("location_id", "").strip()
     collaborators = request.POST.get("collaborators", "").strip()
+    spoiler_text = request.POST.get("spoiler_text", "").strip()
+    visibility = request.POST.get("visibility", "public")
+    language = request.POST.get("language", "")
+    delete_after_hours = request.POST.get("delete_after_hours", "")
     action = request.POST.get("action", "schedule")
     is_draft = action == "draft"
 
@@ -342,6 +346,10 @@ def schedule_post(request):
         scheduled_post = ScheduledPost.objects.create(
             user=request.user,
             caption=caption,
+            spoiler_text=spoiler_text,
+            visibility=visibility,
+            language=language,
+            delete_after_hours=int(delete_after_hours) if delete_after_hours else None,
             post_date=utc_datetime or now(),
             user_timezone=user_timezone,
             status="draft" if is_draft else "pending",

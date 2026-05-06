@@ -30,6 +30,10 @@ class PostPayload:
     location_name: Optional[str] = None
     user_tags: list[dict] = field(default_factory=list)
     collaborators: list[str] = field(default_factory=list)
+    spoiler_text: str = ""
+    visibility: str = "public"
+    language: str = ""
+    sensitive: bool = False
 
     def get_hashtag_string(self, platform: str = "default") -> str:
         """Get formatted hashtag string respecting platform limits and filtering banned tags."""
@@ -120,6 +124,11 @@ def build_payload(scheduled_post) -> PostPayload:
         location_id = scheduled_post.location.facebook_page_id
         location_name = scheduled_post.location.name
 
+    # Fediverse fields
+    spoiler = getattr(scheduled_post, 'spoiler_text', '') or ''
+    visibility = getattr(scheduled_post, 'visibility', 'public') or 'public'
+    language = getattr(scheduled_post, 'language', '') or ''
+
     return PostPayload(
         caption=scheduled_post.caption or "",
         hashtags=all_hashtags,
@@ -130,4 +139,8 @@ def build_payload(scheduled_post) -> PostPayload:
         location_name=location_name,
         user_tags=user_tags,
         collaborators=collaborators,
+        spoiler_text=spoiler,
+        visibility=visibility,
+        language=language,
+        sensitive=bool(spoiler),
     )

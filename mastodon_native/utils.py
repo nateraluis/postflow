@@ -70,12 +70,23 @@ def post_mastodon(scheduled_post, payload=None):
                     status_text = f"{status_text}\n{hashtags}".strip()
 
             # Post status with all media IDs
-            logger.info(f"Posting status to Mastodon @{account.username} with {len(media_ids)} image(s)")
-            post_response = mastodon.status_post(
-                status=status_text,
-                media_ids=media_ids,
-                visibility="public",
-            )
+            visibility = payload.visibility if payload else "public"
+            spoiler = payload.spoiler_text if payload else ""
+            language = payload.language if payload else None
+
+            logger.info(f"Posting status to Mastodon @{account.username} with {len(media_ids)} image(s), visibility={visibility}")
+            post_kwargs = {
+                "status": status_text,
+                "media_ids": media_ids,
+                "visibility": visibility,
+            }
+            if spoiler:
+                post_kwargs["spoiler_text"] = spoiler
+                post_kwargs["sensitive"] = True
+            if language:
+                post_kwargs["language"] = language
+
+            post_response = mastodon.status_post(**post_kwargs)
 
             # Update ScheduledPost with post ID and status
             scheduled_post.mastodon_post_id = post_response.get("id")

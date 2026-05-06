@@ -206,6 +206,68 @@
             </div>
         </div>
 
+        <!-- Fediverse Options (CW, visibility, language, auto-delete) -->
+        <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <h4 class="text-sm font-semibold text-gray-700 mb-2">Fediverse Options</h4>
+            <p class="text-xs text-gray-400 mb-3">These apply to Mastodon/Pixelfed only. Ignored on Instagram.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Content Warning -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Content Warning (CW)</label>
+                    <input type="text" name="spoiler_text" placeholder="Optional CW text..."
+                           class="w-full p-2 border rounded-md text-sm">
+                </div>
+
+                <!-- Visibility -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Visibility</label>
+                    <select name="visibility" class="w-full p-2 border rounded-md text-sm">
+                        <option value="public">Public</option>
+                        <option value="unlisted">Unlisted</option>
+                        <option value="private">Followers only</option>
+                        <option value="direct">Direct message</option>
+                    </select>
+                </div>
+
+                <!-- Language -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Language</label>
+                    <select name="language" class="w-full p-2 border rounded-md text-sm">
+                        <option value="">Auto-detect</option>
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="ja">Japanese</option>
+                        <option value="zh">Chinese</option>
+                        <option value="ko">Korean</option>
+                        <option value="it">Italian</option>
+                        <option value="nl">Dutch</option>
+                        <option value="ru">Russian</option>
+                        <option value="ar">Arabic</option>
+                        <option value="hi">Hindi</option>
+                        <option value="ca">Catalan</option>
+                    </select>
+                </div>
+
+                <!-- Auto-delete -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Auto-delete after</label>
+                    <select name="delete_after_hours" class="w-full p-2 border rounded-md text-sm">
+                        <option value="">Never</option>
+                        <option value="1">1 hour</option>
+                        <option value="6">6 hours</option>
+                        <option value="24">24 hours</option>
+                        <option value="72">3 days</option>
+                        <option value="168">7 days</option>
+                        <option value="720">30 days</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <input type="hidden" id="user_timezone" name="user_timezone">
 
         <!-- Submit Buttons -->
