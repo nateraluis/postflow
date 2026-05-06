@@ -28,7 +28,7 @@
                 Hashtags:
                 <span class="text-blue-500">
                     {% for hashtag in post.hashtags %}
-                        {{ hashtag.name }}
+                        {{ hashtag.display_name }}
                     {% empty %}
                         <span class="text-gray-400">No hashtags assigned</span>
                     {% endfor %}

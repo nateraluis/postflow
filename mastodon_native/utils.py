@@ -37,7 +37,7 @@ def post_mastodon(scheduled_post):
 
             # Prepare status text with hashtags
             hashtags = " ".join(
-                tag.name
+                tag.hashtag
                 for tag_group in scheduled_post.hashtag_groups.all()
                 for tag in tag_group.tags.all()
             )

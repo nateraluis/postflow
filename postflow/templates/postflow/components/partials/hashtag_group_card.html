@@ -17,7 +17,7 @@
   <p class="text-sm text-gray-600 mt-2" id="hashtags-{{ group.id }}">
     {% for tag in group.tags.all %}
       <span class="inline-block bg-gray-200 text-gray-800 text-xs font-semibold px-2 py-1 rounded mr-2">
-        {{ tag.name }}
+        {{ tag.display_name }}
       </span>
     {% endfor %}
   </p>

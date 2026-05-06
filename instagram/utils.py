@@ -106,7 +106,7 @@ def post_instagram(scheduled_post, retry_count=0, max_retries=2):
     # Validate and combine caption + hashtags
     caption = scheduled_post.caption or ""
     hashtags = " ".join(
-        tag.name
+        tag.hashtag
         for tag_group in scheduled_post.hashtag_groups.all()
         for tag in tag_group.tags.all()
     )

@@ -73,16 +73,33 @@ class CustomUser(AbstractUser):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=255, db_index=True, help_text="Name of the hashtag (e.g., #example)")
+    name = models.CharField(max_length=255, db_index=True, help_text="Hashtag stored without # prefix (e.g., 'example')")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tags", help_text="User who owns this tag", default=1)
+    pinned = models.BooleanField(default=False, help_text="If true, always included when this tag's group is selected")
 
     class Meta:
          constraints = [
             models.UniqueConstraint(fields=["name", "user"], name="unique_tag_per_user")
         ]
 
+    def save(self, *args, **kwargs):
+        # Normalize: strip # prefix and lowercase
+        if self.name:
+            self.name = self.name.lstrip("#").strip().lower()
+        super().save(*args, **kwargs)
+
+    @property
+    def display_name(self):
+        """Returns the hashtag with # prefix for display."""
+        return f"#{self.name}" if self.name else ""
+
+    @property
+    def hashtag(self):
+        """Returns the hashtag with # prefix for publishing."""
+        return f"#{self.name}" if self.name else ""
+
     def __str__(self):
-        return self.name or "Unnamed Tag"
+        return self.display_name or "Unnamed Tag"
 
 
 
