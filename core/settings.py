@@ -57,7 +57,6 @@ INSTALLED_APPS = [
     'analytics_mastodon',  # Mastodon analytics
     'analytics_instagram',  # Instagram analytics
     'django_tasks',  # Django 6.0 background tasks
-    'django_tasks.backends.database',  # Database backend for django-tasks
     'django_browser_reload',
     'django_htmx',
 ]
@@ -254,9 +253,11 @@ LOGGING = {
     },
 }
 
-# ✅ Django 6.0 Background Tasks Configuration
+# Django 6.0 Background Tasks Configuration
+# Using immediate backend — tasks run synchronously when enqueued.
+# The APScheduler already runs these in a background process, so this is fine.
 TASKS = {
     "default": {
-        "BACKEND": "django_tasks.backends.database.DatabaseBackend",
+        "BACKEND": "django_tasks.backends.immediate.ImmediateBackend",
     }
 }
