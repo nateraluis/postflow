@@ -19,7 +19,13 @@ from instagram.models import InstagramBusinessAccount
 from analytics_pixelfed.models import PixelfedPost, PixelfedEngagementSummary
 from analytics_mastodon.models import MastodonPost, MastodonEngagementSummary
 from analytics_instagram.models import InstagramPost, InstagramEngagementSummary
-from analytics.utils import get_posting_calendar_data
+from analytics.utils import (
+    get_posting_calendar_data,
+    get_best_posting_times,
+    get_media_type_performance,
+    get_engagement_velocity,
+    get_hashtag_performance,
+)
 
 
 @login_required
@@ -186,3 +192,82 @@ def dashboard(request):
         return HttpResponse(content + sidebar)
 
     return render(request, 'analytics/dashboard.html', context)
+
+
+@login_required
+def best_times_view(request):
+    """Best time to post analysis with heatmap."""
+    days = int(request.GET.get('days', 90))
+    data = get_best_posting_times(request.user, days=days)
+
+    context = {
+        'active_page': 'analytics',
+        'best_times': data,
+        'days': days,
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/best_times_content.html', context)
+    return render(request, 'analytics/best_times.html', context)
+
+
+@login_required
+def best_time_suggestion_api(request):
+    """API endpoint for time picker suggestion."""
+    from django.http import JsonResponse
+    data = get_best_posting_times(request.user, days=90)
+    return JsonResponse({
+        'suggestions': data['suggestions'],
+        'use_benchmarks': data['use_benchmarks'],
+    })
+
+
+@login_required
+def media_type_view(request):
+    """Media type performance comparison."""
+    days = int(request.GET.get('days', 90))
+    data = get_media_type_performance(request.user, days=days)
+
+    context = {
+        'active_page': 'analytics',
+        'media_data': data,
+        'days': days,
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/media_type_content.html', context)
+    return render(request, 'analytics/media_type.html', context)
+
+
+@login_required
+def engagement_velocity_view(request):
+    """Engagement velocity chart."""
+    days = int(request.GET.get('days', 90))
+    data = get_engagement_velocity(request.user, days=days)
+
+    context = {
+        'active_page': 'analytics',
+        'velocity_data': data,
+        'days': days,
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/velocity_content.html', context)
+    return render(request, 'analytics/velocity.html', context)
+
+
+@login_required
+def hashtag_performance_view(request):
+    """Hashtag group performance analytics."""
+    days = int(request.GET.get('days', 90))
+    data = get_hashtag_performance(request.user, days=days)
+
+    context = {
+        'active_page': 'analytics',
+        'hashtag_data': data,
+        'days': days,
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, 'analytics/hashtag_performance_content.html', context)
+    return render(request, 'analytics/hashtag_performance.html', context)

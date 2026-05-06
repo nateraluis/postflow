@@ -163,6 +163,294 @@ def get_base_analytics_context(request, platform_slug):
     }
 
 
+def get_best_posting_times(user, days=90):
+    """
+    Analyze historical engagement to find optimal posting times.
+    Returns a 7x24 heatmap (day_of_week x hour) with average engagement.
+    Falls back to 2026 benchmarks if insufficient data.
+
+    Args:
+        user: Django User object
+        days: Number of days to analyze (default: 90)
+
+    Returns:
+        Dictionary with heatmap data, best times, and suggestion text
+    """
+    from analytics_pixelfed.models import PixelfedPost, PixelfedEngagementSummary
+    from analytics_mastodon.models import MastodonPost, MastodonEngagementSummary
+    from analytics_instagram.models import InstagramPost, InstagramEngagementSummary
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+    from instagram.models import InstagramBusinessAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    # Collect (day_of_week, hour) -> [engagement_values]
+    time_engagement = defaultdict(list)
+
+    # Pixelfed posts
+    pixelfed_accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if pixelfed_accounts.exists():
+        posts = PixelfedPost.objects.filter(
+            account__in=pixelfed_accounts,
+            posted_at__gte=start_date,
+        ).select_related('engagement_summary')
+        for post in posts:
+            eng = post.engagement_summary.total_engagement if hasattr(post, 'engagement_summary') and post.engagement_summary else 0
+            dow = post.posted_at.weekday()  # 0=Monday
+            hour = post.posted_at.hour
+            time_engagement[(dow, hour)].append(eng)
+
+    # Mastodon posts
+    mastodon_accounts = MastodonNativeAccount.objects.filter(user=user)
+    if mastodon_accounts.exists():
+        posts = MastodonPost.objects.filter(
+            account__in=mastodon_accounts,
+            posted_at__gte=start_date,
+        ).select_related('engagement_summary')
+        for post in posts:
+            eng = post.engagement_summary.total_engagement if hasattr(post, 'engagement_summary') and post.engagement_summary else 0
+            dow = post.posted_at.weekday()
+            hour = post.posted_at.hour
+            time_engagement[(dow, hour)].append(eng)
+
+    # Instagram posts
+    instagram_accounts = InstagramBusinessAccount.objects.filter(user=user)
+    if instagram_accounts.exists():
+        posts = InstagramPost.objects.filter(
+            account__in=instagram_accounts,
+            posted_at__gte=start_date,
+        ).select_related('engagement_summary')
+        for post in posts:
+            eng = post.engagement_summary.total_engagement if hasattr(post, 'engagement_summary') and post.engagement_summary else 0
+            dow = post.posted_at.weekday()
+            hour = post.posted_at.hour
+            time_engagement[(dow, hour)].append(eng)
+
+    # Build heatmap
+    day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    heatmap = []
+    best_slots = []
+
+    total_data_points = sum(len(v) for v in time_engagement.values())
+
+    for dow in range(7):
+        row = []
+        for hour in range(24):
+            values = time_engagement.get((dow, hour), [])
+            avg = sum(values) / len(values) if values else 0
+            row.append({
+                'day': dow,
+                'hour': hour,
+                'avg_engagement': round(avg, 1),
+                'post_count': len(values),
+            })
+            if values:
+                best_slots.append((avg, dow, hour))
+        heatmap.append({'day_name': day_names[dow], 'hours': row})
+
+    # Sort to find best times
+    best_slots.sort(reverse=True)
+    top_3 = best_slots[:3]
+
+    # Fallback to benchmarks if insufficient data (<10 posts)
+    use_benchmarks = total_data_points < 10
+    if use_benchmarks:
+        suggestions = [
+            {'day': 'Wednesday', 'hour': 9, 'note': '2026 benchmark'},
+            {'day': 'Thursday', 'hour': 12, 'note': '2026 benchmark'},
+            {'day': 'Wednesday', 'hour': 18, 'note': '2026 benchmark'},
+        ]
+    else:
+        suggestions = [
+            {
+                'day': day_names[s[1]],
+                'hour': s[2],
+                'avg_engagement': s[0],
+                'note': 'from your data',
+            }
+            for s in top_3
+        ]
+
+    return {
+        'heatmap': heatmap,
+        'suggestions': suggestions,
+        'use_benchmarks': use_benchmarks,
+        'total_posts_analyzed': total_data_points,
+        'days_analyzed': days,
+    }
+
+
+def get_media_type_performance(user, days=90):
+    """
+    Compare engagement by media type (image/video/carousel).
+
+    Returns:
+        Dictionary with per-type averages and totals
+    """
+    from analytics_pixelfed.models import PixelfedPost
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'types': [], 'has_data': False}
+
+    posts = PixelfedPost.objects.filter(
+        account__in=accounts,
+        posted_at__gte=start_date,
+    ).select_related('engagement_summary')
+
+    type_stats = defaultdict(lambda: {'count': 0, 'total_engagement': 0, 'total_likes': 0, 'total_comments': 0, 'total_shares': 0})
+
+    for post in posts:
+        mt = post.media_type or 'image'
+        eng = post.engagement_summary if hasattr(post, 'engagement_summary') and post.engagement_summary else None
+        type_stats[mt]['count'] += 1
+        if eng:
+            type_stats[mt]['total_engagement'] += eng.total_engagement or 0
+            type_stats[mt]['total_likes'] += eng.total_likes or 0
+            type_stats[mt]['total_comments'] += eng.total_comments or 0
+            type_stats[mt]['total_shares'] += eng.total_shares or 0
+
+    types = []
+    for mt, stats in type_stats.items():
+        avg = stats['total_engagement'] / stats['count'] if stats['count'] > 0 else 0
+        types.append({
+            'type': mt,
+            'label': mt.title(),
+            'count': stats['count'],
+            'total_engagement': stats['total_engagement'],
+            'avg_engagement': round(avg, 1),
+            'total_likes': stats['total_likes'],
+            'total_comments': stats['total_comments'],
+            'total_shares': stats['total_shares'],
+        })
+
+    types.sort(key=lambda x: x['avg_engagement'], reverse=True)
+
+    return {'types': types, 'has_data': len(types) > 0}
+
+
+def get_engagement_velocity(user, days=90, hours_window=72):
+    """
+    Calculate how fast posts gain engagement in the first N hours.
+    Compares 'fast starters' vs 'slow burners'.
+
+    Returns:
+        Dictionary with velocity data per post
+    """
+    from analytics_pixelfed.models import PixelfedPost, PixelfedLike
+    from pixelfed.models import MastodonAccount as PixelfedMastodonAccount
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    accounts = PixelfedMastodonAccount.objects.filter(user=user, instance_url__icontains='pixelfed')
+    if not accounts.exists():
+        return {'posts': [], 'has_data': False}
+
+    posts = PixelfedPost.objects.filter(
+        account__in=accounts,
+        posted_at__gte=start_date,
+    ).select_related('engagement_summary').order_by('-posted_at')[:20]
+
+    velocity_data = []
+    for post in posts:
+        # Count likes in first 24h, 48h, 72h based on first_seen_at
+        likes_24h = post.likes.filter(
+            first_seen_at__lte=post.posted_at + timedelta(hours=24)
+        ).count()
+        likes_48h = post.likes.filter(
+            first_seen_at__lte=post.posted_at + timedelta(hours=48)
+        ).count()
+        likes_72h = post.likes.filter(
+            first_seen_at__lte=post.posted_at + timedelta(hours=72)
+        ).count()
+
+        total = post.engagement_summary.total_engagement if hasattr(post, 'engagement_summary') and post.engagement_summary else 0
+
+        velocity_data.append({
+            'post_id': post.id,
+            'caption_preview': (post.caption[:60] + '...') if post.caption and len(post.caption) > 60 else (post.caption or ''),
+            'posted_at': post.posted_at.isoformat(),
+            'likes_24h': likes_24h,
+            'likes_48h': likes_48h,
+            'likes_72h': likes_72h,
+            'total_engagement': total,
+            'velocity_score': likes_24h / max(total, 1) * 100,  # % of total in first 24h
+        })
+
+    return {
+        'posts': velocity_data,
+        'has_data': len(velocity_data) > 0,
+    }
+
+
+def get_hashtag_performance(user, days=90):
+    """
+    Correlate hashtag groups with engagement metrics.
+
+    Returns:
+        Dictionary with per-group engagement averages
+    """
+    from postflow.models import ScheduledPost, TagGroup
+    from analytics_pixelfed.models import PixelfedPost
+
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+
+    # Get posts with hashtag groups that have been posted
+    posts = ScheduledPost.objects.filter(
+        user=user,
+        status='posted',
+        post_date__gte=start_date,
+    ).prefetch_related('hashtag_groups__tags')
+
+    group_stats = defaultdict(lambda: {'post_count': 0, 'total_engagement': 0, 'posts': []})
+
+    for post in posts:
+        # Try to find linked analytics post
+        engagement = 0
+        if post.pixelfed_post_id:
+            try:
+                pf_post = PixelfedPost.objects.select_related('engagement_summary').get(
+                    pixelfed_post_id=post.pixelfed_post_id
+                )
+                if pf_post.engagement_summary:
+                    engagement = pf_post.engagement_summary.total_engagement or 0
+            except PixelfedPost.DoesNotExist:
+                pass
+
+        for group in post.hashtag_groups.all():
+            group_stats[group.id]['post_count'] += 1
+            group_stats[group.id]['total_engagement'] += engagement
+            group_stats[group.id]['group_name'] = group.name
+            group_stats[group.id]['tag_count'] = group.tags.count()
+
+    results = []
+    for gid, stats in group_stats.items():
+        avg = stats['total_engagement'] / stats['post_count'] if stats['post_count'] > 0 else 0
+        results.append({
+            'group_id': gid,
+            'group_name': stats['group_name'],
+            'tag_count': stats['tag_count'],
+            'post_count': stats['post_count'],
+            'total_engagement': stats['total_engagement'],
+            'avg_engagement': round(avg, 1),
+        })
+
+    results.sort(key=lambda x: x['avg_engagement'], reverse=True)
+
+    return {
+        'groups': results,
+        'has_data': len(results) > 0,
+    }
+
+
 def get_posting_calendar_data(user, platform=None, days=365):
     """
     Aggregate posting calendar data across platforms or for a specific platform.

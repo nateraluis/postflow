@@ -34,9 +34,14 @@
         </div>
 
         <!-- Select Date -->
-        <label class="block mt-4 mb-2 text-sm font-medium text-gray-700">Select Date & Time</label>
+        <div class="mt-4">
+            <div class="flex items-center justify-between mb-2">
+                <label class="text-sm font-medium text-gray-700">Select Date & Time</label>
+                <span id="time-suggestion" class="text-xs text-green-600 hidden"></span>
+            </div>
+        </div>
         <div class="flex space-x-2">
-            <input type="date" name="post_date" class="w-1/2 p-2 border rounded-md">
+            <input type="date" name="post_date" class="w-1/2 p-2 border rounded-md" onchange="fetchTimeSuggestion()">
 
             <select name="post_hour" class="w-1/4 p-2 border rounded-md">
                 <option value="">Hour</option>
@@ -280,6 +285,21 @@
     function clearLocation() {
         document.getElementById('location-id-input').value = '';
         document.getElementById('selected-location').classList.add('hidden');
+    }
+
+    function fetchTimeSuggestion() {
+        fetch('{% url "analytics:best_time_api" %}')
+            .then(r => r.json())
+            .then(data => {
+                const el = document.getElementById('time-suggestion');
+                if (data.suggestions && data.suggestions.length > 0) {
+                    const s = data.suggestions[0];
+                    const suffix = data.use_benchmarks ? ' (benchmark)' : ' (your data)';
+                    el.textContent = 'Suggested: ' + s.day + ' at ' + s.hour + ':00' + suffix;
+                    el.classList.remove('hidden');
+                }
+            })
+            .catch(() => {});
     }
 
     function resetForm() {

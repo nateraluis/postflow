@@ -14,6 +14,30 @@
             {% include 'analytics/shared/partials/posting_calendar.html' with calendar_data=calendar_data title="Posting Activity (All Platforms)" show_summary=True %}
         {% endif %}
 
+        <!-- Analytics Tools -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+            <a href="{% url 'analytics:best_times' %}"
+               class="p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Best Times</p>
+                <p class="text-xs text-gray-500 mt-1">When to post</p>
+            </a>
+            <a href="{% url 'analytics:media_type' %}"
+               class="p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Media Types</p>
+                <p class="text-xs text-gray-500 mt-1">Format comparison</p>
+            </a>
+            <a href="{% url 'analytics:engagement_velocity' %}"
+               class="p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Velocity</p>
+                <p class="text-xs text-gray-500 mt-1">Engagement speed</p>
+            </a>
+            <a href="{% url 'analytics:hashtag_performance' %}"
+               class="p-4 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 transition text-center">
+                <p class="text-sm font-semibold text-gray-700">Hashtags</p>
+                <p class="text-xs text-gray-500 mt-1">Tag performance</p>
+            </a>
+        </div>
+
         <!-- Platform Comparison Section -->
         {% include 'analytics/shared/partials/platform_comparison.html' %}
 

@@ -1,0 +1,74 @@
+<!-- Post Preview Component - shows how post will appear on each platform -->
+<div class="bg-white rounded-lg shadow border p-4">
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">Post Preview</h3>
+
+    <!-- Platform Tabs -->
+    <div class="flex border-b mb-3">
+        <button type="button" onclick="showPreviewTab('instagram')" id="tab-instagram" class="px-3 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">Instagram</button>
+        <button type="button" onclick="showPreviewTab('mastodon')" id="tab-mastodon" class="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">Mastodon/Pixelfed</button>
+    </div>
+
+    <!-- Instagram Preview -->
+    <div id="preview-instagram" class="preview-panel">
+        <div class="border rounded-lg p-3 bg-gray-50">
+            <div class="text-sm text-gray-800">
+                <span id="ig-preview-first-line" class="font-normal"></span><span id="ig-preview-more" class="text-gray-400 hidden">...more</span>
+            </div>
+            <div id="ig-preview-hashtags" class="text-sm text-blue-500 mt-1"></div>
+            <div id="ig-preview-location" class="text-xs text-gray-500 mt-1 hidden"></div>
+            <div class="flex justify-between mt-2">
+                <span id="ig-char-count" class="text-xs text-gray-400">0 / 2,200</span>
+                <span id="ig-hashtag-count" class="text-xs text-gray-400">0 / 5 hashtags</span>
+            </div>
+            <div id="ig-truncation-warning" class="text-xs text-red-500 mt-1 hidden">Caption + hashtags exceed 2,200 characters</div>
+        </div>
+    </div>
+
+    <!-- Mastodon/Pixelfed Preview -->
+    <div id="preview-mastodon" class="preview-panel hidden">
+        <div class="border rounded-lg p-3 bg-gray-50">
+            <div id="masto-preview-caption" class="text-sm text-gray-800"></div>
+            <div id="masto-preview-hashtags" class="text-sm text-blue-500 mt-1"></div>
+            <div class="flex justify-between mt-2">
+                <span id="masto-char-count" class="text-xs text-gray-400">0 / 500</span>
+                <span id="masto-hashtag-count" class="text-xs text-gray-400">0 hashtags</span>
+            </div>
+            <div id="masto-truncation-warning" class="text-xs text-red-500 mt-1 hidden">Caption + hashtags exceed 500 characters</div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showPreviewTab(platform) {
+    document.querySelectorAll('.preview-panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('[id^="tab-"]').forEach(t => {
+        t.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        t.classList.add('text-gray-500');
+    });
+    document.getElementById('preview-' + platform).classList.remove('hidden');
+    const tab = document.getElementById('tab-' + platform);
+    tab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+    tab.classList.remove('text-gray-500');
+}
+
+function updatePreview() {
+    const caption = document.querySelector('textarea[name="caption"]')?.value || '';
+    const hashtagCount = parseInt(document.getElementById('hashtag-count')?.textContent || '0');
+
+    // Instagram preview
+    const first125 = caption.substring(0, 125);
+    document.getElementById('ig-preview-first-line').textContent = first125;
+    document.getElementById('ig-preview-more').classList.toggle('hidden', caption.length <= 125);
+
+    const igTotal = caption.length + hashtagCount * 10; // approximate
+    document.getElementById('ig-char-count').textContent = `${caption.length} / 2,200`;
+    document.getElementById('ig-hashtag-count').textContent = `${Math.min(hashtagCount, 5)} / 5 hashtags`;
+    document.getElementById('ig-truncation-warning').classList.toggle('hidden', igTotal <= 2200);
+
+    // Mastodon preview
+    document.getElementById('masto-preview-caption').textContent = caption;
+    document.getElementById('masto-char-count').textContent = `${caption.length} / 500`;
+    document.getElementById('masto-hashtag-count').textContent = `${hashtagCount} hashtags`;
+    document.getElementById('masto-truncation-warning').classList.toggle('hidden', caption.length <= 500);
+}
+</script>
