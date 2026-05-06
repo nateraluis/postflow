@@ -247,6 +247,7 @@ def schedule_post(request):
     instagram_account_ids = request.POST.getlist("instagram_accounts")
     images = request.FILES.getlist("photos")
     alt_texts = request.POST.getlist("alt_texts")
+    slide_user_tags = request.POST.getlist("slide_user_tags")
     location_id = request.POST.get("location_id", "").strip()
     collaborators = request.POST.get("collaborators", "").strip()
     action = request.POST.get("action", "schedule")
@@ -368,14 +369,28 @@ def schedule_post(request):
 
             # Create PostImage record with alt text
             alt_text = alt_texts[index] if index < len(alt_texts) else ""
-            PostImage.objects.create(
+            post_image = PostImage.objects.create(
                 scheduled_post=scheduled_post,
                 image=saved_path,
                 order=index,
                 alt_text=alt_text,
             )
-            logger.info(f"Image {index + 1}/{len(images)} uploaded for post {scheduled_post.id}")
 
+            # Create per-slide user tags
+            slide_tags_str = slide_user_tags[index] if index < len(slide_user_tags) else ""
+            if slide_tags_str.strip():
+                from postflow.models import UserTag
+                for tag_username in [t.strip().lstrip("@") for t in slide_tags_str.split(",") if t.strip()]:
+                    platform = "instagram" if "@" not in tag_username else "mastodon"
+                    UserTag.objects.create(
+                        scheduled_post=scheduled_post,
+                        post_image=post_image,
+                        username=tag_username,
+                        platform=platform,
+                        x=0.5, y=0.5,
+                    )
+
+            logger.info(f"Image {index + 1}/{len(images)} uploaded for post {scheduled_post.id}")
 
         scheduled_post.hashtag_groups.set(TagGroup.objects.filter(id__in=hashtag_group_ids))
         scheduled_post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_account_ids))

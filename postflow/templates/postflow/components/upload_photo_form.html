@@ -32,16 +32,33 @@
         <!-- Image preview with drag-to-reorder -->
         <div id="image-preview-container" class="hidden mt-3">
             <p class="text-xs text-gray-500 mb-1">Drag to reorder slides:</p>
-            <div id="image-previews" class="flex gap-2 overflow-x-auto pb-2"></div>
+            <div id="image-previews" class="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth"></div>
         </div>
 
-        <!-- Alt Text Inputs (shown per selected image) -->
-        <div id="alt-text-container" class="mt-2 hidden">
-            <button type="button" onclick="toggleAltTexts()" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+        <!-- Swipeable full preview -->
+        <div id="swipe-preview" class="hidden mt-3">
+            <div class="relative bg-gray-100 rounded-lg overflow-hidden">
+                <div id="swipe-track" class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth" style="-webkit-overflow-scrolling: touch;">
+                </div>
+                <div class="flex items-center justify-between px-2 py-1 bg-white border-t">
+                    <button type="button" onclick="swipePrev()" class="text-gray-500 hover:text-gray-800 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <span id="swipe-indicator" class="text-xs text-gray-500">1 / 1</span>
+                    <button type="button" onclick="swipeNext()" class="text-gray-500 hover:text-gray-800 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Per-slide details: alt text + user tags -->
+        <div id="slide-details-container" class="mt-2 hidden">
+            <button type="button" onclick="toggleSlideDetails()" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                <span id="alt-text-toggle-label">Add alt text (accessibility)</span>
+                <span id="slide-details-label">Add alt text & user tags per slide</span>
             </button>
-            <div id="alt-text-fields" class="mt-2 space-y-2 hidden"></div>
+            <div id="slide-details-fields" class="mt-2 space-y-3 hidden"></div>
         </div>
 
         <!-- Select Date -->
@@ -213,69 +230,80 @@
 
 <script>
     function handlePhotoSelect(input) {
-        const container = document.getElementById('alt-text-container');
-        const fields = document.getElementById('alt-text-fields');
-        const previewContainer = document.getElementById('image-preview-container');
-        const previews = document.getElementById('image-previews');
-        const suggestion = document.getElementById('carousel-suggestion');
+        var previewContainer = document.getElementById('image-preview-container');
+        var previews = document.getElementById('image-previews');
+        var suggestion = document.getElementById('carousel-suggestion');
+        var swipePreview = document.getElementById('swipe-preview');
+        var swipeTrack = document.getElementById('swipe-track');
+        var detailsContainer = document.getElementById('slide-details-container');
+        var detailsFields = document.getElementById('slide-details-fields');
 
         if (input.files.length > 0) {
-            container.classList.remove('hidden');
-            fields.innerHTML = '';
             previews.innerHTML = '';
+            swipeTrack.innerHTML = '';
+            detailsFields.innerHTML = '';
+            detailsContainer.classList.remove('hidden');
 
-            // Show carousel suggestion for 3+ images
-            if (input.files.length >= 3) {
-                suggestion.classList.remove('hidden');
-            } else {
-                suggestion.classList.add('hidden');
-            }
-
-            // Show preview container for 2+ images
-            if (input.files.length >= 2) {
-                previewContainer.classList.remove('hidden');
-            } else {
-                previewContainer.classList.add('hidden');
-            }
+            suggestion.classList.toggle('hidden', input.files.length < 3);
+            previewContainer.classList.toggle('hidden', input.files.length < 2);
+            swipePreview.classList.toggle('hidden', input.files.length < 2);
 
             for (var i = 0; i < input.files.length; i++) {
-                // Alt text field
-                var div = document.createElement('div');
-                div.innerHTML = '<input type="text" name="alt_texts" placeholder="Alt text for image ' + (i + 1) + '" class="w-full p-2 border rounded-md text-sm" maxlength="1000">';
-                fields.appendChild(div);
+                var url = URL.createObjectURL(input.files[i]);
 
-                // Image preview thumbnail
+                // Drag-to-reorder thumbnail strip
                 if (input.files.length >= 2) {
                     var thumb = document.createElement('div');
-                    thumb.className = 'w-20 h-20 flex-shrink-0 rounded border-2 border-transparent relative';
+                    thumb.className = 'w-20 h-20 flex-shrink-0 rounded border-2 border-transparent relative snap-start';
                     thumb.draggable = true;
                     thumb.dataset.index = i;
                     thumb.addEventListener('dragstart', handleDragStart);
                     thumb.addEventListener('dragover', handleDragOver);
                     thumb.addEventListener('drop', handleDrop);
                     thumb.addEventListener('dragend', handleDragEnd);
-                    // Touch events for mobile
                     thumb.addEventListener('touchstart', handleTouchStart, {passive: false});
                     thumb.addEventListener('touchmove', handleTouchMove, {passive: false});
                     thumb.addEventListener('touchend', handleTouchEnd);
-
-                    var img = document.createElement('img');
-                    img.className = 'w-full h-full object-cover rounded';
-                    img.src = URL.createObjectURL(input.files[i]);
+                    var tImg = document.createElement('img');
+                    tImg.className = 'w-full h-full object-cover rounded';
+                    tImg.src = url;
                     var badge = document.createElement('span');
                     badge.className = 'absolute -top-1 -left-1 w-5 h-5 bg-gray-800 text-white text-xs rounded-full flex items-center justify-center';
                     badge.textContent = i + 1;
-                    thumb.appendChild(img);
+                    thumb.appendChild(tImg);
                     thumb.appendChild(badge);
                     previews.appendChild(thumb);
+
+                    // Swipeable full-size slide
+                    var slide = document.createElement('div');
+                    slide.className = 'w-full flex-shrink-0 snap-start';
+                    var sImg = document.createElement('img');
+                    sImg.className = 'w-full h-48 sm:h-64 object-contain bg-gray-50';
+                    sImg.src = url;
+                    slide.appendChild(sImg);
+                    swipeTrack.appendChild(slide);
                 }
+
+                // Per-slide details: alt text + user tag
+                var detail = document.createElement('div');
+                detail.className = 'p-3 bg-gray-50 rounded-lg border';
+                detail.innerHTML = '<p class="text-xs font-medium text-gray-600 mb-1">Image ' + (i + 1) + '</p>' +
+                    '<input type="text" name="alt_texts" placeholder="Alt text" class="w-full p-2 border rounded-md text-sm mb-2" maxlength="1000">' +
+                    '<input type="text" name="slide_user_tags" placeholder="Tag users: @user1, @user2" class="w-full p-2 border rounded-md text-sm">';
+                detailsFields.appendChild(detail);
+            }
+
+            if (input.files.length >= 2) {
+                document.getElementById('swipe-indicator').textContent = '1 / ' + input.files.length;
             }
         } else {
-            container.classList.add('hidden');
-            fields.innerHTML = '';
             previewContainer.classList.add('hidden');
             previews.innerHTML = '';
+            swipePreview.classList.add('hidden');
+            swipeTrack.innerHTML = '';
             suggestion.classList.add('hidden');
+            detailsContainer.classList.add('hidden');
+            detailsFields.innerHTML = '';
         }
     }
 
@@ -345,11 +373,31 @@
         touchSrcEl = null;
     }
 
-    function toggleAltTexts() {
-        const fields = document.getElementById('alt-text-fields');
-        const label = document.getElementById('alt-text-toggle-label');
+    function toggleSlideDetails() {
+        var fields = document.getElementById('slide-details-fields');
+        var label = document.getElementById('slide-details-label');
         fields.classList.toggle('hidden');
-        label.textContent = fields.classList.contains('hidden') ? 'Add alt text (accessibility)' : 'Hide alt text';
+        label.textContent = fields.classList.contains('hidden') ? 'Add alt text & user tags per slide' : 'Hide slide details';
+    }
+
+    function swipeNext() {
+        var track = document.getElementById('swipe-track');
+        var slideW = track.firstElementChild ? track.firstElementChild.offsetWidth : 0;
+        track.scrollBy({left: slideW, behavior: 'smooth'});
+        updateSwipeIndicator(track, slideW);
+    }
+    function swipePrev() {
+        var track = document.getElementById('swipe-track');
+        var slideW = track.firstElementChild ? track.firstElementChild.offsetWidth : 0;
+        track.scrollBy({left: -slideW, behavior: 'smooth'});
+        updateSwipeIndicator(track, slideW);
+    }
+    function updateSwipeIndicator(track, slideW) {
+        setTimeout(function() {
+            var idx = Math.round(track.scrollLeft / Math.max(slideW, 1)) + 1;
+            var total = track.children.length;
+            document.getElementById('swipe-indicator').textContent = idx + ' / ' + total;
+        }, 350);
     }
 
     function updateHashtagCount() {
@@ -465,10 +513,12 @@
         }
 
         // Reset dynamic UI
-        document.getElementById('alt-text-container').classList.add('hidden');
-        document.getElementById('alt-text-fields').innerHTML = '';
+        document.getElementById('slide-details-container').classList.add('hidden');
+        document.getElementById('slide-details-fields').innerHTML = '';
         document.getElementById('image-preview-container').classList.add('hidden');
         document.getElementById('image-previews').innerHTML = '';
+        document.getElementById('swipe-preview').classList.add('hidden');
+        document.getElementById('swipe-track').innerHTML = '';
         document.getElementById('carousel-suggestion').classList.add('hidden');
         document.getElementById('hashtag-counter').classList.add('hidden');
         document.getElementById('instagram-fields').classList.add('hidden');
