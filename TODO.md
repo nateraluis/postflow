@@ -118,14 +118,14 @@ Help users understand which hashtags drive results.
 
 ### Phase 3: Carousel & UX Enhancements
 
-#### 10. Carousel Builder Enhancement
+#### 10. ~~Carousel Builder Enhancement~~ COMPLETED
 Carousels have the highest engagement (10.15%). PostFlow supports multi-image but the
 UX could be better.
 
 - [x] Drag-and-drop slide reordering
 - [x] Per-slide alt text input
-- [ ] Per-slide user tagging
-- [ ] Swipeable preview
+- [x] Per-slide user tagging
+- [x] Swipeable preview
 - [x] Auto-suggest carousel when user uploads 3+ images
 
 ---
