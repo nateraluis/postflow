@@ -32,8 +32,6 @@ images (added March 2025). Mastodon/Pixelfed support `description` on media uplo
 
 - [x] Add `alt_text` field to the `PostImage` model
 - [x] Add alt text input per image in the post composer (collapsible, non-intrusive)
-- [ ] **AI auto-generation**: on image upload, auto-generate suggested alt text using an LLM
-      vision model — pre-fill the field so the user only edits if needed
 - [x] Pass `alt_text` param in Instagram API container creation
 - [x] Pass `description` param in Mastodon/Pixelfed `media_post()` calls
 - [x] Show alt text in post preview and history views
@@ -61,7 +59,6 @@ Tagging boosts reach by surfacing posts to tagged users' audiences.
 - [x] For Instagram: pass `user_tags` array with `{username, x, y}` on image containers
 - [x] For Mastodon/Pixelfed: auto-convert tags to `@username@instance` mentions appended to
       caption (same pattern as existing hashtag auto-insertion)
-- [ ] Note: user tags on Instagram Reels NOT supported via API — show this clearly in UI
 
 #### 5. ~~Collaborator Tagging (Instagram)~~ COMPLETED
 The `collaborators` API param is a differentiator — most schedulers don't offer it.
@@ -119,48 +116,17 @@ Help users understand which hashtags drive results.
 
 ---
 
-### Phase 3: Content Type & Publishing
+### Phase 3: Carousel & UX Enhancements
 
-#### 10. Reels Support (Instagram)
-Reels get 2.25x more reach than single images. API supports publishing with caption,
-cover image, and thumbnail offset.
-
-- [ ] Add video upload support (mp4, max 90s for Instagram)
-- [ ] Auto-detect content type: video → offer to publish as Reel on Instagram
-- [ ] Add `cover_url` field for custom cover image
-- [ ] Add `thumb_offset` field for thumbnail frame selection (millisecond offset)
-- [ ] Add `audio_name` field for naming the audio track
-- [ ] For Mastodon/Pixelfed: post as regular video attachment
-- [ ] Document: trending music CANNOT be added via API
-- [ ] Document: user tags on Reels NOT supported via API
-
-#### 11. Carousel Builder Enhancement
+#### 10. Carousel Builder Enhancement
 Carousels have the highest engagement (10.15%). PostFlow supports multi-image but the
 UX could be better.
 
 - [ ] Drag-and-drop slide reordering
-- [ ] Mixed media: allow images + videos in same carousel (Instagram supports this)
 - [x] Per-slide alt text input
 - [ ] Per-slide user tagging
 - [ ] Swipeable preview
 - [ ] Auto-suggest carousel when user uploads 3+ images
-
-#### 12. Stories Publishing (Instagram)
-API supports Stories for Business accounts via `media_type=STORIES`.
-
-- [ ] Add "post type" selector: Feed Post / Story / Reel
-- [ ] Stories: single image or video only (no carousel)
-- [ ] Wire up user tags for Stories (added July 2025)
-- [ ] No hashtag insertion for Stories (different discovery mechanics)
-- [ ] Mastodon/Pixelfed: no Story equivalent — skip or post as regular with a note
-
-#### 13. Content Type Recommendations
-Nudge users toward the best format for their goals.
-
-- [ ] Video upload → "Reels get 2.25x more reach"
-- [ ] 3+ images → "Carousels get 10% higher engagement"
-- [ ] Single image → no nudge
-- [ ] Toggleable in user settings
 
 ---
 
@@ -225,22 +191,16 @@ Document these clearly for users in the UI:
 
 | Limitation | Platform |
 |---|---|
-| Music/trending audio cannot be added via API | Instagram |
-| User tags on Reels not supported via API | Instagram |
-| Alt text only on images, not Reels or Stories | Instagram |
 | Collaborators must accept invite manually | Instagram |
-| Stories cannot contain carousels | Instagram |
 | No location tagging equivalent | Mastodon/Pixelfed |
 | No collaborator concept (use mentions instead) | Mastodon/Pixelfed |
 
 ### Key 2026 Algorithm Reference
 - Instagram #1 signal: **sends/shares per reach** (DM shares)
-- Reels: 2.25x reach vs single images, 55% views from non-followers
 - Carousels: 10.15% avg engagement (highest), second distribution pass
 - Captions indexed by Google since mid-2025 — caption SEO > hashtag stuffing
 - Best days: Wednesday & Thursday
 - Best times: 9 AM, 12 PM, 6 PM (user timezone)
-- First 3 seconds of Reels determine 5-10x reach difference
 - Reply to comments within first hour for max algorithmic benefit
 - Hard limit: 5 hashtags per Instagram post (Dec 2025)
 
@@ -278,13 +238,7 @@ Document these clearly for users in the UI:
 - Average engagement per type
 - **Data**: `PixelfedPost.media_type`, aggregate engagement
 
-#### 6. **Reels Skip Rate Dashboard** (New — Instagram)
-- Fetch `ig_reels_avg_watch_time` and skip metrics via Insights API
-- Surface per Reel in analytics dashboard
-- Highlight which hooks work (low skip) vs fail (high skip)
-- Show equivalent watch-time metrics for Mastodon/Pixelfed if available
-
-#### 7. **Repost/Share Tracking** (New — Instagram)
+#### 6. **Repost/Share Tracking** (New — Instagram)
 - Track repost counts (new Instagram API metric, media + account level)
 - Track sends/shares per post (Instagram's #1 algorithm signal)
 - Build a "post score" combining reach + engagement rate

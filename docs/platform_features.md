@@ -8,12 +8,9 @@ Feature support across Instagram, Pixelfed, and Mastodon. Updated as platforms a
 |---|---|---|---|
 | Single image post | Yes | Yes | Yes |
 | Carousel (multi-image) | Yes (2-10) | Yes | Yes |
-| Video/Reels | Yes (API) | Yes | Yes |
-| Stories | Yes (API) | No | No |
 | Caption | Yes (2,200 chars) | Yes (500 chars default) | Yes (500 chars default) |
 | Hashtags | Yes (5 max, Dec 2025) | Yes (no limit) | Yes (no limit) |
 | Alt text on images | Yes | Yes (description) | Yes (description) |
-| Alt text on video | No | Yes | Yes |
 | Location tagging | Yes (location_id) | No | No |
 | User tagging (positional) | Yes (x, y coords) | No | No |
 | User tagging (mentions) | Yes (@username in caption) | Yes (@user@instance) | Yes (@user@instance) |
@@ -35,19 +32,13 @@ Feature support across Instagram, Pixelfed, and Mastodon. Updated as platforms a
 | Comment timestamps | Yes | Yes (created_at) | Yes (created_at) |
 | Commenter usernames | No | Yes | Yes |
 | Liker usernames | No | Yes | Yes |
-| Reels watch time | Yes (ig_reels_avg_watch_time) | N/A | N/A |
-| Reels skip rate | Yes (Insights API) | N/A | N/A |
 | Post edit history | No | Yes (edited_at) | Yes (edited_at) |
 
 ## API Limitations (Cannot Be Worked Around)
 
 | Limitation | Platform |
 |---|---|
-| Music/trending audio cannot be added via API | Instagram |
-| User tags on Reels not supported via API | Instagram |
-| Alt text only on images, not Reels or Stories | Instagram |
 | Collaborators must accept invite manually | Instagram |
-| Stories cannot contain carousels | Instagram |
 | No location tagging equivalent | Pixelfed/Mastodon |
 | No collaborator concept (use mentions instead) | Pixelfed/Mastodon |
 | No impression/view data | Pixelfed/Mastodon |
