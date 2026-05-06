@@ -1,0 +1,97 @@
+<div class="mt-8 max-w-4xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">Trending Hashtags</h1>
+  <p class="text-sm text-gray-500 mb-6">See what is trending on your connected fediverse instances.</p>
+
+  {% if not has_data %}
+    <!-- Empty State -->
+    <div class="bg-white p-8 shadow-md rounded-lg text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+      </svg>
+      <p class="text-gray-500 text-sm">No trending data available yet. Connect a Mastodon or Pixelfed account to start tracking trends.</p>
+    </div>
+  {% else %}
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+      <!-- Header -->
+      <div class="hidden sm:grid sm:grid-cols-12 gap-4 px-4 py-3 bg-gray-50 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
+        <div class="col-span-1">Rank</div>
+        <div class="col-span-4">Hashtag</div>
+        <div class="col-span-2">Instance</div>
+        <div class="col-span-2 text-right">Uses (7d)</div>
+        <div class="col-span-2 text-right">Accounts (7d)</div>
+        <div class="col-span-1"></div>
+      </div>
+
+      <!-- Trending List -->
+      <div class="divide-y divide-gray-100">
+        {% for tag in trending %}
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 px-4 py-3 items-center hover:bg-gray-50 transition-colors">
+            <!-- Rank -->
+            <div class="hidden sm:block col-span-1">
+              <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-800 text-white text-xs font-bold rounded-full">{{ forloop.counter }}</span>
+            </div>
+
+            <!-- Hashtag Name -->
+            <div class="sm:col-span-4">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="sm:hidden inline-flex items-center justify-center w-5 h-5 bg-gray-800 text-white text-xs font-bold rounded-full">{{ forloop.counter }}</span>
+                <span class="text-sm font-semibold text-gray-900">#{{ tag.name }}</span>
+                {% if tag.in_groups %}
+                  <span class="inline-block text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">In your groups</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Instance -->
+            <div class="sm:col-span-2">
+              <span class="text-xs text-gray-500">{{ tag.instance }}</span>
+            </div>
+
+            <!-- Uses -->
+            <div class="sm:col-span-2 sm:text-right">
+              <span class="text-sm font-medium text-gray-700">{{ tag.uses_7d }}</span>
+              <span class="text-xs text-gray-400 sm:hidden ml-1">uses</span>
+            </div>
+
+            <!-- Accounts -->
+            <div class="sm:col-span-2 sm:text-right">
+              <span class="text-sm text-gray-600">{{ tag.accounts_7d }}</span>
+              <span class="text-xs text-gray-400 sm:hidden ml-1">accounts</span>
+            </div>
+
+            <!-- Visual indicator -->
+            <div class="hidden sm:block col-span-1">
+              {% if tag.in_groups %}
+                <svg class="w-4 h-4 text-blue-500 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Mobile-friendly usage bars (visual summary) -->
+    <div class="mt-6 bg-white p-4 shadow-md rounded-lg sm:hidden">
+      <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Usage Distribution</h3>
+      <div class="space-y-2">
+        {% for tag in trending %}
+          {% if forloop.counter <= 10 %}
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500 w-24 flex-shrink-0 truncate">#{{ tag.name }}</span>
+              <div class="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                {% if trending.0.uses_7d and trending.0.uses_7d > 0 %}
+                  <div class="h-full bg-indigo-500 rounded-full"
+                       style="width: {% widthratio tag.uses_7d trending.0.uses_7d 100 %}%"></div>
+                {% endif %}
+              </div>
+              <span class="text-xs text-gray-600 w-8 flex-shrink-0 text-right">{{ tag.uses_7d }}</span>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>

@@ -1,0 +1,155 @@
+<div class="mt-8 max-w-4xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">RSS Feeds</h1>
+  <p class="text-sm text-gray-500 mb-6">Connect RSS feeds to automatically create posts from new entries.</p>
+
+  <!-- Add Feed Form -->
+  <form
+    id="rssFeedForm"
+    class="bg-white p-6 shadow-md rounded-lg mb-8"
+    method="POST"
+    hx-post="{% url 'rss_feeds' %}"
+    hx-target="#feeds-list"
+    hx-swap="outerHTML">
+    {% csrf_token %}
+
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Add a Feed</h2>
+
+    <!-- Feed Name -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Feed Name</label>
+      <input type="text" name="name" placeholder="My Photography Blog"
+             class="w-full p-2 border rounded-md text-sm" required>
+    </div>
+
+    <!-- Feed URL -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Feed URL</label>
+      <input type="url" name="url" placeholder="https://example.com/feed.xml"
+             class="w-full p-2 border rounded-md text-sm" required>
+    </div>
+
+    <!-- Caption Template -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Caption Template</label>
+      <textarea name="caption_template" rows="3"
+                class="w-full p-2 border rounded-md text-sm"
+                placeholder="New post: {title}&#10;&#10;{summary}&#10;&#10;Read more: {link}&#10;&#10;{tags}"></textarea>
+      <p class="text-xs text-gray-400 mt-1">
+        Available variables: <code class="bg-gray-100 px-1 rounded">{title}</code>
+        <code class="bg-gray-100 px-1 rounded">{link}</code>
+        <code class="bg-gray-100 px-1 rounded">{summary}</code>
+        <code class="bg-gray-100 px-1 rounded">{author}</code>
+        <code class="bg-gray-100 px-1 rounded">{tags}</code>
+      </p>
+    </div>
+
+    <!-- Accounts (Mastodon/Pixelfed only) -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Accounts to post to</label>
+
+      {% if mastodon_accounts %}
+        <h3 class="text-md font-semibold text-gray-600 mt-2">Pixelfed/Mastodon-compatible accounts</h3>
+        <div class="flex flex-wrap gap-2">
+          {% for account in mastodon_accounts %}
+            <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
+              <input type="checkbox" name="social_accounts" value="{{ account.id }}" class="hidden">
+              <span class="select-box">{{ account.username }}@{{ account.instance_url|cut:"https://" }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if mastodon_native_accounts %}
+        <h3 class="text-md font-semibold text-gray-600 mt-2">Mastodon accounts</h3>
+        <div class="flex flex-wrap gap-2">
+          {% for account in mastodon_native_accounts %}
+            <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
+              <input type="checkbox" name="mastodon_native_accounts" value="{{ account.id }}" class="hidden">
+              <span class="select-box">{{ account.username }}@{{ account.instance_url|cut:"https://" }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if not mastodon_accounts and not mastodon_native_accounts %}
+        <p class="text-sm text-gray-400 italic">No Mastodon or Pixelfed accounts connected.</p>
+      {% endif %}
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">
+      Add Feed
+    </button>
+  </form>
+
+  <!-- Existing Feeds List -->
+  <div id="feeds-list">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Your Feeds</h2>
+
+    {% if feeds %}
+      <div class="space-y-3">
+        {% for feed in feeds %}
+          <div class="bg-white p-4 shadow-sm rounded-lg border">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <p class="text-sm font-semibold text-gray-900">{{ feed.name }}</p>
+                  {% if feed.is_active %}
+                    <span class="inline-block w-2 h-2 bg-green-500 rounded-full" title="Active"></span>
+                  {% else %}
+                    <span class="inline-block w-2 h-2 bg-gray-300 rounded-full" title="Inactive"></span>
+                  {% endif %}
+                </div>
+                <a href="{{ feed.url }}" target="_blank" rel="noopener"
+                   class="text-xs text-blue-600 hover:underline truncate block mt-0.5">{{ feed.url }}</a>
+                {% if feed.last_checked %}
+                  <p class="text-xs text-gray-400 mt-1">Last checked: {{ feed.last_checked|timesince }} ago</p>
+                {% else %}
+                  <p class="text-xs text-gray-400 mt-1">Not yet checked</p>
+                {% endif %}
+              </div>
+
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <!-- Active Toggle -->
+                <button
+                  hx-post="{% url 'rss_feeds' %}?action=toggle&feed_id={{ feed.id }}"
+                  hx-target="#feeds-list"
+                  hx-swap="outerHTML"
+                  class="text-xs px-3 py-1 rounded border transition-colors
+                    {% if feed.is_active %}
+                      bg-green-50 text-green-700 border-green-200 hover:bg-green-100
+                    {% else %}
+                      bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100
+                    {% endif %}">
+                  {% if feed.is_active %}Active{% else %}Paused{% endif %}
+                </button>
+
+                <!-- Delete -->
+                <button
+                  hx-delete="{% url 'rss_feeds' %}?feed_id={{ feed.id }}"
+                  hx-target="#feeds-list"
+                  hx-swap="outerHTML"
+                  hx-confirm="Delete feed '{{ feed.name }}'? This cannot be undone."
+                  class="text-xs text-red-500 hover:text-red-700 px-2 py-1">
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="bg-white p-6 shadow-sm rounded-lg border text-center">
+        <p class="text-sm text-gray-400">No feeds added yet. Add your first RSS feed above.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  input:checked + .select-box {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+  }
+</style>

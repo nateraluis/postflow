@@ -34,6 +34,10 @@ class PostPayload:
     visibility: str = "public"
     language: str = ""
     sensitive: bool = False
+    poll_options: list[str] = field(default_factory=list)
+    poll_expires_in: Optional[int] = None
+    poll_multiple: bool = False
+    poll_hide_totals: bool = False
 
     def get_hashtag_string(self, platform: str = "default") -> str:
         """Get formatted hashtag string respecting platform limits and filtering banned tags."""
@@ -129,6 +133,12 @@ def build_payload(scheduled_post) -> PostPayload:
     visibility = getattr(scheduled_post, 'visibility', 'public') or 'public'
     language = getattr(scheduled_post, 'language', '') or ''
 
+    # Poll fields
+    poll_options = getattr(scheduled_post, 'poll_options', None) or []
+    poll_expires_in = getattr(scheduled_post, 'poll_expires_in', None)
+    poll_multiple = getattr(scheduled_post, 'poll_multiple', False)
+    poll_hide_totals = getattr(scheduled_post, 'poll_hide_totals', False)
+
     return PostPayload(
         caption=scheduled_post.caption or "",
         hashtags=all_hashtags,
@@ -143,4 +153,8 @@ def build_payload(scheduled_post) -> PostPayload:
         visibility=visibility,
         language=language,
         sensitive=bool(spoiler),
+        poll_options=poll_options if isinstance(poll_options, list) else [],
+        poll_expires_in=poll_expires_in,
+        poll_multiple=poll_multiple,
+        poll_hide_totals=poll_hide_totals,
     )

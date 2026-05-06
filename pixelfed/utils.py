@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger("postflow")
 
 
-def post_pixelfed(scheduled_post, payload=None):
+def post_pixelfed(scheduled_post, payload=None, in_reply_to_id=None):
     """
     Posts to Pixelfed/Mastodon accounts with support for multiple images.
     Uses Mastodon-compatible API with media upload then status post.
@@ -95,12 +95,25 @@ def post_pixelfed(scheduled_post, payload=None):
                 status_data["sensitive"] = "true"
             if payload and payload.language:
                 status_data["language"] = payload.language
+            if in_reply_to_id:
+                status_data["in_reply_to_id"] = in_reply_to_id
+
+            # Build poll params as list of tuples for repeated form fields
+            post_data = list(status_data.items())
+            if payload and payload.poll_options and len(payload.poll_options) >= 2:
+                for opt in payload.poll_options:
+                    post_data.append(("poll[options][]", opt))
+                post_data.append(("poll[expires_in]", str(payload.poll_expires_in or 86400)))
+                if payload.poll_multiple:
+                    post_data.append(("poll[multiple]", "true"))
+                if payload.poll_hide_totals:
+                    post_data.append(("poll[hide_totals]", "true"))
 
             logger.debug(f"Creating status with {len(media_ids)} media attachment(s)")
             response = requests.post(
                 status_url,
                 headers=headers,
-                data=status_data,
+                data=post_data,
                 timeout=15
             )
             response.raise_for_status()

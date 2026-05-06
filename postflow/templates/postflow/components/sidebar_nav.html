@@ -42,6 +42,23 @@
           </a>
         </li>
 
+        <!-- Thread Link -->
+        <li>
+          <a href="{% url 'thread_composer' %}"
+             hx-get="{% url 'thread_composer' %}"
+             hx-target="#content-area"
+             hx-swap="innerHTML"
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}">
+            {% if not mobile_view %}
+            <svg class="size-6 shrink-0 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            </svg>
+            {% endif %}
+            Threads
+          </a>
+        </li>
+
         <!-- Drafts Link -->
         <li>
           <a href="{% url 'drafts' %}"

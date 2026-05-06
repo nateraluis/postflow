@@ -1,0 +1,140 @@
+<div class="mt-8 max-w-4xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">Boost Scheduler</h1>
+  <p class="text-sm text-gray-500 mb-6">Schedule a boost (reblog) of an existing post on your fediverse accounts.</p>
+
+  <form
+    id="boostSchedulerForm"
+    class="bg-white p-6 shadow-md rounded-lg"
+    method="POST"
+    hx-post="{% url 'boost_scheduler' %}"
+    hx-target="#boost-result"
+    hx-swap="innerHTML">
+    {% csrf_token %}
+
+    <!-- Status URL -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Status URL</label>
+      <input type="url" name="status_url" placeholder="https://instance.social/@user/123456"
+             class="w-full p-2 border rounded-md text-sm">
+      <p class="text-xs text-gray-400 mt-1">Paste the full URL of the post you want to boost.</p>
+    </div>
+
+    <!-- Status ID (optional) -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Status ID <span class="text-gray-400 font-normal">(optional)</span></label>
+      <input type="text" name="status_id" placeholder="123456789"
+             class="w-full p-2 border rounded-md text-sm">
+      <p class="text-xs text-gray-400 mt-1">If you know the status ID on the target instance, enter it directly.</p>
+    </div>
+
+    <!-- Date & Time -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Schedule Date & Time</label>
+      <div class="flex space-x-2">
+        <input type="date" name="post_date" class="w-1/2 p-2 border rounded-md text-sm">
+        <select name="post_hour" class="w-1/4 p-2 border rounded-md text-sm">
+          <option value="">Hour</option>
+          {% for hour in hours %}
+            <option value="{{ hour }}">{{ hour }}</option>
+          {% endfor %}
+        </select>
+        <select name="post_minute" class="w-1/4 p-2 border rounded-md text-sm">
+          <option value="">Minute</option>
+          {% for minute in minutes %}
+            <option value="{{ minute }}">{{ minute }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Accounts (Mastodon/Pixelfed only) -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Accounts to boost from</label>
+
+      {% if mastodon_accounts %}
+        <h3 class="text-md font-semibold text-gray-600 mt-2">Pixelfed/Mastodon-compatible accounts</h3>
+        <div class="flex flex-wrap gap-2">
+          {% for account in mastodon_accounts %}
+            <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
+              <input type="checkbox" name="social_accounts" value="{{ account.id }}" class="hidden">
+              <span class="select-box">{{ account.username }}@{{ account.instance_url|cut:"https://" }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if mastodon_native_accounts %}
+        <h3 class="text-md font-semibold text-gray-600 mt-2">Mastodon accounts</h3>
+        <div class="flex flex-wrap gap-2">
+          {% for account in mastodon_native_accounts %}
+            <label class="cursor-pointer bg-gray-100 p-2 rounded-lg border">
+              <input type="checkbox" name="mastodon_native_accounts" value="{{ account.id }}" class="hidden">
+              <span class="select-box">{{ account.username }}@{{ account.instance_url|cut:"https://" }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if not mastodon_accounts and not mastodon_native_accounts %}
+        <p class="text-sm text-gray-400 italic">No Mastodon or Pixelfed accounts connected. Connect an account first.</p>
+      {% endif %}
+    </div>
+
+    <input type="hidden" id="user_timezone" name="user_timezone">
+
+    <!-- Submit -->
+    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">
+      Schedule Boost
+    </button>
+  </form>
+
+  <!-- Result -->
+  <div id="boost-result" class="mt-4"></div>
+
+  <!-- Scheduled Boosts List -->
+  {% if boosts %}
+  <div class="mt-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Scheduled Boosts</h2>
+    <div class="space-y-3">
+      {% for boost in boosts %}
+        <div class="bg-white p-4 shadow-sm rounded-lg border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-gray-900 truncate">
+              {% if boost.status_url %}
+                <a href="{{ boost.status_url }}" target="_blank" rel="noopener" class="text-blue-600 hover:underline">{{ boost.status_url }}</a>
+              {% else %}
+                Status ID: {{ boost.status_id }}
+              {% endif %}
+            </p>
+            <p class="text-xs text-gray-500 mt-1">
+              Scheduled for {{ boost.scheduled_at|date:"M d, Y" }} at {{ boost.scheduled_at|time:"H:i" }}
+            </p>
+            <div class="flex flex-wrap gap-1 mt-1">
+              {% for account in boost.accounts.all %}
+                <span class="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{{ account.username }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div>
+            {% if boost.status == "pending" %}
+              <span class="inline-block text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending</span>
+            {% elif boost.status == "completed" %}
+              <span class="inline-block text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Completed</span>
+            {% elif boost.status == "failed" %}
+              <span class="inline-block text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Failed</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  input:checked + .select-box {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+  }
+</style>

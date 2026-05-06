@@ -4,7 +4,7 @@ from mastodon import Mastodon
 logger = logging.getLogger("postflow")
 
 
-def post_mastodon(scheduled_post, payload=None):
+def post_mastodon(scheduled_post, payload=None, in_reply_to_id=None):
     """
     Posts to Mastodon accounts using Mastodon.py library with support for multiple images.
     Accepts an optional PostPayload for centralized caption/hashtag assembly.
@@ -85,6 +85,18 @@ def post_mastodon(scheduled_post, payload=None):
                 post_kwargs["sensitive"] = True
             if language:
                 post_kwargs["language"] = language
+            if in_reply_to_id:
+                post_kwargs["in_reply_to_id"] = in_reply_to_id
+
+            # Add poll if present
+            if payload and payload.poll_options and len(payload.poll_options) >= 2:
+                post_response = mastodon.make_poll(
+                    payload.poll_options,
+                    expires_in=payload.poll_expires_in or 86400,
+                    multiple=payload.poll_multiple,
+                    hide_totals=payload.poll_hide_totals,
+                )
+                post_kwargs["poll"] = post_response
 
             post_response = mastodon.status_post(**post_kwargs)
 

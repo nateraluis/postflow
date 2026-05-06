@@ -216,6 +216,26 @@ class PostFlowScheduler:
         )
         logger.info("Added job: fetch_mastodon_engagement (every 2 hours at :50)")
 
+        # Add job: Snapshot follower counts daily at 06:00 UTC
+        self.scheduler.add_job(
+            func=self._snapshot_followers,
+            trigger=CronTrigger(hour=6, minute=0),
+            id='snapshot_followers',
+            name='Snapshot follower counts',
+            replace_existing=True,
+        )
+        logger.info("Added job: snapshot_followers (daily at 06:00 UTC)")
+
+        # Add job: Poll RSS feeds every 30 minutes
+        self.scheduler.add_job(
+            func=self._poll_rss_feeds,
+            trigger=IntervalTrigger(minutes=30),
+            id='poll_rss_feeds',
+            name='Poll RSS feeds',
+            replace_existing=True,
+        )
+        logger.info("Added job: poll_rss_feeds (every 30 minutes)")
+
         # Start the scheduler
         self.scheduler.start()
         logger.info("PostFlow scheduler started successfully")
@@ -326,6 +346,20 @@ class PostFlowScheduler:
             logger.info(f"Enqueued fetch_all_mastodon_engagement task: {task.id}")
         except Exception as e:
             logger.exception(f"Error enqueueing fetch_all_mastodon_engagement: {e}")
+
+    def _snapshot_followers(self):
+        """Snapshot follower counts for all connected accounts."""
+        try:
+            call_command('snapshot_followers')
+        except Exception as e:
+            logger.exception(f"Error snapshotting followers: {e}")
+
+    def _poll_rss_feeds(self):
+        """Poll active RSS feeds and create posts from new entries."""
+        try:
+            call_command('poll_rss_feeds')
+        except Exception as e:
+            logger.exception(f"Error polling RSS feeds: {e}")
 
     def shutdown(self):
         """Gracefully shut down the scheduler and release lock."""

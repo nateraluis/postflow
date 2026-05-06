@@ -9,7 +9,10 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
-from .models import Tag, TagGroup, ScheduledPost, Subscriber, CaptionTemplate, UserDefaults
+from .models import (
+    Tag, TagGroup, ScheduledPost, Subscriber, CaptionTemplate, UserDefaults,
+    ScheduledThread, ScheduledBoost, FollowerSnapshot, RSSFeed,
+)
 from .utils import get_s3_signed_url, upload_to_s3
 import pytz
 from datetime import datetime, timedelta
@@ -878,6 +881,294 @@ def user_defaults_view(request):
     if "HX-Request" in request.headers:
         return render(request, "postflow/components/user_defaults.html", context)
     return render(request, "postflow/pages/user_defaults.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def thread_composer(request):
+    """Compose and schedule a thread (multi-post chain)."""
+    from pixelfed.models import MastodonAccount
+    from instagram.models import InstagramBusinessAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+
+    if request.method == "POST":
+        title = request.POST.get("thread_title", "").strip()
+        captions = request.POST.getlist("thread_captions")
+        post_date = request.POST.get("post_date")
+        post_hour = request.POST.get("post_hour")
+        post_minute = request.POST.get("post_minute")
+        user_timezone = request.POST.get("user_timezone", "UTC")
+        mastodon_ids = request.POST.getlist("social_accounts")
+        native_ids = request.POST.getlist("mastodon_native_accounts")
+        instagram_ids = request.POST.getlist("instagram_accounts")
+        spoiler_text = request.POST.get("spoiler_text", "")
+        visibility = request.POST.get("visibility", "public")
+        language = request.POST.get("language", "")
+
+        if not captions or not any(c.strip() for c in captions):
+            return HttpResponse('<div class="text-red-600 text-sm p-2">Add at least one post to the thread.</div>')
+
+        # Parse date/time
+        try:
+            user_tz = pytz.timezone(user_timezone)
+            naive_dt = datetime.strptime(f"{post_date} {post_hour}:{post_minute}:00", "%Y-%m-%d %H:%M:%S")
+            utc_datetime = user_tz.localize(naive_dt).astimezone(pytz.UTC)
+        except Exception:
+            return HttpResponse('<div class="text-red-600 text-sm p-2">Invalid date/time.</div>')
+
+        # Create thread and posts
+        thread = ScheduledThread.objects.create(user=request.user, title=title or f"Thread {now().strftime('%b %d')}")
+
+        for i, caption_text in enumerate(captions):
+            if not caption_text.strip():
+                continue
+            post = ScheduledPost.objects.create(
+                user=request.user,
+                caption=caption_text.strip(),
+                spoiler_text=spoiler_text if i == 0 else "",
+                visibility=visibility,
+                language=language,
+                post_date=utc_datetime,
+                user_timezone=user_timezone,
+                thread=thread,
+                thread_order=i,
+                status="pending",
+            )
+            post.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_ids))
+            post.mastodon_native_accounts.set(MastodonNativeAccount.objects.filter(id__in=native_ids))
+            if i == 0:
+                post.instagram_accounts.set(InstagramBusinessAccount.objects.filter(id__in=instagram_ids))
+
+        if "HX-Request" in request.headers:
+            return HttpResponse('<div class="text-green-600 text-sm p-2">Thread scheduled.</div>')
+        return redirect("calendar")
+
+    context = {
+        "hours": range(0, 24),
+        "minutes": range(0, 60, 5),
+        "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
+        "mastodon_native_accounts": MastodonNativeAccount.objects.filter(user=request.user),
+        "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
+        "active_page": "calendar",
+    }
+
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/components/thread_composer.html", context)
+    return render(request, "postflow/pages/thread_composer.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def boost_scheduler(request):
+    """Schedule a boost/reblog."""
+    from pixelfed.models import MastodonAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+
+    if request.method == "POST":
+        status_url = request.POST.get("status_url", "").strip()
+        status_id = request.POST.get("status_id", "").strip()
+        boost_date = request.POST.get("post_date")
+        boost_hour = request.POST.get("post_hour")
+        boost_minute = request.POST.get("post_minute")
+        user_timezone = request.POST.get("user_timezone", "UTC")
+        mastodon_ids = request.POST.getlist("social_accounts")
+        native_ids = request.POST.getlist("mastodon_native_accounts")
+
+        if not status_url and not status_id:
+            return HttpResponse('<div class="text-red-600 text-sm p-2">Enter a status URL or ID.</div>')
+
+        try:
+            user_tz = pytz.timezone(user_timezone)
+            naive_dt = datetime.strptime(f"{boost_date} {boost_hour}:{boost_minute}:00", "%Y-%m-%d %H:%M:%S")
+            utc_datetime = user_tz.localize(naive_dt).astimezone(pytz.UTC)
+        except Exception:
+            return HttpResponse('<div class="text-red-600 text-sm p-2">Invalid date/time.</div>')
+
+        boost = ScheduledBoost.objects.create(
+            user=request.user,
+            status_url=status_url,
+            status_id=status_id,
+            boost_date=utc_datetime,
+        )
+        boost.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_ids))
+        boost.mastodon_native_accounts.set(MastodonNativeAccount.objects.filter(id__in=native_ids))
+
+        if "HX-Request" in request.headers:
+            return HttpResponse('<div class="text-green-600 text-sm p-2">Boost scheduled.</div>')
+        return redirect("calendar")
+
+    boosts = ScheduledBoost.objects.filter(user=request.user).order_by("-boost_date")[:20]
+    context = {
+        "hours": range(0, 24),
+        "minutes": range(0, 60, 5),
+        "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
+        "mastodon_native_accounts": MastodonNativeAccount.objects.filter(user=request.user),
+        "boosts": boosts,
+        "active_page": "calendar",
+    }
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/components/boost_scheduler.html", context)
+    return render(request, "postflow/pages/boost_scheduler.html", context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def follower_dashboard(request):
+    """Follower growth tracking dashboard."""
+    snapshots = FollowerSnapshot.objects.filter(user=request.user).order_by("date")
+
+    # Group by account
+    accounts = {}
+    for s in snapshots:
+        key = f"{s.platform}:{s.account_username}"
+        if key not in accounts:
+            accounts[key] = {
+                'platform': s.platform,
+                'username': s.account_username,
+                'instance_url': s.instance_url,
+                'snapshots': [],
+            }
+        accounts[key]['snapshots'].append({
+            'date': s.date.isoformat(),
+            'followers': s.followers_count,
+            'following': s.following_count,
+            'posts': s.posts_count,
+        })
+
+    # Calculate growth for each account
+    for key, data in accounts.items():
+        snaps = data['snapshots']
+        if len(snaps) >= 2:
+            data['current_followers'] = snaps[-1]['followers']
+            data['growth'] = snaps[-1]['followers'] - snaps[0]['followers']
+            data['growth_pct'] = round(
+                (data['growth'] / max(snaps[0]['followers'], 1)) * 100, 1
+            )
+        elif snaps:
+            data['current_followers'] = snaps[-1]['followers']
+            data['growth'] = 0
+            data['growth_pct'] = 0
+
+    context = {
+        'accounts': list(accounts.values()),
+        'has_data': len(accounts) > 0,
+        'active_page': 'analytics',
+    }
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/components/follower_dashboard.html", context)
+    return render(request, "postflow/pages/follower_dashboard.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def rss_feeds_view(request):
+    """Manage RSS feeds for auto-posting."""
+    from pixelfed.models import MastodonAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        url = request.POST.get("url", "").strip()
+        template = request.POST.get("caption_template", "{title}\n\n{url}")
+        mastodon_ids = request.POST.getlist("social_accounts")
+        native_ids = request.POST.getlist("mastodon_native_accounts")
+
+        if name and url:
+            feed = RSSFeed.objects.create(user=request.user, name=name, url=url, caption_template=template)
+            feed.mastodon_accounts.set(MastodonAccount.objects.filter(id__in=mastodon_ids))
+            feed.mastodon_native_accounts.set(MastodonNativeAccount.objects.filter(id__in=native_ids))
+
+    feeds = RSSFeed.objects.filter(user=request.user)
+    context = {
+        "feeds": feeds,
+        "mastodon_accounts": MastodonAccount.objects.filter(user=request.user),
+        "mastodon_native_accounts": MastodonNativeAccount.objects.filter(user=request.user),
+        "active_page": "rss",
+    }
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/components/rss_feeds.html", context)
+    return render(request, "postflow/pages/rss_feeds.html", context)
+
+
+@login_required
+@require_http_methods(["POST", "DELETE"])
+def delete_rss_feed(request, feed_id):
+    """Delete an RSS feed."""
+    feed = get_object_or_404(RSSFeed, id=feed_id, user=request.user)
+    feed.delete()
+    if "HX-Request" in request.headers:
+        return HttpResponse("")
+    return JsonResponse({"success": True})
+
+
+@login_required
+@require_http_methods(["GET"])
+def trending_hashtags_view(request):
+    """Show trending hashtags from connected Mastodon/Pixelfed instances."""
+    from pixelfed.models import MastodonAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+    import requests as http_requests
+
+    trending = []
+    seen_tags = set()
+
+    # Fetch from Pixelfed/Mastodon-compatible accounts
+    for account in MastodonAccount.objects.filter(user=request.user):
+        try:
+            headers = {"Authorization": f"Bearer {account.access_token}"}
+            resp = http_requests.get(f"{account.instance_url}/api/v1/trends/tags", headers=headers, timeout=10)
+            if resp.status_code == 200:
+                for tag in resp.json()[:20]:
+                    tag_name = tag.get("name", "").lower()
+                    if tag_name not in seen_tags:
+                        seen_tags.add(tag_name)
+                        history = tag.get("history", [])
+                        uses_7d = sum(int(h.get("uses", 0)) for h in history[:7])
+                        trending.append({
+                            'name': tag_name,
+                            'instance': account.instance_url,
+                            'uses_7d': uses_7d,
+                            'accounts_7d': sum(int(h.get("accounts", 0)) for h in history[:7]),
+                        })
+        except Exception as e:
+            logger.error(f"Failed to fetch trends from {account.instance_url}: {e}")
+
+    # Fetch from native Mastodon accounts
+    for account in MastodonNativeAccount.objects.filter(user=request.user):
+        try:
+            headers = {"Authorization": f"Bearer {account.access_token}"}
+            resp = http_requests.get(f"{account.instance_url}/api/v1/trends/tags", headers=headers, timeout=10)
+            if resp.status_code == 200:
+                for tag in resp.json()[:20]:
+                    tag_name = tag.get("name", "").lower()
+                    if tag_name not in seen_tags:
+                        seen_tags.add(tag_name)
+                        history = tag.get("history", [])
+                        uses_7d = sum(int(h.get("uses", 0)) for h in history[:7])
+                        trending.append({
+                            'name': tag_name,
+                            'instance': account.instance_url,
+                            'uses_7d': uses_7d,
+                            'accounts_7d': sum(int(h.get("accounts", 0)) for h in history[:7]),
+                        })
+        except Exception as e:
+            logger.error(f"Failed to fetch trends from {account.instance_url}: {e}")
+
+    trending.sort(key=lambda x: x['uses_7d'], reverse=True)
+
+    # Cross-reference with user's hashtag groups
+    user_tags = set(Tag.objects.filter(user=request.user).values_list("name", flat=True))
+    for t in trending:
+        t['in_groups'] = t['name'] in user_tags
+
+    context = {
+        'trending': trending[:30],
+        'has_data': len(trending) > 0,
+        'active_page': 'analytics',
+    }
+    if "HX-Request" in request.headers:
+        return render(request, "postflow/components/trending_hashtags.html", context)
+    return render(request, "postflow/pages/trending_hashtags.html", context)
 
 
 @login_required
