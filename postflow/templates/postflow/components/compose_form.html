@@ -1,0 +1,329 @@
+{% load static %}
+<form id="composeForm"
+      class="bg-white rounded-lg shadow border"
+      method="POST"
+      action="{% url 'schedule_post' %}"
+      hx-encoding="multipart/form-data"
+      enctype="multipart/form-data"
+      hx-post="{% url 'schedule_post' %}"
+      hx-target="#compose-result"
+      hx-swap="innerHTML"
+      x-data="{
+          showAdvanced: false,
+          postAction: 'schedule',
+          showDropdown: false,
+          igSelected: false,
+          fedSelected: false
+      }">
+    {% csrf_token %}
+
+    <!-- Zone 1: Core (always visible) -->
+
+    <!-- Photo Upload -->
+    <div class="p-4 sm:p-6 border-b">
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-violet-400 transition-colors">
+            <input type="file" name="photos" accept="image/*" multiple
+                   class="hidden" id="photoInput" onchange="handlePhotoSelect(this)">
+            <label for="photoInput" class="cursor-pointer block">
+                <svg class="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <p class="text-sm text-gray-600">Tap to upload photos</p>
+                <p class="text-xs text-gray-400 mt-1">Up to 10 images</p>
+            </label>
+        </div>
+
+        <!-- Carousel suggestion -->
+        <div id="carousel-suggestion" class="hidden mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+            Carousels get 10% higher engagement. Your images will be posted as a carousel.
+        </div>
+
+        <!-- Image preview strip -->
+        <div id="image-preview-container" class="hidden mt-3">
+            <div id="image-previews" class="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory"></div>
+        </div>
+
+        <!-- Caption -->
+        <div class="mt-4">
+            <div class="flex items-center justify-between mb-1">
+                {% if caption_templates %}
+                <select id="template-picker" class="text-xs text-gray-400 border-0 p-0 bg-transparent focus:ring-0"
+                        onchange="loadTemplate(this.value)">
+                    <option value="">Template...</option>
+                    {% for tpl in caption_templates %}
+                        <option value="{{ tpl.id }}">{{ tpl.name }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
+                <span></span>
+                {% endif %}
+                <span class="text-xs text-gray-400">
+                    <span id="caption-length">0</span> / 2200
+                </span>
+            </div>
+            <textarea name="caption" id="captionTextarea" rows="4"
+                      class="w-full p-3 border rounded-lg text-sm resize-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                      placeholder="Write your caption..."
+                      oninput="updateCaptionCounter(this)"
+                      >{% if editing_post %}{{ editing_post.caption }}{% endif %}</textarea>
+        </div>
+    </div>
+
+    <!-- Zone 2: Publish Settings (compact, always visible) -->
+    <div class="p-4 sm:p-6 border-b space-y-4">
+
+        <!-- Accounts (chips in a single row) -->
+        <div>
+            <label class="block text-xs font-medium text-gray-500 mb-2">Post to</label>
+            <div class="flex flex-wrap gap-2">
+                {% for account in mastodon_accounts %}
+                <label class="cursor-pointer">
+                    <input type="checkbox" name="social_accounts" value="{{ account.id }}" class="peer hidden"
+                           {% if user_defaults and account in user_defaults.default_mastodon_accounts.all %}checked{% endif %}
+                           onchange="fedSelected = document.querySelectorAll('input[name=social_accounts]:checked, input[name=mastodon_native_accounts]:checked').length > 0">
+                    <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border
+                                 peer-checked:bg-violet-600 peer-checked:text-white peer-checked:border-violet-600
+                                 bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 transition-colors">
+                        {{ account.username }}
+                    </span>
+                </label>
+                {% endfor %}
+                {% for account in mastodon_native_accounts %}
+                <label class="cursor-pointer">
+                    <input type="checkbox" name="mastodon_native_accounts" value="{{ account.id }}" class="peer hidden"
+                           {% if user_defaults and account in user_defaults.default_mastodon_native_accounts.all %}checked{% endif %}
+                           onchange="fedSelected = document.querySelectorAll('input[name=social_accounts]:checked, input[name=mastodon_native_accounts]:checked').length > 0">
+                    <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border
+                                 peer-checked:bg-violet-600 peer-checked:text-white peer-checked:border-violet-600
+                                 bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 transition-colors">
+                        {{ account.username }}
+                    </span>
+                </label>
+                {% endfor %}
+                {% for account in instagram_accounts %}
+                <label class="cursor-pointer">
+                    <input type="checkbox" name="instagram_accounts" value="{{ account.id }}" class="peer hidden"
+                           {% if user_defaults and account in user_defaults.default_instagram_accounts.all %}checked{% endif %}
+                           onchange="igSelected = document.querySelectorAll('input[name=instagram_accounts]:checked').length > 0">
+                    <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border
+                                 peer-checked:bg-pink-600 peer-checked:text-white peer-checked:border-pink-600
+                                 bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 transition-colors">
+                        {{ account.username }}
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Date & Time -->
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <label class="text-xs font-medium text-gray-500">When</label>
+                <span id="time-suggestion" class="text-xs text-green-600 hidden"></span>
+            </div>
+            <div class="flex gap-2">
+                <input type="date" name="post_date" class="flex-1 p-2 border rounded-lg text-sm" onchange="fetchTimeSuggestion()">
+                <select name="post_hour" class="w-16 p-2 border rounded-lg text-sm">
+                    <option value="">H</option>
+                    {% for hour in hours %}
+                    <option value="{{ hour }}">{{ hour|stringformat:"02d" }}</option>
+                    {% endfor %}
+                </select>
+                <select name="post_minute" class="w-16 p-2 border rounded-lg text-sm">
+                    <option value="">M</option>
+                    {% for minute in minutes %}
+                    <option value="{{ minute }}">{{ minute|stringformat:"02d" }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Hashtags (chips) -->
+        {% if hashtag_groups %}
+        <div>
+            <label class="block text-xs font-medium text-gray-500 mb-2">Hashtags</label>
+            <div class="flex flex-wrap gap-2">
+                {% for group in hashtag_groups %}
+                <label class="cursor-pointer">
+                    <input type="checkbox" name="hashtag_groups" value="{{ group.id }}" class="peer hidden"
+                           {% if user_defaults and group in user_defaults.default_hashtag_groups.all %}checked{% endif %}
+                           data-tag-count="{{ group.tags.count }}">
+                    <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border
+                                 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600
+                                 bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 transition-colors">
+                        {{ group.name }} <span class="opacity-60">({{ group.tags.count }})</span>
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Zone 3: Advanced Options (collapsed) -->
+    <div class="border-b">
+        <button type="button" @click="showAdvanced = !showAdvanced"
+                class="w-full flex items-center justify-between p-4 text-sm text-gray-500 hover:text-gray-700"
+                :aria-expanded="showAdvanced">
+            <span>Advanced options</span>
+            <svg class="w-4 h-4 transition-transform" :class="showAdvanced && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+
+        <div x-show="showAdvanced" x-collapse class="px-4 sm:px-6 pb-4 space-y-4">
+            <!-- Alt text per slide -->
+            <div id="slide-details-container" class="hidden">
+                <label class="block text-xs font-medium text-gray-500 mb-2">Alt text per image</label>
+                <div id="slide-details-fields" class="space-y-2"></div>
+            </div>
+
+            <!-- Instagram options (only when IG selected) -->
+            <div x-show="igSelected" class="p-3 bg-pink-50 rounded-lg space-y-3">
+                <h4 class="text-xs font-semibold text-pink-800">Instagram</h4>
+                <input type="text" name="location_search" id="location-search"
+                       placeholder="Search location..."
+                       class="w-full p-2 border rounded-md text-sm"
+                       hx-get="{% url 'location_search' %}" hx-trigger="keyup changed delay:300ms"
+                       hx-target="#location-results" hx-include="this" autocomplete="off">
+                <div id="location-results"></div>
+                <input type="hidden" name="location_id" id="location-id-input">
+                <input type="text" name="collaborators" placeholder="Collaborators (comma-separated)"
+                       class="w-full p-2 border rounded-md text-sm">
+            </div>
+
+            <!-- Fediverse options (only when Mastodon/Pixelfed selected) -->
+            <div x-show="fedSelected" class="p-3 bg-violet-50 rounded-lg space-y-3">
+                <h4 class="text-xs font-semibold text-violet-800">Fediverse</h4>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" name="spoiler_text" placeholder="Content warning (CW)"
+                           class="col-span-2 p-2 border rounded-md text-sm">
+                    <select name="visibility" class="p-2 border rounded-md text-sm">
+                        <option value="public">Public</option>
+                        <option value="unlisted">Unlisted</option>
+                        <option value="private">Followers only</option>
+                        <option value="direct">Direct</option>
+                    </select>
+                    <select name="language" class="p-2 border rounded-md text-sm">
+                        <option value="">Language...</option>
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="ja">Japanese</option>
+                        <option value="ca">Catalan</option>
+                    </select>
+                    <select name="delete_after_hours" class="col-span-2 p-2 border rounded-md text-sm">
+                        <option value="">Auto-delete: never</option>
+                        <option value="1">Delete after 1 hour</option>
+                        <option value="24">Delete after 24 hours</option>
+                        <option value="168">Delete after 7 days</option>
+                        <option value="720">Delete after 30 days</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="user_timezone" name="user_timezone">
+
+    <!-- Submit Bar -->
+    <div class="p-4 sm:p-6 flex gap-2 sticky bottom-0 bg-white border-t sm:border-t-0 sm:static z-10">
+        <div class="flex-1 relative" x-data="{ showDrop: false }" @click.away="showDrop = false">
+            <div class="flex">
+                <button type="submit" name="action" :value="postAction"
+                        class="flex-1 bg-violet-600 text-white py-2.5 rounded-l-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+                    <span x-text="postAction === 'post_now' ? 'Post Now' : postAction === 'schedule' ? 'Schedule' : 'Add to Queue'"></span>
+                </button>
+                <button type="button" @click="showDrop = !showDrop"
+                        class="bg-violet-700 text-white px-2 rounded-r-lg border-l border-violet-500 hover:bg-violet-800">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+            </div>
+            <div x-show="showDrop" class="absolute bottom-full mb-1 right-0 w-48 bg-white border rounded-lg shadow-lg py-1 z-20">
+                <button type="button" @click="postAction = 'post_now'; showDrop = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Post Now</button>
+                <button type="button" @click="postAction = 'schedule'; showDrop = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Schedule</button>
+                <button type="button" @click="postAction = 'draft'; showDrop = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Save Draft</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="compose-result"></div>
+</form>
+
+<script>
+    function handlePhotoSelect(input) {
+        var previews = document.getElementById('image-previews');
+        var previewContainer = document.getElementById('image-preview-container');
+        var suggestion = document.getElementById('carousel-suggestion');
+        var detailsContainer = document.getElementById('slide-details-container');
+        var detailsFields = document.getElementById('slide-details-fields');
+
+        if (input.files.length > 0) {
+            previews.innerHTML = '';
+            detailsFields.innerHTML = '';
+            suggestion.classList.toggle('hidden', input.files.length < 3);
+            previewContainer.classList.toggle('hidden', input.files.length < 2);
+            detailsContainer.classList.remove('hidden');
+
+            for (var i = 0; i < input.files.length; i++) {
+                var url = URL.createObjectURL(input.files[i]);
+                if (input.files.length >= 2) {
+                    var thumb = document.createElement('div');
+                    thumb.className = 'w-16 h-16 flex-shrink-0 rounded border-2 border-transparent relative snap-start';
+                    thumb.draggable = true;
+                    thumb.dataset.index = i;
+                    var tImg = document.createElement('img');
+                    tImg.className = 'w-full h-full object-cover rounded';
+                    tImg.src = url;
+                    var badge = document.createElement('span');
+                    badge.className = 'absolute -top-1 -left-1 w-4 h-4 bg-gray-800 text-white text-[10px] rounded-full flex items-center justify-center';
+                    badge.textContent = i + 1;
+                    thumb.appendChild(tImg);
+                    thumb.appendChild(badge);
+                    previews.appendChild(thumb);
+                }
+                var detail = document.createElement('div');
+                detail.innerHTML = '<input type="text" name="alt_texts" placeholder="Alt text for image ' + (i+1) + '" class="w-full p-2 border rounded-md text-sm" maxlength="1000">';
+                detailsFields.appendChild(detail);
+            }
+        } else {
+            previewContainer.classList.add('hidden');
+            previews.innerHTML = '';
+            suggestion.classList.add('hidden');
+            detailsContainer.classList.add('hidden');
+            detailsFields.innerHTML = '';
+        }
+    }
+
+    function updateCaptionCounter(textarea) {
+        document.getElementById('caption-length').textContent = textarea.value.length;
+    }
+
+    function loadTemplate(templateId) {
+        if (!templateId) return;
+        fetch('{% url "caption_templates" %}' + templateId + '/content/')
+            .then(function(r) { return r.text(); })
+            .then(function(text) {
+                var ta = document.getElementById('captionTextarea');
+                ta.value = text;
+                updateCaptionCounter(ta);
+            }).catch(function() {});
+    }
+
+    function fetchTimeSuggestion() {
+        fetch('{% url "analytics:best_time_api" %}')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var el = document.getElementById('time-suggestion');
+                if (data.suggestions && data.suggestions.length > 0) {
+                    var s = data.suggestions[0];
+                    el.textContent = 'Best: ' + s.day + ' ' + s.hour + ':00';
+                    el.classList.remove('hidden');
+                }
+            }).catch(function() {});
+    }
+</script>

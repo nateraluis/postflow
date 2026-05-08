@@ -1,0 +1,51 @@
+{% load static %}
+<!-- Mobile bottom tab bar (lg:hidden) -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 lg:hidden safe-area-bottom" id="bottom-tab-bar">
+    <div class="flex items-center justify-around h-14">
+        <a href="{% url 'schedule' %}"
+           hx-get="{% url 'schedule' %}" hx-target="#content-area" hx-swap="innerHTML"
+           class="flex flex-col items-center gap-0.5 px-3 py-1 {% if active_page == 'schedule' or active_page == 'calendar' %}text-violet-600{% else %}text-gray-400{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <span class="text-[10px] font-medium">Schedule</span>
+        </a>
+
+        <a href="{% url 'analytics:dashboard' %}"
+           hx-get="{% url 'analytics:dashboard' %}" hx-target="#content-area" hx-swap="innerHTML"
+           class="flex flex-col items-center gap-0.5 px-3 py-1 {% if active_page == 'analytics' %}text-violet-600{% else %}text-gray-400{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <span class="text-[10px] font-medium">Analytics</span>
+        </a>
+
+        <!-- Center: New Post (prominent) -->
+        <a href="{% url 'compose' %}"
+           hx-get="{% url 'compose' %}" hx-target="#content-area" hx-swap="innerHTML"
+           class="flex items-center justify-center w-12 h-12 -mt-4 bg-violet-600 text-white rounded-full shadow-lg hover:bg-violet-700 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+        </a>
+
+        <a href="{% url 'library' %}"
+           hx-get="{% url 'library' %}" hx-target="#content-area" hx-swap="innerHTML"
+           class="flex flex-col items-center gap-0.5 px-3 py-1 {% if active_page == 'library' %}text-violet-600{% else %}text-gray-400{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            <span class="text-[10px] font-medium">Library</span>
+        </a>
+
+        <a href="{% url 'settings_hub' %}"
+           hx-get="{% url 'settings_hub' %}" hx-target="#content-area" hx-swap="innerHTML"
+           class="flex flex-col items-center gap-0.5 px-3 py-1 {% if active_page == 'settings' %}text-violet-600{% else %}text-gray-400{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span class="text-[10px] font-medium">Settings</span>
+        </a>
+    </div>
+</nav>

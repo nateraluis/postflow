@@ -3,80 +3,42 @@
   <ul role="list" class="{% if mobile_view %}space-y-4{% else %}flex flex-1 flex-col gap-y-7{% endif %}">
     <li>
       <ul role="list" class="{% if mobile_view %}space-y-3{% else %}-mx-2 space-y-1{% endif %}">
-        <!-- Accounts Link -->
-        <li>
-          <a href="{% url 'accounts' %}"
-             hx-get="{% url 'accounts' %}"
-             hx-target="#content-area"
-             hx-swap="innerHTML"
-             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}block text-white font-semibold{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'accounts' %}{% if not mobile_view %}bg-gray-800 text-white{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
-            {% if not mobile_view %}<img src="{% static 'postflow/icons/home.svg' %}" class="size-6 shrink-0" alt="Home icon" />{% endif %}
-            Accounts
-          </a>
-        </li>
 
-        <!-- Hashtags Link -->
-        <li>
-          <a href="{% url 'hashtag-groups' %}"
-             hx-get="{% url 'hashtag-groups' %}"
+        <!-- New Post Button -->
+        <li class="{% if not mobile_view %}mb-4{% endif %}">
+          <a href="{% url 'compose' %}"
+             hx-get="{% url 'compose' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
              {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'hashtags' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
-            {% if not mobile_view %}<img src="{% static 'postflow/icons/hashtag.svg' %}" class="size-6 shrink-0" alt="Hashtag icon" />{% endif %}
-            Hashtags
-          </a>
-        </li>
-
-        <!-- Calendar Link -->
-        <li>
-          <a href="{% url 'calendar' %}"
-             hx-get="{% url 'calendar' %}"
-             hx-target="#content-area"
-             hx-swap="innerHTML"
-             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'calendar' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
-            {% if not mobile_view %}<img src="{% static 'postflow/icons/calendar.svg' %}" class="size-6 shrink-0" alt="Calendar icon" />{% endif %}
-            Calendar
-          </a>
-        </li>
-
-        <!-- Thread Link -->
-        <li>
-          <a href="{% url 'thread_composer' %}"
-             hx-get="{% url 'thread_composer' %}"
-             hx-target="#content-area"
-             hx-swap="innerHTML"
-             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}">
+             class="{% if mobile_view %}block bg-violet-600 text-white text-center py-2 rounded-lg font-semibold{% else %}flex items-center justify-center gap-2 rounded-lg p-2.5 text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors{% endif %}">
             {% if not mobile_view %}
-            <svg class="size-6 shrink-0 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
             {% endif %}
-            Threads
+            New Post
           </a>
         </li>
 
-        <!-- Drafts Link -->
+        <!-- Schedule -->
         <li>
-          <a href="{% url 'drafts' %}"
-             hx-get="{% url 'drafts' %}"
+          <a href="{% url 'schedule' %}"
+             hx-get="{% url 'schedule' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
              {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'drafts' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'schedule' or active_page == 'calendar' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
             {% if not mobile_view %}
-            <svg class="size-6 shrink-0 {% if active_page == 'drafts' %}text-white{% else %}text-gray-400 group-hover:text-white{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <svg class="size-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
             {% endif %}
-            Drafts
+            Schedule
           </a>
         </li>
 
-        <!-- Analytics Link -->
+        <!-- Analytics -->
         <li>
           <a href="{% url 'analytics:dashboard' %}"
              hx-get="{% url 'analytics:dashboard' %}"
@@ -86,98 +48,62 @@
              {% if mobile_view %}@click="mobileOpen = false"{% endif %}
              class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'analytics' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
             {% if not mobile_view %}
-            <svg class="size-6 shrink-0 {% if active_page == 'analytics' %}text-white{% else %}text-gray-400 group-hover:text-white{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <svg class="size-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
             {% endif %}
             Analytics
           </a>
         </li>
 
-        <!-- Comments Link -->
+        <!-- Library -->
         <li>
-          <a href="{% url 'analytics:comments_inbox' %}"
-             hx-get="{% url 'analytics:comments_inbox' %}"
+          <a href="{% url 'library' %}"
+             hx-get="{% url 'library' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
              {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'comments' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'library' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
             {% if not mobile_view %}
-            <svg class="size-6 shrink-0 {% if active_page == 'comments' %}text-white{% else %}text-gray-400 group-hover:text-white{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <svg class="size-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
             </svg>
             {% endif %}
-            Comments
+            Library
           </a>
         </li>
 
-        <!-- Templates Link -->
+        <!-- Settings -->
         <li>
-          <a href="{% url 'caption_templates' %}"
-             hx-get="{% url 'caption_templates' %}"
-             hx-target="#content-area"
-             hx-swap="innerHTML"
-             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'templates' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
-            {% if not mobile_view %}
-            <svg class="size-6 shrink-0 {% if active_page == 'templates' %}text-white{% else %}text-gray-400 group-hover:text-white{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {% endif %}
-            Templates
-          </a>
-        </li>
-
-        <!-- Settings Link -->
-        <li>
-          <a href="{% url 'user_defaults' %}"
-             hx-get="{% url 'user_defaults' %}"
+          <a href="{% url 'settings_hub' %}"
+             hx-get="{% url 'settings_hub' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
              {% if mobile_view %}@click="mobileOpen = false"{% endif %}
              class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'settings' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
             {% if not mobile_view %}
-            <svg class="size-6 shrink-0 {% if active_page == 'settings' %}text-white{% else %}text-gray-400 group-hover:text-white{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <svg class="size-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
             {% endif %}
             Settings
-          </a>
-        </li>
-
-        <!-- Feedback Link -->
-        <li>
-          <a href="{% url 'feedback' %}"
-             hx-get="{% url 'feedback' %}"
-             hx-target="#content-area"
-             hx-swap="innerHTML"
-             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'feedback' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
-            {% if not mobile_view %}
-            <svg class="size-6 shrink-0 {% if active_page == 'feedback' %}text-white{% else %}text-gray-400 group-hover:text-white{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-            </svg>
-            {% endif %}
-            Feedback
           </a>
         </li>
       </ul>
     </li>
 
     {% if not mobile_view %}
-    <!-- Profile & Logout (Desktop Only) -->
+    <!-- Profile & Logout (Desktop) -->
     <li class="-mx-6 mt-auto">
       <a href="{% url 'profile' %}"
          hx-get="{% url 'profile' %}"
          hx-target="#content-area"
          hx-swap="innerHTML"
          class="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold text-white hover:bg-gray-800">
-        <span class="sr-only">Your profile</span>
         <span aria-hidden="true">{{ request.user.first_name }} {{ request.user.last_name }}</span>
       </a>
     </li>
-    <!-- Logout -->
     <li>
       <a href="{% url 'logout' %}" class="group flex gap-x-3 rounded-md p-2 text-sm font-semibold text-gray-400 hover:bg-gray-800 hover:text-white">
         <img src="{% static 'postflow/icons/logout.svg' %}" class="size-6 shrink-0" alt="Log out icon" />
@@ -186,17 +112,10 @@
     </li>
     {% else %}
     <!-- Profile & Logout (Mobile) -->
+    <li><hr class="border-gray-700"></li>
     <li>
-      <hr class="border-gray-700">
-    </li>
-    <li>
-      <a href="{% url 'profile' %}"
-         hx-get="{% url 'profile' %}"
-         hx-target="#content-area"
-         hx-swap="innerHTML"
-         @click="mobileOpen = false"
-         class="flex items-center gap-3 text-white hover:text-gray-300">
-        <img class="w-8 h-8 rounded-full bg-gray-800" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+      <a href="{% url 'profile' %}" hx-get="{% url 'profile' %}" hx-target="#content-area" hx-swap="innerHTML"
+         @click="mobileOpen = false" class="flex items-center gap-3 text-white hover:text-gray-300">
         {{ request.user.first_name }} {{ request.user.last_name }}
       </a>
     </li>

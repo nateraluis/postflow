@@ -1,0 +1,32 @@
+<div class="max-w-4xl mx-auto p-4">
+    <h1 class="text-2xl font-bold text-gray-900 mb-4">Schedule</h1>
+
+    <!-- Tabs -->
+    <div class="flex gap-1 border-b mb-4">
+        <a href="{% url 'schedule' %}?tab=upcoming"
+           hx-get="{% url 'schedule' %}?tab=upcoming"
+           hx-target="#schedule-content" hx-swap="innerHTML"
+           class="px-4 py-2 text-sm font-medium border-b-2 {% if active_tab == 'upcoming' %}border-violet-600 text-violet-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+            Upcoming
+        </a>
+        <a href="{% url 'schedule' %}?tab=drafts"
+           hx-get="{% url 'schedule' %}?tab=drafts"
+           hx-target="#schedule-content" hx-swap="innerHTML"
+           class="px-4 py-2 text-sm font-medium border-b-2 {% if active_tab == 'drafts' %}border-violet-600 text-violet-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+            Drafts
+        </a>
+        <a href="{% url 'schedule' %}?tab=posted"
+           hx-get="{% url 'schedule' %}?tab=posted"
+           hx-target="#schedule-content" hx-swap="innerHTML"
+           class="px-4 py-2 text-sm font-medium border-b-2 {% if active_tab == 'posted' %}border-violet-600 text-violet-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+            Posted
+        </a>
+    </div>
+
+    <!-- Tab Content -->
+    <div id="schedule-content"
+         hx-get="{% url 'schedule' %}?tab={{ active_tab }}"
+         hx-target="this" hx-swap="innerHTML" hx-trigger="load">
+        <p class="text-gray-400 text-sm p-4">Loading...</p>
+    </div>
+</div>

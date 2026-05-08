@@ -1,0 +1,47 @@
+<div class="max-w-2xl mx-auto p-4">
+    <!-- Post Type Tabs -->
+    <div class="flex gap-1 mb-4 border-b">
+        <a href="{% url 'compose' %}?type=post"
+           hx-get="{% url 'compose' %}?type=post"
+           hx-target="#compose-form-area" hx-swap="innerHTML"
+           class="px-4 py-2 text-sm font-medium border-b-2 {% if post_type == 'post' %}border-violet-600 text-violet-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+            Post
+        </a>
+        <a href="{% url 'compose' %}?type=thread"
+           hx-get="{% url 'compose' %}?type=thread"
+           hx-target="#compose-form-area" hx-swap="innerHTML"
+           class="px-4 py-2 text-sm font-medium border-b-2 {% if post_type == 'thread' %}border-violet-600 text-violet-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+            Thread
+        </a>
+        <a href="{% url 'compose' %}?type=boost"
+           hx-get="{% url 'compose' %}?type=boost"
+           hx-target="#compose-form-area" hx-swap="innerHTML"
+           class="px-4 py-2 text-sm font-medium border-b-2 {% if post_type == 'boost' %}border-violet-600 text-violet-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+            Boost
+        </a>
+    </div>
+
+    <!-- Onboarding (shown when no accounts connected) -->
+    {% if not has_accounts %}
+    <div class="bg-violet-50 border border-violet-200 rounded-lg p-6 mb-6 text-center">
+        <h2 class="text-lg font-semibold text-violet-900 mb-2">Welcome to PostFlow</h2>
+        <p class="text-sm text-violet-700 mb-4">Connect a social media account to start posting.</p>
+        <div class="flex flex-wrap justify-center gap-3">
+            <a href="{% url 'settings_hub' %}?tab=accounts" class="bg-violet-600 text-white px-4 py-2 rounded-md text-sm hover:bg-violet-700">
+                Connect Account
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Form Area -->
+    <div id="compose-form-area">
+        {% if post_type == 'thread' %}
+            {% include "postflow/components/thread_composer.html" %}
+        {% elif post_type == 'boost' %}
+            {% include "postflow/components/boost_scheduler.html" %}
+        {% else %}
+            {% include "postflow/components/compose_form.html" %}
+        {% endif %}
+    </div>
+</div>

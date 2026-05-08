@@ -44,7 +44,7 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                return redirect("accounts")
+                return redirect("compose")
             else:
                 form.add_error("username", "Invalid email or password")
     else:
@@ -231,6 +231,151 @@ def calendar_view(request):
 
     return render(request, "postflow/pages/calendar.html", context)
 
+
+@login_required
+@require_http_methods(["GET"])
+def compose_view(request):
+    """
+    Dedicated compose page — the primary posting experience.
+    Supports ?type=thread|boost for switching form type via HTMX.
+    Supports ?edit=POST_ID for editing existing posts.
+    Supports ?repost=POST_ID for reposting with pre-filled data.
+    """
+    from pixelfed.models import MastodonAccount
+    from instagram.models import InstagramBusinessAccount
+    from mastodon_native.models import MastodonAccount as MastodonNativeAccount
+
+    post_type = request.GET.get("type", "post")
+    edit_id = request.GET.get("edit")
+    repost_id = request.GET.get("repost")
+
+    user_defaults = UserDefaults.objects.filter(user=request.user).first()
+    caption_templates = CaptionTemplate.objects.filter(user=request.user)
+
+    # Check if user has any connected accounts (for onboarding)
+    mastodon_accounts = MastodonAccount.objects.filter(user=request.user)
+    mastodon_native_accounts = MastodonNativeAccount.objects.filter(user=request.user)
+    instagram_accounts = InstagramBusinessAccount.objects.filter(user=request.user)
+    has_accounts = mastodon_accounts.exists() or mastodon_native_accounts.exists() or instagram_accounts.exists()
+
+    context = {
+        "hours": range(0, 24),
+        "minutes": range(0, 60, 5),
+        "hashtag_groups": TagGroup.objects.filter(user=request.user),
+        "mastodon_accounts": mastodon_accounts,
+        "mastodon_native_accounts": mastodon_native_accounts,
+        "instagram_accounts": instagram_accounts,
+        "caption_templates": caption_templates,
+        "user_defaults": user_defaults,
+        "has_accounts": has_accounts,
+        "post_type": post_type,
+        "active_page": "compose",
+    }
+
+    # Pre-fill for edit or repost
+    editing_post = None
+    if edit_id:
+        editing_post = ScheduledPost.objects.filter(id=edit_id, user=request.user).first()
+    elif repost_id:
+        editing_post = ScheduledPost.objects.filter(id=repost_id, user=request.user).first()
+
+    if editing_post:
+        context["editing_post"] = editing_post
+        context["editing_mode"] = "edit" if edit_id else "repost"
+        if editing_post.images.exists():
+            context["editing_image_urls"] = [get_s3_signed_url(img.image.name) for img in editing_post.images.all()]
+
+    # Handle HTMX partial requests (for type switching)
+    if "HX-Request" in request.headers:
+        target = request.headers.get("HX-Target", "")
+        if target == "compose-form-area":
+            # Return just the form partial for the requested type
+            if post_type == "thread":
+                return render(request, "postflow/components/thread_composer.html", context)
+            elif post_type == "boost":
+                return render(request, "postflow/components/boost_scheduler.html", context)
+            return render(request, "postflow/components/compose_form.html", context)
+        # Full page HTMX navigation
+        sidebar_context = {**context, 'is_htmx_request': True}
+        content = render(request, "postflow/components/compose_page_content.html", context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
+
+    return render(request, "postflow/pages/compose.html", context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def schedule_view(request):
+    """Unified schedule page with Upcoming/Drafts/Posted tabs."""
+    tab = request.GET.get("tab", "upcoming")
+
+    context = {"active_page": "schedule", "active_tab": tab}
+
+    if "HX-Request" in request.headers:
+        target = request.headers.get("HX-Target", "")
+        if target == "schedule-content":
+            # Return just the tab content
+            if tab == "drafts":
+                return drafts_view(request)
+            elif tab == "posted":
+                return posted_history_view(request)
+            # Default: upcoming
+            return calendar_view(request)
+        sidebar_context = {**context, 'is_htmx_request': True}
+        content = render(request, "postflow/components/schedule_page_content.html", context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
+
+    return render(request, "postflow/pages/schedule.html", context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def library_view(request):
+    """Library hub page with Hashtags/Templates/RSS sub-tabs."""
+    tab = request.GET.get("tab", "hashtags")
+    context = {"active_page": "library", "active_tab": tab}
+
+    if "HX-Request" in request.headers:
+        target = request.headers.get("HX-Target", "")
+        if target == "library-content":
+            if tab == "templates":
+                return caption_templates_view(request)
+            elif tab == "rss":
+                return rss_feeds_view(request)
+            return hashtag_groups_view(request)
+        sidebar_context = {**context, 'is_htmx_request': True}
+        content = render(request, "postflow/components/library_page_content.html", context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
+
+    return render(request, "postflow/pages/library.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def settings_hub_view(request):
+    """Settings hub page with Accounts/Defaults/Feedback sub-tabs."""
+    tab = request.GET.get("tab", "accounts")
+    context = {"active_page": "settings", "active_tab": tab}
+
+    if "HX-Request" in request.headers:
+        target = request.headers.get("HX-Target", "")
+        if target == "settings-content":
+            if tab == "defaults":
+                return user_defaults_view(request)
+            elif tab == "feedback":
+                return feedback_view(request)
+            return accounts_view(request)
+        sidebar_context = {**context, 'is_htmx_request': True}
+        content = render(request, "postflow/components/settings_page_content.html", context).content.decode('utf-8')
+        sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')
+        return HttpResponse(content + sidebar)
+
+    return render(request, "postflow/pages/settings_hub.html", context)
+
+
 @login_required
 @require_http_methods(["POST"])
 def schedule_post(request):
@@ -259,6 +404,7 @@ def schedule_post(request):
     delete_after_hours = request.POST.get("delete_after_hours", "")
     action = request.POST.get("action", "schedule")
     is_draft = action == "draft"
+    is_post_now = action == "post_now"
 
     context = {
         "hours": range(0, 24),
@@ -300,7 +446,7 @@ def schedule_post(request):
     utc_datetime = None
     current_utc_time = now()
 
-    if not is_draft:
+    if not is_draft and not is_post_now:
         # Validation: Ensure date & time are selected
         if not post_date or not post_hour or not post_minute:
             context["error"] = "Please select a valid date and time."
@@ -430,13 +576,27 @@ def schedule_post(request):
             post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
             grouped_posts[post.post_date.date()].append(post)
 
-        calendar_context = {"grouped_posts": dict(grouped_posts)}
         logger.info(f"Post scheduled successfully: {scheduled_post}")
-        return render(request, "postflow/components/calendar.html", calendar_context)
+
+        # Return success message for HTMX compose form
+        if "HX-Request" in request.headers:
+            status_msg = "posted" if is_post_now else ("saved as draft" if is_draft else "scheduled")
+            return HttpResponse(
+                f'<div class="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">'
+                f'Post {status_msg} successfully. '
+                f'<a href="/schedule/" hx-get="/schedule/" hx-target="#content-area" hx-swap="innerHTML" '
+                f'class="underline font-medium">View schedule</a></div>'
+            )
+
+        return redirect("schedule")
 
 
     except Exception as e:
         context["error"] = "An error occurred while scheduling the post."
+        if "HX-Request" in request.headers:
+            return HttpResponse(
+                f'<div class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{str(e)}</div>'
+            )
         response = render(request, "postflow/components/upload_photo_form.html", context)
         response['HX-Retarget'] = '#form-container'
         logger.error(f"Error scheduling post: {e}")

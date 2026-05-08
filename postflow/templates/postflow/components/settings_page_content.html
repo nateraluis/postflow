@@ -1,0 +1,30 @@
+<div class="max-w-4xl mx-auto p-4">
+    <h1 class="text-2xl font-bold text-gray-900 mb-4">Settings</h1>
+
+    <div class="flex gap-1 border-b mb-4">
+        <a href="{% url 'settings_hub' %}?tab=accounts"
+           hx-get="{% url 'settings_hub' %}?tab=accounts"
+           hx-target="#settings-content" hx-swap="innerHTML"
+           class="px-4 py-2 text-sm font-medium border-b-2 {% if active_tab == 'accounts' %}border-violet-600 text-violet-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+            Accounts
+        </a>
+        <a href="{% url 'settings_hub' %}?tab=defaults"
+           hx-get="{% url 'settings_hub' %}?tab=defaults"
+           hx-target="#settings-content" hx-swap="innerHTML"
+           class="px-4 py-2 text-sm font-medium border-b-2 {% if active_tab == 'defaults' %}border-violet-600 text-violet-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+            Defaults
+        </a>
+        <a href="{% url 'settings_hub' %}?tab=feedback"
+           hx-get="{% url 'settings_hub' %}?tab=feedback"
+           hx-target="#settings-content" hx-swap="innerHTML"
+           class="px-4 py-2 text-sm font-medium border-b-2 {% if active_tab == 'feedback' %}border-violet-600 text-violet-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %}">
+            Feedback
+        </a>
+    </div>
+
+    <div id="settings-content"
+         hx-get="{% url 'settings_hub' %}?tab={{ active_tab }}"
+         hx-target="this" hx-swap="innerHTML" hx-trigger="load">
+        <p class="text-gray-400 text-sm p-4">Loading...</p>
+    </div>
+</div>
