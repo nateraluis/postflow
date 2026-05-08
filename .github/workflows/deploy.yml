@@ -60,7 +60,8 @@ jobs:
           cd /home/ubuntu/postflow
 
           echo "--- Pulling latest changes ---"
-          git pull origin main
+          git fetch origin main
+          git reset --hard origin/main
 
           echo "--- Syncing Python dependencies ---"
           uv sync --frozen --no-dev
@@ -86,14 +87,6 @@ jobs:
           sudo ln -sf /etc/nginx/sites-available/postflow /etc/nginx/sites-enabled/postflow
           sudo rm -f /etc/nginx/sites-enabled/default
 
-          echo "--- Stopping Docker (if running) ---"
-          if docker ps -q 2>/dev/null | grep -q .; then
-            echo "Docker containers detected, stopping..."
-            cd /home/ubuntu/postflow
-            docker-compose down --remove-orphans || true
-            echo "Docker stopped."
-          fi
-
           echo "--- Starting/restarting systemd services ---"
           sudo systemctl enable postflow.target
           sudo systemctl restart postflow.target
@@ -105,10 +98,6 @@ jobs:
           echo "--- Enabling certbot auto-renewal ---"
           sudo systemctl enable certbot.timer
           sudo systemctl start certbot.timer
-
-          echo "--- Disabling Docker watchdog (if exists) ---"
-          sudo systemctl stop postflow-watchdog.service 2>/dev/null || true
-          sudo systemctl disable postflow-watchdog.service 2>/dev/null || true
 
           echo "--- Verifying services ---"
           sleep 3
