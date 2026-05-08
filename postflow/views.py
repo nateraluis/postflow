@@ -618,9 +618,11 @@ def hashtag_groups_view(request):
             try:
                 group, created = TagGroup.objects.get_or_create(name=name, user=user)
 
-                # Process hashtags (split by spaces or commas)
-                hashtags = [h.strip() for h in hashtag_text.replace(",", " ").split() if h.strip()]
+                # Process hashtags (split by spaces or commas, normalize before lookup)
+                hashtags = [h.strip().lstrip("#").strip().lower() for h in hashtag_text.replace(",", " ").split() if h.strip()]
                 for hashtag_name in hashtags:
+                    if not hashtag_name:
+                        continue
                     hashtag, _ = Tag.objects.get_or_create(name=hashtag_name, user=user)
                     group.tags.add(hashtag)
 
