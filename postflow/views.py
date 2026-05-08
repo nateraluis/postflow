@@ -258,6 +258,17 @@ def compose_view(request):
     instagram_accounts = InstagramBusinessAccount.objects.filter(user=request.user)
     has_accounts = mastodon_accounts.exists() or mastodon_native_accounts.exists() or instagram_accounts.exists()
 
+    # Pre-compute default IDs as sets for reliable template checks
+    default_mastodon_ids = set()
+    default_native_ids = set()
+    default_instagram_ids = set()
+    default_hashtag_ids = set()
+    if user_defaults:
+        default_mastodon_ids = set(user_defaults.default_mastodon_accounts.values_list('id', flat=True))
+        default_native_ids = set(user_defaults.default_mastodon_native_accounts.values_list('id', flat=True))
+        default_instagram_ids = set(user_defaults.default_instagram_accounts.values_list('id', flat=True))
+        default_hashtag_ids = set(user_defaults.default_hashtag_groups.values_list('id', flat=True))
+
     context = {
         "hours": range(0, 24),
         "minutes": range(0, 60, 5),
@@ -267,6 +278,10 @@ def compose_view(request):
         "instagram_accounts": instagram_accounts,
         "caption_templates": caption_templates,
         "user_defaults": user_defaults,
+        "default_mastodon_ids": default_mastodon_ids,
+        "default_native_ids": default_native_ids,
+        "default_instagram_ids": default_instagram_ids,
+        "default_hashtag_ids": default_hashtag_ids,
         "has_accounts": has_accounts,
         "post_type": post_type,
         "active_page": "compose",

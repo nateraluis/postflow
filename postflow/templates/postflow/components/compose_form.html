@@ -12,8 +12,8 @@
           showAdvanced: false,
           postAction: 'schedule',
           showDropdown: false,
-          igSelected: false,
-          fedSelected: false
+          igSelected: {% if default_instagram_ids %}true{% else %}false{% endif %},
+          fedSelected: {% if default_mastodon_ids or default_native_ids %}true{% else %}false{% endif %}
       }">
     {% csrf_token %}
 
@@ -81,7 +81,7 @@
                 {% for account in mastodon_accounts %}
                 <label class="cursor-pointer">
                     <input type="checkbox" name="social_accounts" value="{{ account.id }}" class="peer hidden"
-                           {% if user_defaults and account in user_defaults.default_mastodon_accounts.all %}checked{% endif %}
+                           {% if account.id in default_mastodon_ids %}checked{% endif %}
                            onchange="fedSelected = document.querySelectorAll('input[name=social_accounts]:checked, input[name=mastodon_native_accounts]:checked').length > 0">
                     <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border
                                  peer-checked:bg-violet-600 peer-checked:text-white peer-checked:border-violet-600
@@ -93,7 +93,7 @@
                 {% for account in mastodon_native_accounts %}
                 <label class="cursor-pointer">
                     <input type="checkbox" name="mastodon_native_accounts" value="{{ account.id }}" class="peer hidden"
-                           {% if user_defaults and account in user_defaults.default_mastodon_native_accounts.all %}checked{% endif %}
+                           {% if account.id in default_native_ids %}checked{% endif %}
                            onchange="fedSelected = document.querySelectorAll('input[name=social_accounts]:checked, input[name=mastodon_native_accounts]:checked').length > 0">
                     <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border
                                  peer-checked:bg-violet-600 peer-checked:text-white peer-checked:border-violet-600
@@ -105,7 +105,7 @@
                 {% for account in instagram_accounts %}
                 <label class="cursor-pointer">
                     <input type="checkbox" name="instagram_accounts" value="{{ account.id }}" class="peer hidden"
-                           {% if user_defaults and account in user_defaults.default_instagram_accounts.all %}checked{% endif %}
+                           {% if account.id in default_instagram_ids %}checked{% endif %}
                            onchange="igSelected = document.querySelectorAll('input[name=instagram_accounts]:checked').length > 0">
                     <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border
                                  peer-checked:bg-pink-600 peer-checked:text-white peer-checked:border-pink-600
@@ -148,7 +148,7 @@
                 {% for group in hashtag_groups %}
                 <label class="cursor-pointer">
                     <input type="checkbox" name="hashtag_groups" value="{{ group.id }}" class="peer hidden"
-                           {% if user_defaults and group in user_defaults.default_hashtag_groups.all %}checked{% endif %}
+                           {% if group.id in default_hashtag_ids %}checked{% endif %}
                            data-tag-count="{{ group.tags.count }}">
                     <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border
                                  peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600
