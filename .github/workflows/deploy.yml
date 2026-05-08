@@ -1,4 +1,4 @@
-name: 🚀 Deploy via Native SSH
+name: Deploy to EC2 (systemd)
 
 on:
   push:
@@ -9,19 +9,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🗂️ Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔐 Setup SSH key
+      - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 📝 Create .env file from GitHub secrets
+      - name: Create .env file from GitHub secrets
         run: |
-          cat <<EOF > .env
+          cat > .env <<EOF
           DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
@@ -46,53 +46,75 @@ jobs:
           STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
           DEBUG=False
           EOF
+          sed -i 's/^[[:space:]]*//' .env
 
-      - name: 📤 Upload .env to EC2
+      - name: Upload .env to EC2
         run: |
           scp -i ~/.ssh/id_rsa .env ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/postflow/core/.env
 
-      - name: 🚀 SSH and Deploy
+      - name: Deploy
         run: |
-          ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh ubuntu@${{ secrets.EC2_HOST }} << 'DEPLOY'
           set -e
+          export PATH="$HOME/.local/bin:$PATH"
           cd /home/ubuntu/postflow
 
-          echo "🔁 Pulling latest changes..."
+          echo "--- Pulling latest changes ---"
           git pull origin main
 
-          echo "🪵 Ensuring ACME folders exist (bind mounts for certbot/nginx)..."
-          mkdir -p certbot/conf certbot/www
+          echo "--- Syncing Python dependencies ---"
+          uv sync --frozen --no-dev
 
-          # make sure the script is executable (in case fresh checkout)
-          chmod +x AWS/certbot/renewer.sh
+          echo "--- Building Tailwind CSS ---"
+          cd theme/static_src && npm ci --silent && cd ../..
+          .venv/bin/python manage.py tailwind build 2>&1 | tail -3
 
-          echo "📦 Rebuilding containers..."
-          docker-compose down --remove-orphans || true
-          # NOTE: do NOT use 'down -v' or you'll delete your certs (they live in ./certbot/conf)
-          docker-compose up --build -d
+          echo "--- Running migrations ---"
+          .venv/bin/python manage.py migrate --noinput
 
-          echo "🔁 Ensure renewer is up..."
-          docker-compose up -d certbot-renewer
+          echo "--- Collecting static files ---"
+          .venv/bin/python manage.py collectstatic --noinput 2>&1 | tail -3
 
-          # echo "🧪 Certbot dry-run (verifies HTTP-01 + permissions without consuming rate limits)..."
-          # docker run --rm \
-          #   -v "$PWD/certbot/conf:/etc/letsencrypt" \
-          #   -v "$PWD/certbot/www:/var/www/certbot" \
-          #   certbot/certbot renew --webroot --webroot-path=/var/www/certbot --dry-run || true
-
-          echo "🔄 Reload nginx once (sanity)"
-          docker kill -s HUP postflow_nginx || true
-
-          echo "📁 Ensuring log directory exists..."
-          mkdir -p /home/ubuntu/logs
-          touch /home/ubuntu/logs/watchdog.log
-          chown ubuntu:ubuntu /home/ubuntu/logs/watchdog.log
-          chmod 664 /home/ubuntu/logs/watchdog.log
-
-          echo "🐶 Setting up watchdog..."
-          sudo cp postflow-watchdog.service /etc/systemd/system/
-          sudo systemctl daemon-reexec
+          echo "--- Installing systemd services ---"
+          sudo cp systemd/postflow.target /etc/systemd/system/
+          sudo cp systemd/postflow-web.service /etc/systemd/system/
+          sudo cp systemd/postflow-scheduler.service /etc/systemd/system/
           sudo systemctl daemon-reload
-          sudo systemctl enable postflow-watchdog.service
-          sudo systemctl restart postflow-watchdog.service
-          EOF
+
+          echo "--- Installing nginx config ---"
+          sudo cp deploy/nginx-postflow.conf /etc/nginx/sites-available/postflow
+          sudo ln -sf /etc/nginx/sites-available/postflow /etc/nginx/sites-enabled/postflow
+          sudo rm -f /etc/nginx/sites-enabled/default
+
+          echo "--- Stopping Docker (if running) ---"
+          if docker ps -q 2>/dev/null | grep -q .; then
+            echo "Docker containers detected, stopping..."
+            cd /home/ubuntu/postflow
+            docker-compose down --remove-orphans || true
+            echo "Docker stopped."
+          fi
+
+          echo "--- Starting/restarting systemd services ---"
+          sudo systemctl enable postflow.target
+          sudo systemctl restart postflow.target
+
+          echo "--- Starting/reloading nginx ---"
+          sudo systemctl enable nginx
+          sudo nginx -t && sudo systemctl restart nginx
+
+          echo "--- Enabling certbot auto-renewal ---"
+          sudo systemctl enable certbot.timer
+          sudo systemctl start certbot.timer
+
+          echo "--- Disabling Docker watchdog (if exists) ---"
+          sudo systemctl stop postflow-watchdog.service 2>/dev/null || true
+          sudo systemctl disable postflow-watchdog.service 2>/dev/null || true
+
+          echo "--- Verifying services ---"
+          sleep 3
+          sudo systemctl is-active postflow-web.service
+          sudo systemctl is-active postflow-scheduler.service
+          sudo systemctl is-active nginx
+
+          echo "--- Deploy complete ---"
+          DEPLOY

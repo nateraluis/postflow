@@ -1,0 +1,7 @@
+[Unit]
+Description=PostFlow Application
+After=network-online.target
+Wants=postflow-web.service postflow-scheduler.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+[Unit]
+Description=PostFlow APScheduler
+After=network-online.target
+PartOf=postflow.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/postflow
+EnvironmentFile=/home/ubuntu/postflow/core/.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+Environment=DEBUG=False
+ExecStart=/home/ubuntu/postflow/.venv/bin/python manage.py run_scheduler
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/postflow/scheduler.log
+StandardError=append:/var/log/postflow/scheduler.log
+
+[Install]
+WantedBy=postflow.target

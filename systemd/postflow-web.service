@@ -1,0 +1,32 @@
+[Unit]
+Description=PostFlow uWSGI Web Server
+After=network-online.target
+PartOf=postflow.target
+
+[Service]
+Type=notify
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/postflow
+EnvironmentFile=/home/ubuntu/postflow/core/.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+Environment=DEBUG=False
+ExecStart=/home/ubuntu/postflow/.venv/bin/uwsgi \
+    --socket 127.0.0.1:8000 \
+    --protocol uwsgi \
+    --wsgi core.wsgi:application \
+    --master \
+    --processes 2 \
+    --threads 2 \
+    --harakiri 120 \
+    --max-requests 5000 \
+    --vacuum \
+    --die-on-term \
+    --logto /var/log/postflow/uwsgi.log
+Restart=always
+RestartSec=5
+KillSignal=SIGQUIT
+
+[Install]
+WantedBy=postflow.target
