@@ -5,15 +5,15 @@
       <ul role="list" class="{% if mobile_view %}space-y-3{% else %}-mx-2 space-y-1{% endif %}">
 
         <!-- New Post Button -->
-        <li class="{% if not mobile_view %}mb-3{% endif %}">
+        <li class="{% if not mobile_view %}mb-4{% endif %}">
           <a href="{% url 'compose' %}"
              hx-get="{% url 'compose' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
              {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}flex items-center justify-center gap-2 bg-violet-600 text-white py-2.5 rounded-lg font-semibold{% else %}flex items-center justify-center gap-2 rounded-lg p-2.5 text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors{% endif %}">
-            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+             class="{% if mobile_view %}flex items-center justify-center gap-2 bg-violet-600 text-white py-2.5 rounded-lg font-semibold text-sm{% else %}flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors w-full{% endif %}">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
             </svg>
             New Post
           </a>
