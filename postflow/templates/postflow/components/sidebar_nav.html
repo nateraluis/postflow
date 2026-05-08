@@ -5,18 +5,16 @@
       <ul role="list" class="{% if mobile_view %}space-y-3{% else %}-mx-2 space-y-1{% endif %}">
 
         <!-- New Post Button -->
-        <li class="{% if not mobile_view %}mb-4{% endif %}">
+        <li class="{% if not mobile_view %}mb-3{% endif %}">
           <a href="{% url 'compose' %}"
              hx-get="{% url 'compose' %}"
              hx-target="#content-area"
              hx-swap="innerHTML"
              {% if mobile_view %}@click="mobileOpen = false"{% endif %}
-             class="{% if mobile_view %}block bg-violet-600 text-white text-center py-2 rounded-lg font-semibold{% else %}flex items-center justify-center gap-2 rounded-lg p-2.5 text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors{% endif %}">
-            {% if not mobile_view %}
+             class="{% if mobile_view %}flex items-center justify-center gap-2 bg-violet-600 text-white py-2.5 rounded-lg font-semibold{% else %}flex items-center justify-center gap-2 rounded-lg p-2.5 text-sm font-semibold bg-violet-600 text-white hover:bg-violet-700 transition-colors{% endif %}">
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
             </svg>
-            {% endif %}
             New Post
           </a>
         </li>

@@ -1,25 +1,36 @@
-<form 
+<form
   method="POST"
   action="{% url 'hashtag-groups' %}"
-  class="bg-white p-4 rounded-lg shadow border mb-6"
-  hx-post="{% url 'hashtag-groups' %}" 
-  hx-target="#hashtags-groups-container" 
+  class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-6"
+  hx-post="{% url 'hashtag-groups' %}"
+  hx-target="#hashtags-groups-container"
   hx-swap="beforeend"
   hx-on="htmx:afterRequest:this.reset()">
 
   {% csrf_token %}
 
-  <label class="block text-gray-700 font-semibold mb-2">Group Name:</label>
-  <input type="text" name="name" placeholder="Enter group name" class="w-full p-2 border rounded mb-4" required>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Group Name</label>
+          <input type="text" name="name" placeholder="e.g. Landscape"
+                 class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500" required>
+      </div>
+      <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Hashtags</label>
+          <input type="text" name="hashtags" placeholder="photography landscape nature"
+                 class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500" required>
+      </div>
+  </div>
 
-  <label class="block text-gray-700 font-semibold mb-2">Hashtags:</label>
-  <textarea name="hashtags" placeholder="#example #another #hashtag"
-    class="w-full p-2 border rounded mb-4 h-24" required></textarea>
+  <p class="text-xs text-gray-400 mb-3">Separate hashtags with spaces or commas. The # is optional.</p>
 
-  <div id="error-message" class="text-red-600 text-sm mt-2"></div>
+  <div id="error-message" class="text-red-600 text-sm mb-2"></div>
 
   <button type="submit"
-    class="w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">
+    class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
     Create Group
   </button>
 </form>
