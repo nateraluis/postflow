@@ -1,12 +1,11 @@
 {% load static %}
 <form id="composeForm"
-      method="POST"
-      action="{% url 'schedule_post' %}"
-      hx-encoding="multipart/form-data"
       enctype="multipart/form-data"
+      hx-encoding="multipart/form-data"
       hx-post="{% url 'schedule_post' %}"
       hx-target="#compose-result"
       hx-swap="innerHTML"
+      hx-disabled-elt="#submit-btn"
       x-data="{
           showAdvanced: false,
           postAction: 'schedule',
@@ -15,6 +14,8 @@
           fedSelected: {% if default_mastodon_ids or default_native_ids %}true{% else %}false{% endif %}
       }">
     {% csrf_token %}
+    <!-- Hidden field for action — updated by Alpine when dropdown selection changes -->
+    <input type="hidden" name="action" :value="postAction" id="actionField">
 
     <div class="xl:flex xl:gap-6">
 
@@ -217,8 +218,9 @@
             <!-- Submit -->
             <div class="sticky bottom-16 xl:bottom-0 z-10" x-data="{ showDrop: false }" @click.away="showDrop = false">
                 <div class="flex rounded-xl overflow-hidden shadow-sm border border-violet-700">
-                    <button type="submit" name="action" :value="postAction"
-                            class="flex-1 bg-violet-600 text-white py-3 text-sm font-semibold hover:bg-violet-700 transition-colors">
+                    <button type="submit"
+                            class="flex-1 bg-violet-600 text-white py-3 text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            id="submit-btn">
                         <span x-text="postAction === 'post_now' ? 'Post Now' : postAction === 'schedule' ? 'Schedule Post' : 'Save Draft'"></span>
                     </button>
                     <button type="button" @click="showDrop = !showDrop"

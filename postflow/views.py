@@ -430,19 +430,28 @@ def schedule_post(request):
         "instagram_accounts": InstagramBusinessAccount.objects.filter(user=request.user),
     }
 
-    # Validation: Ensure at least one image is uploaded
-    if not images or len(images) == 0:
-        context["error"] = "Please select at least one image to post."
+    def _error_response(msg):
+        """Return error message compatible with both old form and compose form."""
+        if "HX-Request" in request.headers:
+            return HttpResponse(
+                f'<div class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{msg}</div>'
+            )
+        context["error"] = msg
         response = render(request, "postflow/components/upload_photo_form.html", context)
         response['HX-Retarget'] = '#form-container'
         return response
 
+    # Validation: Ensure at least one account is selected
+    if not mastodon_account_ids and not mastodon_native_account_ids and not instagram_account_ids:
+        return _error_response("Please select at least one account to post to.")
+
+    # Validation: Ensure at least one image is uploaded
+    if not images or len(images) == 0:
+        return _error_response("Please select at least one image to post.")
+
     # Validation: Ensure no more than 10 images (Instagram carousel limit)
     if len(images) > 10:
-        context["error"] = "You can upload a maximum of 10 images per post."
-        response = render(request, "postflow/components/upload_photo_form.html", context)
-        response['HX-Retarget'] = '#form-container'
-        return response
+        return _error_response("You can upload a maximum of 10 images per post.")
 
     # Banned hashtag check for Instagram
     if instagram_account_ids and hashtag_group_ids:
@@ -452,10 +461,7 @@ def schedule_post(request):
         ).distinct().values_list("name", flat=True))
         banned = check_banned_hashtags(all_tags)
         if banned:
-            context["error"] = f"Banned hashtags detected: {', '.join('#' + h for h in banned)}. Remove them to avoid Instagram shadowban."
-            response = render(request, "postflow/components/upload_photo_form.html", context)
-            response['HX-Retarget'] = '#form-container'
-            return response
+            return _error_response(f"Banned hashtags detected: {', '.join('#' + h for h in banned)}. Remove them to avoid Instagram shadowban.")
 
     # Drafts don't require date/time
     utc_datetime = None
@@ -464,11 +470,7 @@ def schedule_post(request):
     if not is_draft and not is_post_now:
         # Validation: Ensure date & time are selected
         if not post_date or not post_hour or not post_minute:
-            context["error"] = "Please select a valid date and time."
-            response = render(request, "postflow/components/upload_photo_form.html", context)
-            response['HX-Retarget'] = '#form-container'
-            logger.error("Invalid date and time selected.")
-            return response
+            return _error_response("Please select a valid date and time.")
 
         # Convert user-selected date & time to UTC
         try:
@@ -477,23 +479,15 @@ def schedule_post(request):
             naive_dt = datetime.strptime(scheduled_datetime, "%Y-%m-%d %H:%M:%S")
             localized_datetime = user_tz.localize(naive_dt)
             utc_datetime = localized_datetime.astimezone(pytz.UTC)
-
         except Exception as e:
-            context["error"] = "Invalid date and time selected."
-            response = render(request, "postflow/components/upload_photo_form.html", context)
-            response['HX-Retarget'] = '#form-container'
             logger.error(f"Invalid date and time: {e}")
-            return response
+            return _error_response("Invalid date and time selected.")
 
         # Ensure the scheduled time is in the future (at least 30 seconds)
         min_allowed_time = current_utc_time + timedelta(seconds=30)
 
         if utc_datetime < min_allowed_time:
-            context["error"] = "The scheduled time must be at least 5 minutes in the future."
-            response = render(request, "postflow/components/upload_photo_form.html", context)
-            response['HX-Retarget'] = '#form-container'
-            logger.error(f"Invalid scheduled time: {utc_datetime}")
-            return response
+            return _error_response("The scheduled time must be in the future.")
 
     # Save the uploaded images and create the ScheduledPost
     try:

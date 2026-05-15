@@ -9,10 +9,8 @@
     <form
       id="uploadPhotoForm"
       class="bg-white p-6 shadow-md rounded-lg"
-      method="POST"
-      action="{% url 'schedule_post' %}"
-      hx-encoding="multipart/form-data"
       enctype="multipart/form-data"
+      hx-encoding="multipart/form-data"
       hx-post="{% url 'schedule_post' %}"
       hx-target="#calendar-container"
       hx-swap="outerHTML"
