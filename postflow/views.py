@@ -319,6 +319,29 @@ def compose_view(request):
     return render(request, "postflow/pages/compose.html", context)
 
 
+def _upcoming_posts_partial(request):
+    """Render just the upcoming posts list as a partial (no form, no sidebar OOB)."""
+    today = datetime.today().date()
+    posts = ScheduledPost.objects.filter(
+        user=request.user, status="pending", post_date__date__gte=today
+    ).prefetch_related("hashtag_groups__tags", "images").order_by("post_date")
+
+    for post in posts:
+        if post.images.exists():
+            post.image_urls = [get_s3_signed_url(img.image.name) for img in post.images.all()]
+        elif post.image:
+            post.image_urls = [get_s3_signed_url(post.image.name)]
+        else:
+            post.image_urls = []
+        post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
+
+    grouped_posts = defaultdict(list)
+    for post in posts:
+        grouped_posts[post.post_date.date()].append(post)
+
+    return render(request, "postflow/components/calendar.html", {"grouped_posts": dict(grouped_posts)})
+
+
 @login_required
 @require_http_methods(["GET"])
 def schedule_view(request):
@@ -330,13 +353,12 @@ def schedule_view(request):
     if "HX-Request" in request.headers:
         target = request.headers.get("HX-Target", "")
         if target == "schedule-content":
-            # Return just the tab content
             if tab == "drafts":
                 return drafts_view(request)
             elif tab == "posted":
                 return posted_history_view(request)
-            # Default: upcoming
-            return calendar_view(request)
+            # Default: upcoming — render calendar inline (not the full calendar_view)
+            return _upcoming_posts_partial(request)
         sidebar_context = {**context, 'is_htmx_request': True}
         content = render(request, "postflow/components/schedule_page_content.html", context).content.decode('utf-8')
         sidebar = render(request, 'postflow/components/sidebar_nav.html', sidebar_context).content.decode('utf-8')

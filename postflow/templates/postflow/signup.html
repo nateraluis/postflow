@@ -14,7 +14,7 @@
     {% endif %}
   </div>
   <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-    <form method="POST" hx-post="{% url 'register' %}" hx-trigger="submit" hx-push-url="true" hx-target="#main">
+    <form hx-post="{% url 'register' %}" hx-trigger="submit" hx-push-url="true" hx-target="#main">
       {% csrf_token %}
       
       {% if form.non_field_errors %}

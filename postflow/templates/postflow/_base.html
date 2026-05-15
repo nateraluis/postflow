@@ -101,8 +101,10 @@
       </div>
     </div>
 
-    <!-- Mobile Bottom Tab Bar -->
+    <!-- Mobile Bottom Tab Bar (authenticated users only) -->
+    {% if user.is_authenticated %}
     {% include 'postflow/components/bottom_tab_bar.html' %}
+    {% endif %}
 
     {% django_htmx_script %}
   </body>

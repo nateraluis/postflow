@@ -24,7 +24,7 @@
 
     <div id="library-content"
          hx-get="{% url 'library' %}?tab={{ active_tab }}"
-         hx-target="this" hx-swap="innerHTML" hx-trigger="load">
+         hx-target="this" hx-swap="innerHTML" hx-trigger="load once">
         <p class="text-gray-400 text-sm p-4">Loading...</p>
     </div>
 </div>
