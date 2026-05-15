@@ -148,27 +148,6 @@
         <div id="instagram-fields" class="hidden mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <h4 class="text-sm font-semibold text-blue-800 mb-2">Instagram Options</h4>
 
-            <!-- Location -->
-            <div class="mb-2">
-                <label class="block text-xs font-medium text-gray-600 mb-1">Location</label>
-                <input type="text"
-                       name="location_search"
-                       id="location-search"
-                       placeholder="Search for a location..."
-                       class="w-full p-2 border rounded-md text-sm"
-                       hx-get="{% url 'location_search' %}"
-                       hx-trigger="keyup changed delay:300ms"
-                       hx-target="#location-results"
-                       hx-include="this"
-                       autocomplete="off">
-                <div id="location-results" class="mt-1"></div>
-                <input type="hidden" name="location_id" id="location-id-input">
-                <div id="selected-location" class="hidden mt-1 text-xs text-green-700 flex items-center gap-1">
-                    <span id="selected-location-name"></span>
-                    <button type="button" onclick="clearLocation()" class="text-red-500 hover:text-red-700">&times;</button>
-                </div>
-            </div>
-
             <!-- Collaborators -->
             <div class="mb-2">
                 <label class="block text-xs font-medium text-gray-600 mb-1">Collaborators (max 3, comma-separated)</label>

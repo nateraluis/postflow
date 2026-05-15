@@ -439,6 +439,9 @@ def schedule_post(request):
     visibility = request.POST.get("visibility", "public")
     language = request.POST.get("language", "")
     delete_after_hours = request.POST.get("delete_after_hours", "")
+    poll_options = [o for o in request.POST.getlist("poll_options") if o.strip()]
+    poll_expires_in = request.POST.get("poll_expires_in", "")
+    poll_multiple = request.POST.get("poll_multiple") == "true"
     action = request.POST.get("action", "schedule")
     is_draft = action == "draft"
     is_post_now = action == "post_now"
@@ -535,6 +538,9 @@ def schedule_post(request):
             status="draft" if is_draft else "pending",
             location=post_location,
             collaborators=collaborators,
+            poll_options=poll_options if len(poll_options) >= 2 else None,
+            poll_expires_in=int(poll_expires_in) if poll_expires_in and poll_options else None,
+            poll_multiple=poll_multiple if poll_options else False,
         )
         logger.info(f"New {'Draft' if is_draft else 'Scheduled'} Post created: {scheduled_post}")
 
@@ -607,11 +613,42 @@ def schedule_post(request):
             post.hashtags = list(Tag.objects.filter(tag_groups__in=post.hashtag_groups.all()).distinct())
             grouped_posts[post.post_date.date()].append(post)
 
-        logger.info(f"Post scheduled successfully: {scheduled_post}")
+        logger.info(f"Post {'created for immediate posting' if is_post_now else 'scheduled'}: {scheduled_post}")
+
+        # Post Now: publish immediately instead of waiting for cron
+        if is_post_now:
+            from postflow.payload import build_payload
+            from pixelfed.utils import post_pixelfed
+            from mastodon_native.utils import post_mastodon
+            from instagram.utils import post_instagram
+
+            try:
+                payload = build_payload(scheduled_post)
+                if scheduled_post.mastodon_accounts.exists():
+                    post_pixelfed(scheduled_post, payload)
+                if scheduled_post.mastodon_native_accounts.exists():
+                    post_mastodon(scheduled_post, payload)
+                if scheduled_post.instagram_accounts.exists():
+                    post_instagram(scheduled_post, payload)
+                scheduled_post.refresh_from_db()
+                logger.info(f"Post Now completed with status: {scheduled_post.status}")
+            except Exception as pub_err:
+                logger.exception(f"Post Now failed: {pub_err}")
+                scheduled_post.status = "failed"
+                scheduled_post.save(update_fields=["status"])
 
         # Return success message for HTMX compose form
         if "HX-Request" in request.headers:
-            status_msg = "posted" if is_post_now else ("saved as draft" if is_draft else "scheduled")
+            if is_post_now:
+                scheduled_post.refresh_from_db()
+                if scheduled_post.status == "posted":
+                    status_msg = "posted"
+                else:
+                    status_msg = "failed to post — check your account connections"
+            elif is_draft:
+                status_msg = "saved as draft"
+            else:
+                status_msg = "scheduled"
             return HttpResponse(
                 f'<div class="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">'
                 f'Post {status_msg} successfully. '

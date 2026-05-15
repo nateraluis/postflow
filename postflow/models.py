@@ -141,6 +141,7 @@ class ScheduledPost(models.Model):
         ("scheduled", "Scheduled"),
         ("posted", "Posted"),
         ("failed", "Failed"),
+        ("deleted", "Deleted"),
     ]
 
     VISIBILITY_CHOICES = [

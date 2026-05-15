@@ -21,7 +21,6 @@ urlpatterns = [
     path('drafts/', views.drafts_view, name='drafts'),
     path('post/<int:post_id>/edit/', views.edit_post, name='edit_post'),
     path('post/<int:post_id>/delete/', views.delete_post, name='delete_post'),
-    path('location-search/', views.location_search, name='location_search'),
     path('check-banned-hashtags/', views.check_banned_hashtags_view, name='check_banned_hashtags'),
     path('caption-templates/', views.caption_templates_view, name='caption_templates'),
     path('caption-templates/<int:template_id>/delete/', views.delete_caption_template, name='delete_caption_template'),

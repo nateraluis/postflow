@@ -1,39 +1,14 @@
 {% block content %}
-<div class="mt-8 max-w-4xl mx-auto">
-  <!-- Title -->
-  <h1 class="text-2xl font-bold text-gray-900 mb-4">Schedule your posts</h1>
-  <p>Schedule and mange your content to be posted.</p>
-
-  <!-- Hashtag Group Form -->
-  <div id="hashtags-groups-form">
-    {% include 'postflow/components/upload_photo_form.html' %}
+<div class="max-w-4xl mx-auto">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl font-semibold text-gray-900">Upcoming Posts</h2>
+    <a href="{% url 'compose' %}" hx-get="{% url 'compose' %}" hx-target="#content-area" hx-swap="innerHTML"
+       class="text-sm text-violet-600 hover:underline">New Post</a>
   </div>
 
-  <div class="mt-6">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Your Posts</h2>
-
-      <!-- Toggle buttons -->
-      <div class="flex gap-2">
-        <button hx-get="{% url 'calendar' %}"
-                hx-target="#calendar-view-container"
-                hx-swap="innerHTML"
-                class="btn btn-sm btn-primary">
-          📅 Upcoming Posts
-        </button>
-        <button hx-get="{% url 'posted_history' %}"
-                hx-target="#calendar-view-container"
-                hx-swap="innerHTML"
-                class="btn btn-sm btn-secondary">
-          ✓ Posted History
-        </button>
-      </div>
-    </div>
-
-    <div id="calendar" class="border p-4 rounded-lg shadow-md">
-      <div id="calendar-view-container">
-        {% include 'postflow/components/calendar.html' with scheduled_posts=scheduled_posts %}
-      </div>
+  <div id="calendar" class="border rounded-xl p-4">
+    <div id="calendar-view-container">
+      {% include 'postflow/components/calendar.html' with scheduled_posts=scheduled_posts %}
     </div>
   </div>
 </div>

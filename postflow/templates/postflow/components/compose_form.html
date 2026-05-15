@@ -175,16 +175,55 @@
                         <label class="block text-xs text-gray-500">Alt text</label>
                         <div id="slide-details-fields" class="space-y-1.5"></div>
                     </div>
+                    <!-- Poll (fediverse only) -->
+                    <div x-show="fedSelected" x-data="{ showPoll: false, pollOptions: ['', ''] }" class="space-y-2">
+                        <button type="button" @click="showPoll = !showPoll"
+                                class="text-xs text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            <span x-text="showPoll ? 'Remove poll' : 'Add poll'"></span>
+                        </button>
+                        <div x-show="showPoll" class="p-3 bg-violet-50 rounded-lg border border-violet-100 space-y-2">
+                            <template x-for="(opt, idx) in pollOptions" :key="idx">
+                                <div class="flex gap-1.5">
+                                    <input type="text" name="poll_options" :placeholder="'Option ' + (idx + 1)"
+                                           class="flex-1 p-2 border border-violet-200 rounded-lg text-xs bg-white">
+                                    <button type="button" x-show="pollOptions.length > 2"
+                                            @click="pollOptions.splice(idx, 1)"
+                                            class="text-red-400 hover:text-red-600 px-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </template>
+                            <button type="button" x-show="pollOptions.length < 4"
+                                    @click="pollOptions.push('')"
+                                    class="text-xs text-violet-600 hover:text-violet-800">+ Add option</button>
+                            <div class="grid grid-cols-2 gap-1.5 pt-1">
+                                <select name="poll_expires_in" class="p-2 border border-violet-200 rounded-lg text-xs bg-white">
+                                    <option value="3600">1 hour</option>
+                                    <option value="21600">6 hours</option>
+                                    <option value="86400" selected>24 hours</option>
+                                    <option value="259200">3 days</option>
+                                    <option value="604800">7 days</option>
+                                </select>
+                                <label class="flex items-center gap-1.5 text-xs text-gray-600">
+                                    <input type="checkbox" name="poll_multiple" value="true" class="rounded border-violet-300 text-violet-600 focus:ring-violet-500">
+                                    Multiple choice
+                                </label>
+                            </div>
+                            <p class="text-xs text-violet-400">Polls are fediverse-only. Ignored on Instagram.</p>
+                        </div>
+                    </div>
+
+                    <!-- Instagram -->
                     <div x-show="igSelected" class="p-3 bg-pink-50 rounded-lg space-y-2">
                         <p class="text-xs font-medium text-pink-700">Instagram</p>
-                        <input type="text" name="location_search" id="location-search" placeholder="Location..."
-                               class="w-full p-2 border border-pink-200 rounded-lg text-xs bg-white"
-                               hx-get="{% url 'location_search' %}" hx-trigger="keyup changed delay:300ms"
-                               hx-target="#location-results" hx-include="this" autocomplete="off">
-                        <div id="location-results"></div>
-                        <input type="hidden" name="location_id" id="location-id-input">
-                        <input type="text" name="collaborators" placeholder="Collaborators..."
+                        <input type="text" name="collaborators" placeholder="Collaborators (max 3, comma-separated)"
                                class="w-full p-2 border border-pink-200 rounded-lg text-xs bg-white">
+                        <p class="text-xs text-pink-400">Collaborators must accept the invite on Instagram.</p>
                     </div>
                     <div x-show="fedSelected" class="p-3 bg-violet-50 rounded-lg space-y-2">
                         <p class="text-xs font-medium text-violet-700">Fediverse</p>

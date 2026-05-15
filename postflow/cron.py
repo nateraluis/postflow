@@ -128,9 +128,42 @@ def _process_boosts(now):
     for boost in boosts:
         try:
             status_id = boost.status_id
+            if not status_id and boost.status_url:
+                # Resolve URL to ID via Mastodon search API
+                account = boost.mastodon_accounts.first() or None
+                native = boost.mastodon_native_accounts.first() or None
+                if account:
+                    try:
+                        headers = {"Authorization": f"Bearer {account.access_token}"}
+                        resp = requests.get(
+                            f"{account.instance_url}/api/v2/search",
+                            params={"q": boost.status_url, "type": "statuses", "resolve": "true", "limit": 1},
+                            headers=headers, timeout=15,
+                        )
+                        if resp.status_code == 200:
+                            statuses = resp.json().get("statuses", [])
+                            if statuses:
+                                status_id = statuses[0]["id"]
+                                boost.status_id = status_id
+                                boost.save(update_fields=["status_id"])
+                                logger.info(f"Resolved boost URL to status_id {status_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to resolve boost URL: {e}")
+                elif native:
+                    try:
+                        from mastodon import Mastodon
+                        client = Mastodon(access_token=native.access_token, api_base_url=native.instance_url)
+                        results = client.search_v2(boost.status_url, result_type="statuses")
+                        if results and results.get("statuses"):
+                            status_id = results["statuses"][0]["id"]
+                            boost.status_id = status_id
+                            boost.save(update_fields=["status_id"])
+                            logger.info(f"Resolved boost URL to status_id {status_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to resolve boost URL: {e}")
+
             if not status_id:
-                # Try to resolve URL to ID via search
-                logger.warning(f"Boost {boost.id}: no status_id, skipping (URL resolution not implemented)")
+                logger.warning(f"Boost {boost.id}: could not resolve status_id from URL {boost.status_url}")
                 boost.status = "failed"
                 boost.save(update_fields=["status"])
                 continue
@@ -204,6 +237,6 @@ def _process_auto_deletes(now):
 
         # Instagram: cannot delete via API, skip silently
 
-        # Mark as deleted internally
-        post.status = "failed"  # Reuse failed status to indicate removed
+        # Mark as deleted
+        post.status = "deleted"
         post.save(update_fields=["status"])
