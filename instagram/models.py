@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from core.fields import EncryptedTextField
 from django.utils.timezone import now, timedelta
 
 
@@ -7,7 +8,7 @@ class InstagramBusinessAccount(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="instagram_business_accounts")
     instagram_id = models.CharField(max_length=255)
     username = models.CharField(max_length=255)
-    access_token = models.TextField(help_text="Page access token with access to IG account")
+    access_token = EncryptedTextField(help_text="Page access token with access to IG account")
     expires_at = models.DateTimeField(null=True, blank=True)
     last_refreshed_at = models.DateTimeField(null=True, blank=True)
 

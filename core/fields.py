@@ -52,3 +52,53 @@ class EncryptedTextField(models.TextField):
 
     def to_python(self, value):
         return value
+
+
+class EncryptedJSONField(models.TextField):
+    """JSON stored as (optionally encrypted) text.
+
+    Used for credential/config blobs. Behaves like a JSONField to Python code
+    (dict/list in, dict/list out) but stores an encrypted string when
+    FIELD_ENCRYPTION_KEY is set. Not queryable with JSON lookups.
+    """
+
+    def get_prep_value(self, value):
+        import json
+
+        if value is None:
+            return None
+        text = value if isinstance(value, str) and value.startswith(PREFIX) else json.dumps(value)
+        fernet = _fernet()
+        if fernet is None or text.startswith(PREFIX):
+            return text
+        return f"{PREFIX}{fernet.encrypt(text.encode()).decode()}"
+
+    def from_db_value(self, value, expression, connection):
+        import json
+
+        if value in (None, ""):
+            return {}
+        if value.startswith(PREFIX):
+            fernet = _fernet()
+            if fernet is None:
+                raise RuntimeError(
+                    "Encrypted value found but FIELD_ENCRYPTION_KEY is not configured"
+                )
+            try:
+                value = fernet.decrypt(value[len(PREFIX):].encode()).decode()
+            except InvalidToken as e:
+                raise RuntimeError("Failed to decrypt field value (wrong key?)") from e
+        try:
+            return json.loads(value)
+        except (TypeError, ValueError):
+            return {}
+
+    def to_python(self, value):
+        import json
+
+        if value is None or isinstance(value, (dict, list)):
+            return value
+        try:
+            return json.loads(value)
+        except (TypeError, ValueError):
+            return {}

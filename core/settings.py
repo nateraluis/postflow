@@ -29,6 +29,11 @@ ANTHROPIC_MODEL_ANALYSIS = env("ANTHROPIC_MODEL_ANALYSIS", default="claude-opus-
 # Emails exempt from subscription gating (comma-separated), e.g. the owner account
 SUBSCRIPTION_EXEMPT_EMAILS = env.list("SUBSCRIPTION_EXEMPT_EMAILS", default=[])
 
+# Fernet key for encrypting platform tokens/credentials at rest.
+# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# When unset, credential fields fall back to plaintext (local development).
+FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="")
+
 ALLOWED_HOSTS = [
     'localhost', '0.0.0.0', '127.0.0.1',
     'postflow.photo', 'www.postflow.photo', '3.70.194.91', '3.74.49.26', 'ec2-3-74-49-26.eu-central-1.compute.amazonaws.com',
@@ -58,7 +63,6 @@ INSTALLED_APPS = [
     'instagram',
     'pixelfed',
     'mastodon_native',
-    'mastodon_integration',
     'linkedin',
     'threads',
     'glass',

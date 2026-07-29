@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from core.fields import EncryptedJSONField
+
 
 class Website(models.Model):
     """A website connected by a user as a content source for social publishing."""
@@ -54,7 +56,7 @@ class ContentSource(models.Model):
 
     website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="sources")
     kind = models.CharField(max_length=30, choices=KIND_CHOICES)
-    config = models.JSONField(
+    config = EncryptedJSONField(
         default=dict, blank=True,
         help_text="Adapter config, e.g. {'api_key': ...} or {'feed_url': ...}",
     )

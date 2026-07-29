@@ -1,4 +1,5 @@
 from django.conf import settings
+from core.fields import EncryptedTextField
 from django.db import models
 from django.utils import timezone
 
@@ -13,7 +14,7 @@ class LinkedInAccount(models.Model):
         max_length=100, help_text="LinkedIn member URN, e.g. urn:li:person:xxxx"
     )
     username = models.CharField(max_length=150, blank=True, help_text="Display name")
-    access_token = models.TextField()
+    access_token = EncryptedTextField()
     expires_at = models.DateTimeField(
         null=True, blank=True,
         help_text="LinkedIn tokens last ~60 days and cannot be auto-refreshed; re-auth needed",

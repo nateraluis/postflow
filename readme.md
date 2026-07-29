@@ -1,93 +1,82 @@
-# Django Project Deployment on AWS LightSail Containers via GitHub Actions
-## Why: 
-Setting up django for production is hard! Using this template will give you a easy deployment that comes out of the box with: 
-- 🐳 Container service (Easily scale both horizontally and vertically in AWS lightsail)
-- 🔐 SSL Certificate on connection
-- 🦺 Safety: if your build fails -> the old container will stay live so you site won't go down
-- 🌎 Nginx reverse proxy integrated with uwsgi no set up required
-- 🗂 S3 file storage configured out of the box ready to use in django
-- 🤐 Environment secrets tucked away in your repository secrets (so easy to collaborate)
-- 🏎 From code commit to deployed in less than 5 minutes
-- 🤑 Serverless deployment for < $7 per month
+# PostFlow
 
-## How: 
-- Ever time you commit code to branch `main` --> You trigger a deploy to a new lightsail container automatically
-- This process is fully automated if you provide the correct credentials in your Github Secrets
+PostFlow is a website-to-social control centre at https://postflow.photo. A user connects a website, PostFlow ingests its content and images, AI drafts platform-specific social posts in the author's own voice, the user approves them from a review queue, a scheduler publishes them, and weekly AI reports evaluate whether the campaign is driving visitors and newsletter subscribers.
 
-## What can I do with this?
-- You can build anything you like, without the hassle of setting up reverse proxies, docker containers, updating servers, ssl Sertificate
-- Just go wild on your app without the hassle of hosting. 
+## How it fits together
 
-# Installation
+```
+Website (any URL)
+  └─ websites/        ingest posts + images (Ghost Content API / Ghost GEO / RSS / sitemap crawl)
+       └─ campaigns/  AI drafts per platform (Claude) → review queue → approve
+            └─ postflow/  ScheduledPost + APScheduler cron publishes approved posts
+                 ├─ pixelfed/, mastodon_native/, instagram/   existing connectors
+                 ├─ linkedin/, threads/                        API connectors
+                 └─ glass/                                     manual queue (no public API)
+  └─ analytics_site/  per-website analytics (Plausible, Search Console, Ghost members)
+       └─ campaigns/evaluator.py  weekly Claude report + recommendations
+```
 
+Nothing AI-generated ever posts without approval: drafts are created with `status="draft"`; only `status="pending"` posts are picked up by the publisher (`postflow/cron.py`).
 
-## Prerequisites and testing locally
-- [x] Have Python3 installed
-- [x] run `brew install mysql` - in case you have don't have this
-- [x] run `pip3 install -r requirements.txt` to get all requirements for template
-- [x] fill in the `core/.env` file with your app's details. I provided a sample in the `core` folder
-- [x] run `python3 manage.py runserver` to check if the app is working on your local machine
+## Apps
 
+| App | Purpose |
+|---|---|
+| `postflow` | Users, composer, `ScheduledPost`, calendar, scheduler (`scheduler.py`), publisher (`cron.py`) |
+| `websites` | Connected websites, pluggable content-source adapters (`websites/sources/`), content library |
+| `campaigns` | Voice profiles, AI drafting (`ai.py`), UTM tagging (`utm.py`), slot planner, review queue, weekly evaluator (`evaluator.py`) |
+| `pixelfed`, `mastodon_native`, `instagram`, `linkedin`, `threads` | Platform OAuth + posting utils |
+| `glass` | Manual posting queue for Glass (no public API) |
+| `analytics`, `analytics_pixelfed`, `analytics_mastodon`, `analytics_instagram` | Social engagement analytics |
+| `analytics_site` | Website analytics: provider collectors, daily `SiteSnapshot`s, UTM attribution, post-impact dashboard |
+| `subscriptions` | Stripe gating (`SUBSCRIPTION_EXEMPT_EMAILS` bypasses it for owner accounts) |
 
-## Steps
+## Scheduler jobs (systemd `postflow-scheduler`)
 
-### 0. 
-- I assume you have cloned the repo to your github account
-- You have a AWS account and can log in to http://lightsail.aws.amazon.com 
+| Job | Cadence |
+|---|---|
+| `post_scheduled` | every minute |
+| `refresh_instagram_tokens` / `refresh_threads_tokens` | every 6 h |
+| `sync_*_posts`, `fetch_*_engagement` | hourly / 2-hourly |
+| `snapshot_followers` | daily 06:00 UTC |
+| `poll_rss_feeds` | every 30 min |
+| `sync_website_content` | every 6 h |
+| `collect_site_analytics` | daily 07:30 UTC |
+| `generate_campaign_reports` | Mondays 07:45 UTC |
 
-### 1. Configure AWS LightSail Container Service
+## Development
 
-- Log in to your AWS on http://lightsail.aws.amazon.com
-- Create a container service and name it `djangoapp` and pick a region you desire. 
-- Note the region of your service
-<img width="1022" alt="Schermafbeelding 2023-10-12 om 23 58 58" src="https://github.com/two-trick-pony-NL/Django_AWS_Lightsail_Template/assets/71013416/29b491f5-e837-4b93-8f2c-14b0e7e9be5b">
-<img width="1022" alt="Schermafbeelding 2023-10-12 om 23 59 38" src="https://github.com/two-trick-pony-NL/Django_AWS_Lightsail_Template/assets/71013416/3b7e85df-04ea-49d1-83c5-8ede2810d8d9">
+Requirements: Python 3.13, uv, PostgreSQL, Node 22 (Tailwind).
 
+```bash
+cp .env.example core/.env   # fill in values
+uv sync --extra test
+uv run python manage.py migrate
+uv run python manage.py runserver
+uv run pytest               # full test suite
+```
 
+Useful commands:
 
-### 2. Set Up AWS Access Credentials
+```bash
+uv run python manage.py sync_website_content [--website ID]
+uv run python manage.py collect_site_analytics [--website ID]
+uv run python manage.py import_photo_analytics --website ID [--file path/to/analytics.db]
+uv run python manage.py generate_campaign_report [--user-id ID]
+uv run python manage.py run_scheduler
+```
 
-Generate AWS access credentials with the necessary permissions and store them securely. You can use AWS IAM for this purpose.
-Plenty of tuturials on how to obtain this. At the end of this step you should have: 
+## Configuration
 
-`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+All settings come from `core/.env` — see `.env.example` for the full list. Notable:
 
-In AWS lightsail create a storage bucket and obtain the: 
-- `S3_SECRET_KEY`
-- `S3_ACCESS_KEY`
-- `S3_AWS_STORAGE_BUCKET_NAME`
+- `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL_DRAFTING`, `ANTHROPIC_MODEL_ANALYSIS` — the AI layer.
+- `FIELD_ENCRYPTION_KEY` — Fernet key encrypting platform tokens and analytics credentials at rest (`core/fields.py`). Legacy plaintext rows stay readable and are encrypted on their next save. Losing the key means reconnecting every account.
+- `SUBSCRIPTION_EXEMPT_EMAILS` — owner accounts that bypass Stripe.
+- `LINKEDIN_*`, `THREADS_*`, `FACEBOOK_*` — platform app credentials.
 
-### 3. Update GitHub Repository Secrets
+## Deployment
 
-In your GitHub repository, go to `Settings` -> `Secrets` and add the following secrets:
+Pushing to `main` triggers `.github/workflows/deploy.yml`: it writes `core/.env` from GitHub Actions secrets, SSHes to the EC2 host, pulls, `uv sync`, builds Tailwind, migrates, collects static, and restarts the systemd units (`postflow-web`, `postflow-scheduler`). Nginx fronts uWSGI; certbot handles TLS.
 
-- `AWS_ACCESS_KEY_ID`: Your AWS access key ID. from step 2
-- `AWS_SECRET_ACCESS_KEY`: Your AWS secret access key. from step 2
-- `AWS_REGION`: Your AWS region (e.g., `us-east-1`). this must match what you did in step 1 
-- `S3_AWS_STORAGE_BUCKET_NAME` - for file storage
-- `S3_ACCESS_KEY` 
-- `S3_SECRET_KEY`
-- `DB_USER` 
-- `DB_PASSWORD` 
-- `DB_HOST`
-- `DB_NAME`
-
-- `DB_PORT` - for your SQL database. 
-You can also use sqlite in which case you should change your settings.py file in django to do so. But I chose to use a SQL database since data will otherwise be lost if the container reboots.
-
-When you're done it should look like this: 
-
-<img width="956" alt="Schermafbeelding 2023-10-12 om 23 29 52" src="https://github.com/two-trick-pony-NL/Django_AWS_Lightsail_Template/assets/71013416/fd8cdc56-5516-4884-92db-dc9b1760b2cd">
-
-
-
-### 4. Update your app
-
-- Now you can update your app locally and update it to your hearts desire
-- Once you commit to main, github action will trigger
-- That looks like this:
-<img width="425" alt="Schermafbeelding 2023-10-12 om 23 30 24" src="https://github.com/two-trick-pony-NL/Django_AWS_Lightsail_Template/assets/71013416/bf41300f-bc1e-4031-9d4a-28b434a673be">
-- Once the deployment completes your lightsail dashboard should look like this:
-  <img width="953" alt="Schermafbeelding 2023-10-12 om 23 31 10" src="https://github.com/two-trick-pony-NL/Django_AWS_Lightsail_Template/assets/71013416/2153f467-e6d6-467c-ad00-21d654149a04">
-  - including the URL to your new container. You can set your own domain name from the lightsail dashboard later. 
-- you might need to add the AWS host to your `allowed_hosts` in `core/settings.py` simply paste the URL given by Lightsail e.g: djangoapp.vdotvo9a4e2a6.eu-central-1.cs.amazonlightsail.com 
+New secrets must be added both to GitHub Actions secrets *and* to the `.env` block in `deploy.yml`.

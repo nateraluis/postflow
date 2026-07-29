@@ -1,4 +1,5 @@
 from django.conf import settings
+from core.fields import EncryptedTextField
 from django.db import models
 from django.utils import timezone
 
@@ -11,7 +12,7 @@ class ThreadsAccount(models.Model):
     )
     threads_user_id = models.CharField(max_length=100)
     username = models.CharField(max_length=150, blank=True)
-    access_token = models.TextField(help_text="Long-lived Threads token (refreshable)")
+    access_token = EncryptedTextField(help_text="Long-lived Threads token (refreshable)")
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -28,7 +28,6 @@ urlpatterns = [
     path('instagram/', include('instagram.urls')),
     path('pixelfed/', include('pixelfed.urls')),
     path('mastodon/', include('mastodon_native.urls')),
-    path('mastodon-integration/', include('mastodon_integration.urls')),
     path('websites/', include('websites.urls')),
     path('campaigns/', include('campaigns.urls')),
     path('linkedin/', include('linkedin.urls')),

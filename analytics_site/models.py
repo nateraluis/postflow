@@ -1,5 +1,7 @@
 from django.db import models
 
+from core.fields import EncryptedJSONField
+
 
 class AnalyticsConnection(models.Model):
     """A per-website analytics data source the user has connected."""
@@ -14,7 +16,7 @@ class AnalyticsConnection(models.Model):
         "websites.Website", on_delete=models.CASCADE, related_name="analytics_connections"
     )
     provider = models.CharField(max_length=30, choices=PROVIDER_CHOICES)
-    config = models.JSONField(
+    config = EncryptedJSONField(
         default=dict, blank=True,
         help_text="Provider credentials/config, e.g. {'api_key': ..., 'site_id': ...}",
     )

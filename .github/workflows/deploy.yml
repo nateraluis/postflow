@@ -44,6 +44,14 @@ jobs:
           STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          FIELD_ENCRYPTION_KEY=${{ secrets.FIELD_ENCRYPTION_KEY }}
+          SUBSCRIPTION_EXEMPT_EMAILS=${{ secrets.SUBSCRIPTION_EXEMPT_EMAILS }}
+          LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          THREADS_APP_ID=${{ secrets.THREADS_APP_ID }}
+          THREADS_APP_SECRET=${{ secrets.THREADS_APP_SECRET }}
+          GITHUB_ANALYTICS_TOKEN=${{ secrets.GH_ANALYTICS_TOKEN }}
           DEBUG=False
           EOF
           sed -i 's/^[[:space:]]*//' .env
