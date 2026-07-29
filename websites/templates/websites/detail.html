@@ -135,6 +135,10 @@
                 <span>Not yet promoted</span>
               {% endif %}
             </div>
+            <a href="{% url 'campaigns:promote_form' post.id %}"
+               class="mt-2 inline-flex items-center justify-center gap-1 text-sm font-medium text-violet-600 hover:text-violet-700">
+              Promote
+            </a>
           </div>
         </div>
       {% endfor %}

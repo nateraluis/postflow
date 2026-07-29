@@ -1,0 +1,86 @@
+{% extends "postflow/_base.html" %}
+{% block main %}
+<div class="mt-8 max-w-3xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-1">Promote</h1>
+  <p class="text-sm text-gray-500 mb-6 truncate">{{ blog_post.title }}</p>
+
+  <!-- Post Preview -->
+  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-8 flex gap-4">
+    {% if blog_post.feature_image and blog_post.feature_image.image %}
+      <img src="{{ blog_post.feature_image.image.url }}" alt="{{ blog_post.feature_image.alt_text }}"
+           class="w-24 h-24 object-cover rounded-lg flex-shrink-0">
+    {% else %}
+      <div class="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+    {% endif %}
+    <div class="min-w-0">
+      <h2 class="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">{{ blog_post.title }}</h2>
+      {% if blog_post.excerpt %}
+        <p class="text-sm text-gray-600 line-clamp-3">{{ blog_post.excerpt }}</p>
+      {% endif %}
+      {% if blog_post.promo_count %}
+        <p class="text-xs text-violet-600 font-medium mt-2">Promoted {{ blog_post.promo_count }}&times;</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="post" action="{% url 'campaigns:promote' blog_post.id %}">
+    {% csrf_token %}
+
+    <!-- Platforms -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-6">
+      <h2 class="text-sm font-semibold text-gray-900 mb-3">Platforms</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {% for platform in platforms %}
+          <label class="flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-violet-300 has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50 transition-colors">
+            <input type="checkbox" name="platforms" value="{{ platform }}"
+                   {% if platform == 'instagram' or platform == 'pixelfed' or platform == 'mastodon' %}checked{% endif %}
+                   class="rounded border-gray-300 text-violet-600 focus:ring-violet-500">
+            <span class="text-sm font-medium text-gray-800 capitalize">{{ platform }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Goal -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-6">
+      <h2 class="text-sm font-semibold text-gray-900 mb-3">Goal</h2>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <label class="flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-violet-300 has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50 transition-colors flex-1">
+          <input type="radio" name="goal" value="new_issue" checked
+                 class="border-gray-300 text-violet-600 focus:ring-violet-500">
+          <span class="text-sm font-medium text-gray-800">New post promotion</span>
+        </label>
+        <label class="flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-violet-300 has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50 transition-colors flex-1">
+          <input type="radio" name="goal" value="evergreen"
+                 class="border-gray-300 text-violet-600 focus:ring-violet-500">
+          <span class="text-sm font-medium text-gray-800">Evergreen re-promotion</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Suggested slots -->
+    {% if slots %}
+      <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 mb-6">
+        <h2 class="text-sm font-semibold text-gray-900 mb-2">Suggested posting times</h2>
+        <ul class="text-sm text-gray-600 space-y-1">
+          {% for slot in slots %}
+            <li>{{ slot|date:"D d M, H:i" }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <button type="submit"
+      class="w-full inline-flex items-center justify-center gap-2 bg-violet-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+      Generate drafts
+    </button>
+    <p class="text-xs text-gray-400 mt-2 text-center">
+      Drafts are generated with AI in your voice and will NOT be posted until you approve them.
+    </p>
+  </form>
+</div>
+{% endblock %}

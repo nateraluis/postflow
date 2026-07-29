@@ -1,0 +1,92 @@
+{% extends "postflow/_base.html" %}
+{% block main %}
+<div class="mt-8 max-w-5xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-1">Review queue</h1>
+  <p class="text-sm text-gray-500 mb-6">{{ drafts|length }} draft{{ drafts|length|pluralize }} waiting for review</p>
+
+  {% if drafts %}
+    <div class="space-y-4 mb-10">
+      {% for draft in drafts %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <div class="flex flex-wrap items-center gap-2 mb-3">
+            <span class="inline-block text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-medium capitalize">{{ draft.platform }}</span>
+            {% if draft.scheduled_post.post_date %}
+              <span class="text-xs text-gray-400">{{ draft.scheduled_post.post_date|date:"D d M, H:i" }}</span>
+            {% endif %}
+            <span class="text-xs text-gray-400">&middot;</span>
+            <span class="text-xs text-gray-500 truncate">{{ draft.campaign.blog_post.title|default:draft.campaign.name }}</span>
+            {% if draft.model_used %}
+              <span class="text-xs text-gray-300 ml-auto">{{ draft.model_used }}</span>
+            {% endif %}
+          </div>
+
+          {% if draft.scheduled_post.images.all %}
+            <div class="flex gap-3 mb-3">
+              {% for image in draft.scheduled_post.images.all %}
+                <div class="w-24">
+                  <img src="{{ image.image.url }}" alt="{{ image.alt_text }}" class="w-16 h-16 object-cover rounded-lg border">
+                  {% if image.alt_text %}
+                    <p class="text-[10px] text-gray-400 mt-1 line-clamp-2" title="{{ image.alt_text }}">alt: {{ image.alt_text }}</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <form method="post" action="{% url 'campaigns:approve' draft.id %}" class="mb-3">
+            {% csrf_token %}
+            <textarea name="caption" rows="6"
+              class="w-full p-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500">{{ draft.scheduled_post.caption }}</textarea>
+
+            <div class="flex flex-wrap items-center gap-2 mt-3">
+              <button type="submit"
+                class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+                Approve &amp; schedule
+              </button>
+            </div>
+          </form>
+
+          <div class="flex items-center gap-2">
+            <form method="post" action="{% url 'campaigns:regenerate' draft.id %}">
+              {% csrf_token %}
+              <button type="submit"
+                class="text-sm bg-gray-100 text-gray-700 px-3 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                Regenerate
+              </button>
+            </form>
+            <form method="post" action="{% url 'campaigns:discard' draft.id %}">
+              {% csrf_token %}
+              <button type="submit"
+                onclick="return confirm('Discard this draft? This cannot be undone.');"
+                class="text-sm text-red-500 hover:text-red-700 px-3 py-2 rounded-lg border border-transparent hover:border-red-100 transition-colors">
+                Discard
+              </button>
+            </form>
+          </div>
+
+          <p class="text-xs text-gray-400 mt-3 pt-3 border-t">Created {{ draft.created_at|date:"D d M, H:i" }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="bg-gray-50 p-8 rounded-lg text-center mb-10">
+      <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">No drafts waiting for review</h3>
+      <p class="text-gray-600">Generate some from your website's content library.</p>
+    </div>
+  {% endif %}
+
+  {% if reports %}
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+      <h2 class="text-sm font-semibold text-gray-900 mb-3">Weekly reports</h2>
+      <ul class="text-sm text-gray-600 space-y-1">
+        {% for report in reports %}
+          <li>Report week of {{ report.week_start }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

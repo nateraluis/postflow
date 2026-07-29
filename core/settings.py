@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'mastodon_integration',
     'subscriptions',
     'websites',
+    'campaigns',
     'analytics',
     'analytics_pixelfed',  # Pixelfed analytics
     'analytics_mastodon',  # Mastodon analytics

@@ -16,6 +16,8 @@ logger = logging.getLogger("postflow")
 INSTAGRAM_HASHTAG_LIMIT = 5
 INSTAGRAM_CAPTION_LIMIT = 2200
 MASTODON_CAPTION_LIMIT = 500
+LINKEDIN_CAPTION_LIMIT = 3000
+THREADS_CAPTION_LIMIT = 500
 
 
 @dataclass
@@ -78,6 +80,16 @@ class PostPayload:
             if len(full_caption) > MASTODON_CAPTION_LIMIT:
                 errors.append(
                     f"Caption exceeds {platform.title()} limit ({len(full_caption)}/{MASTODON_CAPTION_LIMIT} chars)"
+                )
+        elif platform == "linkedin":
+            if len(full_caption) > LINKEDIN_CAPTION_LIMIT:
+                errors.append(
+                    f"Caption exceeds LinkedIn limit ({len(full_caption)}/{LINKEDIN_CAPTION_LIMIT} chars)"
+                )
+        elif platform == "threads":
+            if len(full_caption) > THREADS_CAPTION_LIMIT:
+                errors.append(
+                    f"Caption exceeds Threads limit ({len(full_caption)}/{THREADS_CAPTION_LIMIT} chars)"
                 )
 
         return errors
