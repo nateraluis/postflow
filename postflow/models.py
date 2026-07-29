@@ -143,6 +143,7 @@ class ScheduledPost(models.Model):
         ("draft", "Draft"),
         ("pending", "Pending"),
         ("scheduled", "Scheduled"),
+        ("awaiting_manual", "Awaiting manual post"),
         ("posted", "Posted"),
         ("failed", "Failed"),
         ("deleted", "Deleted"),
@@ -167,6 +168,9 @@ class ScheduledPost(models.Model):
     mastodon_accounts = models.ManyToManyField("pixelfed.MastodonAccount", blank=True, help_text="Pixelfed/Mastodon-compatible instances")
     mastodon_native_accounts = models.ManyToManyField("mastodon_native.MastodonAccount", blank=True, help_text="Native Mastodon instances")
     instagram_accounts = models.ManyToManyField("instagram.InstagramBusinessAccount", blank=True)
+    linkedin_accounts = models.ManyToManyField("linkedin.LinkedInAccount", blank=True)
+    threads_accounts = models.ManyToManyField("threads.ThreadsAccount", blank=True)
+    glass_accounts = models.ManyToManyField("glass.GlassAccount", blank=True)
     location = models.ForeignKey("Location", on_delete=models.SET_NULL, blank=True, null=True, help_text="Location tag for Instagram posts")
     collaborators = models.CharField(max_length=500, blank=True, default="", help_text="Comma-separated Instagram collaborator usernames (max 3)")
     poll_options = models.JSONField(blank=True, null=True, help_text="Poll options as JSON list, e.g. ['Option A', 'Option B']")
@@ -182,6 +186,8 @@ class ScheduledPost(models.Model):
     instagram_media_id = models.CharField(max_length=255, blank=True, null=True)  # Stores media ID from Instagram
     instagram_post_id = models.CharField(max_length=255, blank=True, null=True)  # Stores the actual Instagram post ID after publishing
     pixelfed_post_id = models.CharField(max_length=255, blank=True, null=True)  # Stores Pixelfed post ID
+    linkedin_post_id = models.CharField(max_length=255, blank=True, null=True)  # LinkedIn share URN
+    threads_post_id = models.CharField(max_length=255, blank=True, null=True)  # Threads media ID
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -473,6 +479,9 @@ class UserDefaults(models.Model):
     default_mastodon_accounts = models.ManyToManyField("pixelfed.MastodonAccount", blank=True, related_name="+")
     default_mastodon_native_accounts = models.ManyToManyField("mastodon_native.MastodonAccount", blank=True, related_name="+")
     default_instagram_accounts = models.ManyToManyField("instagram.InstagramBusinessAccount", blank=True, related_name="+")
+    default_linkedin_accounts = models.ManyToManyField("linkedin.LinkedInAccount", blank=True, related_name="+")
+    default_threads_accounts = models.ManyToManyField("threads.ThreadsAccount", blank=True, related_name="+")
+    default_glass_accounts = models.ManyToManyField("glass.GlassAccount", blank=True, related_name="+")
     default_location = models.ForeignKey(Location, on_delete=models.SET_NULL, blank=True, null=True, related_name="+")
     default_caption_template = models.ForeignKey(CaptionTemplate, on_delete=models.SET_NULL, blank=True, null=True, related_name="+")
 

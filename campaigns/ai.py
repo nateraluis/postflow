@@ -219,7 +219,21 @@ def _assign_default_accounts(post, platform):
         post.mastodon_native_accounts.set(defaults.default_mastodon_native_accounts.all())
     elif platform == "instagram":
         post.instagram_accounts.set(defaults.default_instagram_accounts.all())
-    # linkedin / threads / glass account wiring arrives with their connector apps
+    elif platform == "linkedin":
+        accounts = defaults.default_linkedin_accounts.all()
+        if not accounts:
+            accounts = post.user.linkedin_accounts.all()
+        post.linkedin_accounts.set(accounts)
+    elif platform == "threads":
+        accounts = defaults.default_threads_accounts.all()
+        if not accounts:
+            accounts = post.user.threads_accounts.all()
+        post.threads_accounts.set(accounts)
+    elif platform == "glass":
+        accounts = defaults.default_glass_accounts.all()
+        if not accounts:
+            accounts = post.user.glass_accounts.all()
+        post.glass_accounts.set(accounts)
 
 
 def _apply_hard_rules(text):

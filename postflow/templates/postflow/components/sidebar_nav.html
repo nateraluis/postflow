@@ -85,6 +85,34 @@
           </a>
         </li>
 
+        <!-- Campaigns -->
+        <li>
+          <a href="{% url 'campaigns:queue' %}"
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'campaigns' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+            {% if not mobile_view %}
+            <svg class="size-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+            </svg>
+            {% endif %}
+            Campaigns
+          </a>
+        </li>
+
+        <!-- Manual queue (Glass) -->
+        <li>
+          <a href="{% url 'glass:queue' %}"
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'glass' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+            {% if not mobile_view %}
+            <svg class="size-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+            </svg>
+            {% endif %}
+            Manual queue
+          </a>
+        </li>
+
         <!-- Settings -->
         <li>
           <a href="{% url 'settings_hub' %}"

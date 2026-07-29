@@ -1,0 +1,37 @@
+{% extends "postflow/_base.html" %}
+
+{% block main %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Weekly reports</h1>
+    <form method="post" action="{% url 'campaigns:generate_report' %}">
+      {% csrf_token %}
+      <button type="submit"
+        class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+        Generate report now
+      </button>
+    </form>
+  </div>
+
+  {% if reports %}
+    <ul class="space-y-3">
+      {% for report in reports %}
+        <li>
+          <a href="{% url 'campaigns:report_detail' report.id %}"
+             class="block bg-white rounded-xl border border-gray-200 p-4 hover:border-violet-300 transition-colors">
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-gray-900">Week of {{ report.week_start }}</span>
+              <span class="text-xs text-gray-400">{{ report.recommendations|length }} recommendation{{ report.recommendations|length|pluralize }}</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ report.report_markdown|truncatechars:180 }}</p>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+      No reports yet. Reports are generated every Monday morning, or generate one now.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

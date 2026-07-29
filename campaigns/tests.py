@@ -110,6 +110,58 @@ class TestGenerateDrafts:
 
 
 @pytest.mark.django_db
+class TestEvaluator:
+    @patch("campaigns.evaluator.anthropic.Anthropic")
+    def test_generates_weekly_report(self, mock_anthropic, user, blog_post):
+        from campaigns.evaluator import Recommendation, ReportOutput, generate_report
+        from campaigns.models import CampaignReport
+
+        response = MagicMock()
+        response.parsed_output = ReportOutput(
+            report_markdown="A quiet week. Visitors held steady.",
+            recommendations=[
+                Recommendation(
+                    type="evergreen",
+                    platform="mastodon",
+                    blog_post_id=blog_post.id,
+                    rationale="This post has never been promoted.",
+                )
+            ],
+        )
+        response.usage.input_tokens = 500
+        response.usage.output_tokens = 200
+        mock_anthropic.return_value.messages.parse.return_value = response
+
+        report = generate_report(user)
+
+        assert CampaignReport.objects.count() == 1
+        assert report.recommendations[0]["platform"] == "mastodon"
+        assert "quiet week" in report.report_markdown
+
+        # Re-running the same week replaces, not duplicates
+        generate_report(user, week_start=report.week_start)
+        assert CampaignReport.objects.count() == 1
+
+    def test_report_views_scoped(self, client, user, blog_post):
+        from campaigns.models import CampaignReport
+
+        report = CampaignReport.objects.create(
+            user=user,
+            website=blog_post.website,
+            week_start=timezone.now().date(),
+            report_markdown="Report body",
+            recommendations=[{"type": "other", "platform": "all", "rationale": "r"}],
+        )
+        client.force_login(user)
+        assert client.get("/campaigns/reports/").status_code == 200
+        assert client.get(f"/campaigns/reports/{report.id}/").status_code == 200
+
+        other = get_user_model().objects.create_user(email="o2@example.com", password="x")
+        client.force_login(other)
+        assert client.get(f"/campaigns/reports/{report.id}/").status_code == 404
+
+
+@pytest.mark.django_db
 class TestReviewQueueFlow:
     def _make_draft(self, campaign, with_account=True):
         post = ScheduledPost.objects.create(

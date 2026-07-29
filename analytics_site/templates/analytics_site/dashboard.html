@@ -1,0 +1,255 @@
+{% extends "postflow/_base.html" %}
+{% load humanize %}
+{% block main %}
+<div class="mt-8 max-w-5xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">Site Analytics</h1>
+  <p class="text-sm text-gray-500 mb-6">Traffic, subscribers, and search performance for your connected websites.</p>
+
+  {% if messages %}
+    <div class="mb-6 space-y-2">
+      {% for message in messages %}
+        <div class="text-sm rounded-lg px-4 py-2 {% if message.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Website selector -->
+  {% if websites %}
+    <form method="get" class="mb-8 flex items-center gap-3">
+      <label class="text-sm font-medium text-gray-700">Website</label>
+      <select name="website" onchange="this.form.submit()"
+              class="p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500">
+        {% for w in websites %}
+          <option value="{{ w.id }}" {% if website.id == w.id %}selected{% endif %}>{{ w.title|default:w.url }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  {% endif %}
+
+  {% if not website %}
+    <div class="bg-gray-50 p-8 rounded-lg text-center">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">No websites yet</h3>
+      <p class="text-gray-600">Add a website first, then connect an analytics provider here to see traffic data.</p>
+    </div>
+  {% else %}
+
+  <!-- KPI tiles -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white p-4 rounded-lg shadow-sm border">
+      <p class="text-xs text-gray-500 mb-1">Visitors ({{ totals.date|default:"latest" }})</p>
+      <p class="text-2xl font-bold text-gray-900">{{ totals.visitors|default:"—" }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow-sm border">
+      <p class="text-xs text-gray-500 mb-1">Pageviews ({{ totals.date|default:"latest" }})</p>
+      <p class="text-2xl font-bold text-gray-900">{{ totals.pageviews|default:"—" }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow-sm border">
+      <p class="text-xs text-gray-500 mb-1">Subscribers</p>
+      <p class="text-2xl font-bold text-gray-900">{{ totals.subscribers|default:"—" }}</p>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow-sm border">
+      <p class="text-xs text-gray-500 mb-1">Subscriber change (30d)</p>
+      {% if subscriber_delta_range is not None %}
+        <p class="text-2xl font-bold {% if subscriber_delta_range > 0 %}text-green-600{% elif subscriber_delta_range < 0 %}text-red-600{% else %}text-gray-900{% endif %}">
+          {{ subscriber_delta_range|stringformat:"+d" }}
+        </p>
+      {% else %}
+        <p class="text-2xl font-bold text-gray-900">—</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Visitors sparkline -->
+  <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-8">
+    <h2 class="text-sm font-semibold text-gray-900 mb-4">Visitors — last 30 days</h2>
+    {% if series %}
+      <div class="flex items-end gap-0.5 h-24">
+        {% for row in series %}
+          <div class="flex-1 bg-violet-500 rounded-sm hover:bg-violet-600 transition-colors"
+               style="height: {% if max_visitors %}{% widthratio row.visitors|default:0 max_visitors 100 %}{% else %}0{% endif %}%; min-height: 2px;"
+               title="{{ row.date }}: {{ row.visitors|default:0 }} visitors"></div>
+        {% endfor %}
+      </div>
+      {% with last_row=series|last %}
+        <div class="flex justify-between text-xs text-gray-400 mt-2">
+          <span>{{ series.0.date }}</span>
+          <span>{{ last_row.date }}</span>
+        </div>
+      {% endwith %}
+    {% else %}
+      <p class="text-sm text-gray-500">No visitor data yet. Connect Plausible below and run a collection.</p>
+    {% endif %}
+  </div>
+
+  <!-- Did posts drive traffic? -->
+  <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-8">
+    <h2 class="text-sm font-semibold text-gray-900 mb-4">Did posts drive traffic?</h2>
+    {% if post_impact %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-gray-500 border-b">
+              <th class="pb-2 pr-4">Date</th>
+              <th class="pb-2 pr-4">Platform</th>
+              <th class="pb-2 pr-4">Visitors (post day + next)</th>
+              <th class="pb-2 pr-4">Baseline (3d avg)</th>
+              <th class="pb-2">Lift</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in post_impact %}
+              <tr class="border-b last:border-0">
+                <td class="py-2 pr-4 text-gray-700">{{ row.post_date }}</td>
+                <td class="py-2 pr-4 text-gray-700">{{ row.platform|default:"—" }}</td>
+                <td class="py-2 pr-4 text-gray-700">{{ row.visitors_after|default:"—" }}</td>
+                <td class="py-2 pr-4 text-gray-700">{{ row.baseline|default:"—" }}</td>
+                <td class="py-2">
+                  {% if row.lift_pct is not None %}
+                    <span class="{% if row.lift_pct > 0 %}text-green-600{% elif row.lift_pct < 0 %}text-red-600{% else %}text-gray-600{% endif %} font-medium">
+                      {{ row.lift_pct|stringformat:"+.1f" }}%
+                    </span>
+                  {% else %}
+                    <span class="text-gray-400">n/a</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-sm text-gray-500">No posted content in this window yet, or no snapshot data to compare against.</p>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+    <!-- UTM sources -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+      <h2 class="text-sm font-semibold text-gray-900 mb-4">Traffic sources</h2>
+      {% if utm_sources %}
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-gray-500 border-b">
+              <th class="pb-2 pr-4">Source</th>
+              <th class="pb-2 pr-4">Visitors</th>
+              <th class="pb-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in utm_sources %}
+              <tr class="border-b last:border-0">
+                <td class="py-2 pr-4 text-gray-700">{{ row.source }}</td>
+                <td class="py-2 pr-4 text-gray-700">{{ row.visitors }}</td>
+                <td class="py-2">
+                  {% if row.is_campaign %}
+                    <span class="inline-block text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full font-medium">campaign</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-sm text-gray-500">No source data yet.</p>
+      {% endif %}
+    </div>
+
+    <!-- Signups by source -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+      <h2 class="text-sm font-semibold text-gray-900 mb-4">Signups by source</h2>
+      {% if signups_by_source %}
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-gray-500 border-b">
+              <th class="pb-2 pr-4">Source</th>
+              <th class="pb-2">Signups</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in signups_by_source %}
+              <tr class="border-b last:border-0">
+                <td class="py-2 pr-4 text-gray-700">{{ row.source }}</td>
+                <td class="py-2 text-gray-700">{{ row.count }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-sm text-gray-500">No signup events tracked yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Connections -->
+  <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+    <h2 class="text-sm font-semibold text-gray-900 mb-4">Connections</h2>
+
+    {% if connections %}
+      <ul class="mb-6 space-y-2">
+        {% for connection in connections %}
+          <li class="flex items-center justify-between text-sm border-b pb-2 last:border-0">
+            <div>
+              <span class="font-medium text-gray-800">{{ connection.get_provider_display }}</span>
+              {% if connection.last_collected_at %}
+                <span class="text-xs text-gray-400 ml-2">last collected {{ connection.last_collected_at|naturaltime }}</span>
+              {% else %}
+                <span class="text-xs text-gray-400 ml-2">never collected</span>
+              {% endif %}
+              {% if connection.last_error %}
+                <span class="text-xs text-red-500 ml-2">{{ connection.last_error }}</span>
+              {% endif %}
+            </div>
+            <form method="post" action="{% url 'analytics_site:delete_connection' connection.id %}">
+              {% csrf_token %}
+              <button type="submit" class="text-xs text-red-500 hover:text-red-700">Remove</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-gray-500 mb-6">No analytics providers connected yet.</p>
+    {% endif %}
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {% for value, label in available_providers %}
+        <form method="post" action="{% url 'analytics_site:add_connection' website.id %}"
+              class="p-4 border border-gray-200 rounded-lg space-y-2">
+          {% csrf_token %}
+          <input type="hidden" name="provider" value="{{ value }}">
+          <p class="text-sm font-medium text-gray-800 mb-2">{{ label }}</p>
+
+          {% if value == "plausible" %}
+            <input type="text" name="api_key" placeholder="API key" required
+                   class="w-full p-2 border border-gray-200 rounded text-sm">
+            <input type="text" name="site_id" placeholder="Site ID (e.g. example.com)" required
+                   class="w-full p-2 border border-gray-200 rounded text-sm">
+          {% elif value == "gsc" %}
+            <input type="text" name="client_id" placeholder="OAuth client ID" required
+                   class="w-full p-2 border border-gray-200 rounded text-sm">
+            <input type="text" name="client_secret" placeholder="OAuth client secret" required
+                   class="w-full p-2 border border-gray-200 rounded text-sm">
+            <input type="text" name="refresh_token" placeholder="Refresh token" required
+                   class="w-full p-2 border border-gray-200 rounded text-sm">
+            <input type="text" name="site_url" placeholder="Site URL (optional, e.g. sc-domain:example.com)"
+                   class="w-full p-2 border border-gray-200 rounded text-sm">
+          {% elif value == "ghost_admin" %}
+            <input type="text" name="admin_api_key" placeholder="Admin API key (id:secret)" required
+                   class="w-full p-2 border border-gray-200 rounded text-sm">
+          {% endif %}
+
+          <button type="submit"
+                  class="w-full bg-violet-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+            Connect
+          </button>
+        </form>
+      {% empty %}
+        <p class="text-sm text-gray-500 sm:col-span-3">All available providers are connected.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}

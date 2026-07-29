@@ -47,6 +47,27 @@ def _publish_post(post, in_reply_to_ids=None):
         logger.info(f"Processing post ID {post.id} scheduled for {post.post_date}")
         payload = build_payload(post)
 
+        # A post whose accounts were all disconnected after approval has no
+        # delivery target; fail it instead of reprocessing it forever.
+        if not (
+            post.glass_accounts.exists()
+            or post.mastodon_accounts.exists()
+            or post.mastodon_native_accounts.exists()
+            or post.instagram_accounts.exists()
+            or post.linkedin_accounts.exists()
+            or post.threads_accounts.exists()
+        ):
+            logger.warning(f"Post ID {post.id} has no connected accounts; marking failed")
+            post.status = "failed"
+            post.save(update_fields=["status"])
+            return
+
+        # Glass first: it has no API, so it becomes a manual task. If Glass is
+        # the only target the post moves to awaiting_manual instead of posted.
+        if post.glass_accounts.exists():
+            from glass.utils import queue_manual_post
+            queue_manual_post(post)
+
         if post.mastodon_accounts.exists():
             post_pixelfed(post, payload, in_reply_to_id=in_reply_to_ids.get('pixelfed') if in_reply_to_ids else None)
 
@@ -55,6 +76,14 @@ def _publish_post(post, in_reply_to_ids=None):
 
         if post.instagram_accounts.exists():
             post_instagram(post, payload)
+
+        if post.linkedin_accounts.exists():
+            from linkedin.utils import post_linkedin
+            post_linkedin(post, payload)
+
+        if post.threads_accounts.exists():
+            from threads.utils import post_threads
+            post_threads(post, payload)
 
         post.refresh_from_db()
         logger.info(f"Post ID {post.id} completed with status: {post.status}")

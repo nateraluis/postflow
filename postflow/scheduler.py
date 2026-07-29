@@ -236,6 +236,27 @@ class PostFlowScheduler:
         )
         logger.info("Added job: poll_rss_feeds (every 30 minutes)")
 
+        # Add job: Refresh Threads tokens every 6 hours at :05
+        self.scheduler.add_job(
+            func=self._refresh_threads_tokens,
+            trigger=CronTrigger(hour='*/6', minute=5),
+            id='refresh_threads_tokens',
+            name='Refresh Threads access tokens',
+            replace_existing=True,
+        )
+        logger.info("Added job: refresh_threads_tokens (every 6 hours at :05)")
+
+        # Add job: Collect website analytics daily at 07:30 UTC
+        # (after external collectors like GSC/Plausible have fresh daily data)
+        self.scheduler.add_job(
+            func=self._collect_site_analytics,
+            trigger=CronTrigger(hour=7, minute=30),
+            id='collect_site_analytics',
+            name='Collect website analytics',
+            replace_existing=True,
+        )
+        logger.info("Added job: collect_site_analytics (daily at 07:30 UTC)")
+
         # Add job: Sync website content every 6 hours
         # Runs at :10 past to stay off the busy :00/:15/:30/:45 slots
         self.scheduler.add_job(
@@ -246,6 +267,17 @@ class PostFlowScheduler:
             replace_existing=True,
         )
         logger.info("Added job: sync_website_content (every 6 hours at :10)")
+
+        # Add job: Weekly campaign report on Mondays at 07:45 UTC
+        # (after the daily analytics collection at 07:30)
+        self.scheduler.add_job(
+            func=self._generate_campaign_reports,
+            trigger=CronTrigger(day_of_week='mon', hour=7, minute=45),
+            id='generate_campaign_reports',
+            name='Generate weekly campaign reports',
+            replace_existing=True,
+        )
+        logger.info("Added job: generate_campaign_reports (Mondays at 07:45 UTC)")
 
         # Start the scheduler
         self.scheduler.start()
@@ -378,6 +410,27 @@ class PostFlowScheduler:
             call_command('sync_website_content')
         except Exception as e:
             logger.exception(f"Error syncing website content: {e}")
+
+    def _refresh_threads_tokens(self):
+        """Refresh long-lived Threads access tokens."""
+        try:
+            call_command('refresh_threads_tokens')
+        except Exception as e:
+            logger.exception(f"Error refreshing Threads tokens: {e}")
+
+    def _collect_site_analytics(self):
+        """Collect daily analytics snapshots for connected websites."""
+        try:
+            call_command('collect_site_analytics')
+        except Exception as e:
+            logger.exception(f"Error collecting site analytics: {e}")
+
+    def _generate_campaign_reports(self):
+        """Generate the weekly AI campaign evaluation reports."""
+        try:
+            call_command('generate_campaign_report')
+        except Exception as e:
+            logger.exception(f"Error generating campaign reports: {e}")
 
     def shutdown(self):
         """Gracefully shut down the scheduler and release lock."""

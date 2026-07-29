@@ -1,0 +1,61 @@
+{% extends "postflow/_base.html" %}
+{% load humanize %}
+{% block main %}
+<div class="mt-8 max-w-3xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">LinkedIn</h1>
+  <p class="text-sm text-gray-500 mb-6">Connect your LinkedIn profile to share posts with a single image or a gallery.</p>
+
+  {% if messages %}
+    <div class="mb-6 space-y-2">
+      {% for message in messages %}
+        <div class="text-sm px-4 py-3 rounded-lg {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Connected accounts</h2>
+
+    {% if linkedin_accounts %}
+      <ul class="space-y-3 mb-4">
+        {% for account in linkedin_accounts %}
+          <li class="flex items-center justify-between gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-gray-900 truncate">{{ account.username|default:account.member_urn }}</p>
+              <p class="text-xs text-gray-500">
+                {% if account.expires_at %}
+                  Expires {{ account.expires_at|naturaltime }}
+                {% else %}
+                  No expiry recorded
+                {% endif %}
+              </p>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0">
+              {% if account.token_expired %}
+                <span class="inline-block text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Expired</span>
+              {% elif account.is_token_expiring %}
+                <span class="inline-block text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Expiring soon</span>
+              {% endif %}
+              <form method="post" action="{% url 'linkedin:disconnect' account.id %}">
+                {% csrf_token %}
+                <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                  Disconnect
+                </button>
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-gray-500 mb-4">No LinkedIn accounts connected yet.</p>
+    {% endif %}
+
+    <a href="{% url 'linkedin:connect' %}"
+       class="inline-flex items-center justify-center gap-2 bg-violet-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+      Connect LinkedIn
+    </a>
+  </div>
+</div>
+{% endblock %}

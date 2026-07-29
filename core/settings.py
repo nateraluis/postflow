@@ -59,9 +59,13 @@ INSTALLED_APPS = [
     'pixelfed',
     'mastodon_native',
     'mastodon_integration',
+    'linkedin',
+    'threads',
+    'glass',
     'subscriptions',
     'websites',
     'campaigns',
+    'analytics_site',
     'analytics',
     'analytics_pixelfed',  # Pixelfed analytics
     'analytics_mastodon',  # Mastodon analytics
@@ -116,6 +120,26 @@ if DEBUG:
 else:
     REDIRECT_URI = env("REDIRECT_URI")
     PIXELFED_REDIRECT_URI = env("PIXELFED_REDIRECT_URI", default=env("REDIRECT_URI"))  # Fallback to REDIRECT_URI if not set
+
+# LinkedIn (Share on LinkedIn product; w_member_social)
+LINKEDIN_CLIENT_ID = env("LINKEDIN_CLIENT_ID", default="")
+LINKEDIN_CLIENT_SECRET = env("LINKEDIN_CLIENT_SECRET", default="")
+if DEBUG:
+    LINKEDIN_REDIRECT_URI = env("LINKEDIN_REDIRECT_URI", default="http://localhost:8000/linkedin/callback/")
+else:
+    LINKEDIN_REDIRECT_URI = env("LINKEDIN_REDIRECT_URI", default="https://postflow.photo/linkedin/callback/")
+
+# Threads (Meta Threads API)
+THREADS_APP_ID = env("THREADS_APP_ID", default="")
+THREADS_APP_SECRET = env("THREADS_APP_SECRET", default="")
+if DEBUG:
+    THREADS_REDIRECT_URI = env("THREADS_REDIRECT_URI", default="http://localhost:8000/threads/callback/")
+else:
+    THREADS_REDIRECT_URI = env("THREADS_REDIRECT_URI", default="https://postflow.photo/threads/callback/")
+
+# GitHub token for the one-time photo-analytics history backfill (optional)
+GITHUB_ANALYTICS_TOKEN = env("GITHUB_ANALYTICS_TOKEN", default="")
+PHOTO_ANALYTICS_REPO = env("PHOTO_ANALYTICS_REPO", default="Tyn-Studio/photo-analytics")
 MASTODON_API_BASE = "https://mastodon.example.com/api/v1"
 MEDIA_UPLOAD_ENDPOINT = "/api/compose/v0/media/upload"
 POST_STATUS_ENDPOINT = "/api/v1/statuses"

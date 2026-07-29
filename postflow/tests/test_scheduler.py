@@ -157,6 +157,9 @@ class TestSchedulerInitialization:
             'snapshot_followers',
             'poll_rss_feeds',
             'sync_website_content',
+            'refresh_threads_tokens',
+            'collect_site_analytics',
+            'generate_campaign_reports',
         }
         job_ids = {
             call[1]['id']

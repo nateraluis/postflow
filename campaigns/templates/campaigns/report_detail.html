@@ -1,0 +1,39 @@
+{% extends "postflow/_base.html" %}
+
+{% block main %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <div class="mb-6">
+    <a href="{% url 'campaigns:reports' %}" class="text-sm text-violet-600 hover:text-violet-700">&larr; All reports</a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2">Week of {{ report.week_start }}</h1>
+    <p class="text-xs text-gray-400 mt-1">{{ report.model_used }} &middot; generated {{ report.created_at|date:"D d M, H:i" }}</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-8 prose prose-sm max-w-none whitespace-pre-line text-gray-800">{{ report.report_markdown }}</div>
+
+  <h2 class="text-lg font-semibold text-gray-900 mb-3">Recommendations</h2>
+  {% if recommendations %}
+    <div class="space-y-3">
+      {% for rec in recommendations %}
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-50 text-violet-700">{{ rec.type }}</span>
+            <span class="text-xs text-gray-500">{{ rec.platform }}</span>
+          </div>
+          <p class="text-sm text-gray-700">{{ rec.rationale }}</p>
+          {% if rec.blog_post %}
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-sm text-gray-500">{{ rec.blog_post.title }}</span>
+              <a href="{% url 'campaigns:promote_form' rec.blog_post.id %}"
+                 class="inline-flex items-center gap-1 bg-violet-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-violet-700 transition-colors">
+                Generate drafts
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-sm text-gray-500">No recommendations in this report.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -153,10 +153,55 @@ def regenerate_draft(request, pk):
     return redirect("campaigns:queue")
 
 
+@login_required
+def report_list(request):
+    reports = request.user.campaign_reports.all()
+    return render(request, "campaigns/reports.html", {
+        "reports": reports,
+        "active_page": "campaigns",
+    })
+
+
+@login_required
+def report_detail(request, pk):
+    report = get_object_or_404(request.user.campaign_reports, pk=pk)
+    recommendations = []
+    for rec in report.recommendations:
+        blog_post = None
+        if rec.get("blog_post_id"):
+            blog_post = BlogPost.objects.filter(
+                pk=rec["blog_post_id"], website__user=request.user
+            ).first()
+        recommendations.append({**rec, "blog_post": blog_post})
+    return render(request, "campaigns/report_detail.html", {
+        "report": report,
+        "recommendations": recommendations,
+        "active_page": "campaigns",
+    })
+
+
+@login_required
+@require_POST
+def generate_report_now(request):
+    from . import evaluator
+
+    try:
+        report = evaluator.generate_report(request.user)
+        messages.success(request, f"Report for the week of {report.week_start} generated.")
+        return redirect("campaigns:report_detail", report.pk)
+    except Exception:
+        logger.exception("Manual report generation failed")
+        messages.error(request, "Report generation failed. Check the Claude API key.")
+        return redirect("campaigns:reports")
+
+
 def _has_delivery_target(post):
     """A post can only be approved if some connected account will deliver it."""
     return (
         post.mastodon_accounts.exists()
         or post.mastodon_native_accounts.exists()
         or post.instagram_accounts.exists()
+        or post.linkedin_accounts.exists()
+        or post.threads_accounts.exists()
+        or post.glass_accounts.exists()
     )
