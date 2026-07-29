@@ -21,6 +21,14 @@ STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET")
 STRIPE_PRICE_LOOKUP_KEY = "standard_monthly"
 
+# Claude API (AI drafting + campaign evaluation)
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+ANTHROPIC_MODEL_DRAFTING = env("ANTHROPIC_MODEL_DRAFTING", default="claude-sonnet-5")
+ANTHROPIC_MODEL_ANALYSIS = env("ANTHROPIC_MODEL_ANALYSIS", default="claude-opus-4-8")
+
+# Emails exempt from subscription gating (comma-separated), e.g. the owner account
+SUBSCRIPTION_EXEMPT_EMAILS = env.list("SUBSCRIPTION_EXEMPT_EMAILS", default=[])
+
 ALLOWED_HOSTS = [
     'localhost', '0.0.0.0', '127.0.0.1',
     'postflow.photo', 'www.postflow.photo', '3.70.194.91', '3.74.49.26', 'ec2-3-74-49-26.eu-central-1.compute.amazonaws.com',

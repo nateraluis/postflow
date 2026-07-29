@@ -144,8 +144,24 @@ class TestSchedulerInitialization:
         # Verify scheduler was initialized
         assert scheduler.scheduler is not None
 
-        # Verify jobs were added (2 jobs: post_scheduled, refresh_instagram_tokens)
-        assert mock_background_scheduler.add_job.call_count == 2
+        # Verify the full set of registered jobs
+        expected_job_ids = {
+            'post_scheduled',
+            'refresh_instagram_tokens',
+            'sync_pixelfed_posts',
+            'fetch_pixelfed_engagement',
+            'sync_instagram_posts',
+            'fetch_instagram_insights',
+            'sync_mastodon_posts',
+            'fetch_mastodon_engagement',
+            'snapshot_followers',
+            'poll_rss_feeds',
+        }
+        job_ids = {
+            call[1]['id']
+            for call in mock_background_scheduler.add_job.call_args_list
+        }
+        assert job_ids == expected_job_ids
 
         # Verify scheduler was started
         mock_background_scheduler.start.assert_called_once()

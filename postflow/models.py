@@ -58,6 +58,10 @@ class CustomUser(AbstractUser):
         if settings.DEBUG:
             return True
 
+        # Exempt accounts (e.g. the owner) bypass Stripe entirely
+        if self.email in settings.SUBSCRIPTION_EXEMPT_EMAILS:
+            return True
+
         try:
             return self.subscription.is_active
         except AttributeError:

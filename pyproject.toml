@@ -25,6 +25,8 @@ dependencies = [
     "stripe>=15.1.0",
     "uwsgi>=2.0.31",
     "whitenoise>=6.12.0",
+    "anthropic>=0.120.2",
+    "cryptography>=49.0.0",
 ]
 
 [project.optional-dependencies]
