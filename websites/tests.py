@@ -141,6 +141,33 @@ class TestSSRFGuard:
             with pytest.raises(UnsafeURLError):
                 validate_public_url(url)
 
+    def test_redirect_does_not_duplicate_params(self, monkeypatch):
+        import responses as responses_lib
+
+        import websites.sources.base as base
+
+        monkeypatch.setattr(base, "validate_public_url", lambda url: None)
+        with responses_lib.RequestsMock() as rsps:
+            rsps.get(
+                "https://apex.example/api",
+                status=301,
+                headers={"Location": "https://www.apex.example/api?key=abc&limit=50"},
+            )
+            rsps.get(
+                "https://www.apex.example/api",
+                status=302,
+                headers={"Location": "https://backend.example/api?key=abc&limit=50"},
+            )
+            rsps.get("https://backend.example/api", json={"ok": True})
+
+            resp = base.make_session().get(
+                "https://apex.example/api", params={"key": "abc", "limit": 50}
+            )
+            assert resp.json() == {"ok": True}
+            final_url = rsps.calls[-1].request.url
+            assert final_url.count("key=abc") == 1
+            assert final_url.count("limit=50") == 1
+
     def test_session_blocks_private_redirect(self, monkeypatch):
         import responses as responses_lib
 

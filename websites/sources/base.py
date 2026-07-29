@@ -62,6 +62,13 @@ class SafeSession(requests.Session):
             resp = super().request(method, url, allow_redirects=False, **kwargs)
             if follow and resp.is_redirect and hops < MAX_REDIRECTS:
                 url = urljoin(url, resp.headers["location"])
+                # The Location URL already carries the query string; re-sending
+                # params/body would duplicate them on every hop.
+                kwargs.pop("params", None)
+                kwargs.pop("data", None)
+                kwargs.pop("json", None)
+                if resp.status_code in (301, 302, 303) and method.upper() != "GET":
+                    method = "GET"
                 hops += 1
                 continue
             return resp
