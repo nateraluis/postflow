@@ -23,7 +23,7 @@ STRIPE_PRICE_LOOKUP_KEY = "standard_monthly"
 
 # Claude API (AI drafting + campaign evaluation)
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
-ANTHROPIC_MODEL_DRAFTING = env("ANTHROPIC_MODEL_DRAFTING", default="claude-sonnet-5")
+ANTHROPIC_MODEL_DRAFTING = env("ANTHROPIC_MODEL_DRAFTING", default="claude-opus-4-8")
 ANTHROPIC_MODEL_ANALYSIS = env("ANTHROPIC_MODEL_ANALYSIS", default="claude-opus-4-8")
 
 # Emails exempt from subscription gating (comma-separated), e.g. the owner account

@@ -6,6 +6,7 @@ app_name = "campaigns"
 
 urlpatterns = [
     path("queue/", views.review_queue, name="queue"),
+    path("autopilot/", views.run_autopilot_now, name="autopilot"),
     path("promote/<int:blog_post_id>/", views.promote_form, name="promote_form"),
     path("promote/<int:blog_post_id>/generate/", views.promote, name="promote"),
     path("drafts/<int:pk>/approve/", views.approve_draft, name="approve"),

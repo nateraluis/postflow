@@ -1,8 +1,20 @@
 {% extends "postflow/_base.html" %}
 {% block main %}
 <div class="mt-8 max-w-5xl mx-auto">
-  <h1 class="text-2xl font-bold text-gray-900 mb-1">Review queue</h1>
-  <p class="text-sm text-gray-500 mb-6">{{ drafts|length }} draft{{ drafts|length|pluralize }} waiting for review</p>
+  <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-1">Review queue</h1>
+      <p class="text-sm text-gray-500">{{ drafts|length }} draft{{ drafts|length|pluralize }} waiting for review</p>
+    </div>
+    <form method="post" action="{% url 'campaigns:autopilot' %}">
+      {% csrf_token %}
+      <button type="submit"
+        class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+        Run autopilot
+      </button>
+      <p class="text-[11px] text-gray-400 mt-1 text-right">Plans the week from your analytics.<br>Nothing posts without approval.</p>
+    </form>
+  </div>
 
   {% if drafts %}
     <div class="space-y-4 mb-10">
@@ -19,6 +31,12 @@
               <span class="text-xs text-gray-300 ml-auto">{{ draft.model_used }}</span>
             {% endif %}
           </div>
+
+          {% if draft.campaign.rationale %}
+            <p class="text-xs text-gray-500 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2 mb-3">
+              <span class="font-medium text-violet-700">Why:</span> {{ draft.campaign.rationale }}
+            </p>
+          {% endif %}
 
           {% if draft.scheduled_post.images.all %}
             <div class="flex gap-3 mb-3">

@@ -254,3 +254,43 @@ class TestViews:
         resp = client.post(f"/analytics/site/connections/{connection.id}/delete/")
         assert resp.status_code == 302
         assert not AnalyticsConnection.objects.filter(id=connection.id).exists()
+
+
+@pytest.mark.django_db
+class TestSEOOverview:
+    def test_aggregates_queries_and_opportunities(self, website):
+        from datetime import date, timedelta as td
+
+        from analytics_site.utils import get_seo_overview
+
+        today = date.today()
+        for i, (clicks, imp) in enumerate([(2, 20), (1, 15)]):
+            SiteSnapshot.objects.create(
+                website=website,
+                date=today - td(days=i),
+                gsc={
+                    "totals": {"clicks": clicks, "impressions": imp},
+                    "queries": [
+                        {"keys": ["amsterdam photography"], "clicks": clicks, "impressions": imp, "position": 8.0},
+                        {"keys": ["street zine"], "clicks": 0, "impressions": 5, "position": 14.0},
+                    ],
+                    "pages": [
+                        {"keys": ["https://example.com/a/"], "clicks": clicks, "impressions": imp, "position": 6.0},
+                    ],
+                },
+            )
+
+        seo = get_seo_overview(website, days=28)
+        assert seo["has_data"]
+        assert seo["totals"] == {"clicks": 3, "impressions": 35, "ctr": 8.6}
+        top = seo["top_queries"][0]
+        assert top["key"] == "amsterdam photography"
+        assert top["clicks"] == 3 and top["impressions"] == 35
+        assert top["position"] == 8.0
+        # striking distance: decent impressions, position 4-25
+        opp_keys = [o["key"] for o in seo["opportunities"]]
+        assert "street zine" in opp_keys
+
+    def test_no_data(self, website):
+        from analytics_site.utils import get_seo_overview
+        assert get_seo_overview(website)["has_data"] is False

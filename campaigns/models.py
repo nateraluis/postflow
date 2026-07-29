@@ -55,6 +55,10 @@ class Campaign(models.Model):
     utm_campaign = models.SlugField(
         max_length=100, help_text="utm_campaign value used on all links in this campaign"
     )
+    rationale = models.TextField(
+        blank=True, default="",
+        help_text="Why the autopilot planned this campaign (shown in the review queue)",
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
     created_at = models.DateTimeField(auto_now_add=True)
 

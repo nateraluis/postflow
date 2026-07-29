@@ -110,6 +110,66 @@ class TestGenerateDrafts:
 
 
 @pytest.mark.django_db
+class TestAutopilot:
+    def _connect_account(self, user):
+        from mastodon_native.models import MastodonAccount
+
+        MastodonAccount.objects.create(
+            user=user, instance_url="https://mastodon.example", access_token="t", username="u"
+        )
+
+    @patch("campaigns.autopilot.anthropic.Anthropic")
+    def test_plans_and_creates_drafts(self, mock_client, user, blog_post):
+        from campaigns.autopilot import PlannedItem, WeeklyPlan, run_autopilot
+
+        self._connect_account(user)
+
+        plan_response = MagicMock()
+        plan_response.parsed_output = WeeklyPlan(
+            plan_summary="One evergreen post on Mastodon.",
+            items=[
+                PlannedItem(
+                    blog_post_id=blog_post.id,
+                    platforms=["mastodon", "linkedin"],  # linkedin not connected → filtered
+                    goal="evergreen",
+                    rationale="This post matches top search queries.",
+                ),
+                PlannedItem(  # unknown post → skipped
+                    blog_post_id=99999,
+                    platforms=["mastodon"],
+                    goal="new_issue",
+                    rationale="x",
+                ),
+            ],
+        )
+        # Same module attribute backs both call sites: first parse call is the
+        # plan (autopilot), the second is the draft batch (ai.generate_drafts)
+        mock_client.return_value.messages.parse.side_effect = [
+            plan_response,
+            _fake_parse_response(["mastodon"]),
+        ]
+
+        summary, results = run_autopilot(user)
+
+        assert "evergreen post" in summary
+        assert len(results) == 1
+        post, generated = results[0]
+        assert post.status == "draft"  # approval invariant holds for autopilot too
+        assert generated.campaign.rationale == "This post matches top search queries."
+        assert generated.campaign.name.startswith("Autopilot:")
+
+    def test_requires_connected_accounts(self, user, blog_post):
+        from campaigns.autopilot import run_autopilot
+
+        with pytest.raises(ValueError):
+            run_autopilot(user)
+
+    def test_autopilot_view_requires_login(self, client, user, blog_post):
+        resp = client.post("/campaigns/autopilot/")
+        assert resp.status_code == 302 and "/login" in resp.url
+
+
+@pytest.mark.django_db
 class TestEvaluator:
     @patch("campaigns.evaluator.anthropic.Anthropic")
     def test_generates_weekly_report(self, mock_anthropic, user, blog_post):

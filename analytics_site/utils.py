@@ -168,3 +168,78 @@ def get_post_impact(user, website, days=30):
         })
 
     return results
+
+
+def get_seo_overview(website, days=28):
+    """SEO analytics aggregated from the stored Search Console blobs.
+
+    Returns {totals, series, top_queries, top_pages, opportunities}. Positions
+    are impression-weighted averages; opportunities are "striking distance"
+    queries (decent impressions, ranked outside the top results).
+    """
+    if website is None:
+        return None
+    start = timezone.now().date() - timedelta(days=days)
+    snapshots = SiteSnapshot.objects.filter(
+        website=website, date__gte=start
+    ).exclude(gsc={}).order_by("date")
+
+    totals = {"clicks": 0, "impressions": 0}
+    series = []
+    queries = defaultdict(lambda: {"clicks": 0, "impressions": 0, "pos_weight": 0.0})
+    pages = defaultdict(lambda: {"clicks": 0, "impressions": 0, "pos_weight": 0.0})
+
+    for snap in snapshots:
+        gsc = snap.gsc or {}
+        day_totals = gsc.get("totals") or {}
+        clicks = day_totals.get("clicks") or 0
+        impressions = day_totals.get("impressions") or 0
+        totals["clicks"] += clicks
+        totals["impressions"] += impressions
+        series.append({"date": snap.date, "clicks": clicks, "impressions": impressions})
+
+        for bucket, rows in ((queries, gsc.get("queries")), (pages, gsc.get("pages"))):
+            for row in rows or []:
+                key = _dim(row)
+                imp = row.get("impressions") or 0
+                bucket[key]["clicks"] += row.get("clicks") or 0
+                bucket[key]["impressions"] += imp
+                bucket[key]["pos_weight"] += (row.get("position") or 0) * imp
+
+    def _finalise(bucket, limit):
+        rows = []
+        for key, agg in bucket.items():
+            imp = agg["impressions"]
+            rows.append({
+                "key": key,
+                "clicks": agg["clicks"],
+                "impressions": imp,
+                "position": round(agg["pos_weight"] / imp, 1) if imp else None,
+                "ctr": round(100 * agg["clicks"] / imp, 1) if imp else 0,
+            })
+        rows.sort(key=lambda r: (-r["clicks"], -r["impressions"]))
+        return rows[:limit]
+
+    top_queries = _finalise(queries, 15)
+    top_pages = _finalise(pages, 10)
+    opportunities = [
+        row
+        for row in _finalise(queries, 1000)
+        if row["impressions"] >= 3 and row["position"] and 4 <= row["position"] <= 25
+    ]
+    opportunities.sort(key=lambda r: -r["impressions"])
+
+    totals["ctr"] = (
+        round(100 * totals["clicks"] / totals["impressions"], 1)
+        if totals["impressions"]
+        else 0
+    )
+    return {
+        "totals": totals,
+        "series": series,
+        "top_queries": top_queries,
+        "top_pages": top_pages,
+        "opportunities": opportunities[:10],
+        "days": days,
+        "has_data": bool(series),
+    }

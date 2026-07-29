@@ -160,6 +160,7 @@ class TestSchedulerInitialization:
             'refresh_threads_tokens',
             'collect_site_analytics',
             'generate_campaign_reports',
+            'run_campaign_autopilot',
         }
         job_ids = {
             call[1]['id']

@@ -279,6 +279,17 @@ class PostFlowScheduler:
         )
         logger.info("Added job: generate_campaign_reports (Mondays at 07:45 UTC)")
 
+        # Add job: Campaign autopilot on Mondays at 08:00 UTC
+        # (after analytics collection at 07:30 and the weekly report at 07:45)
+        self.scheduler.add_job(
+            func=self._run_campaign_autopilot,
+            trigger=CronTrigger(day_of_week='mon', hour=8, minute=0),
+            id='run_campaign_autopilot',
+            name='Run campaign autopilot',
+            replace_existing=True,
+        )
+        logger.info("Added job: run_campaign_autopilot (Mondays at 08:00 UTC)")
+
         # Start the scheduler
         self.scheduler.start()
         logger.info("PostFlow scheduler started successfully")
@@ -431,6 +442,13 @@ class PostFlowScheduler:
             call_command('generate_campaign_report')
         except Exception as e:
             logger.exception(f"Error generating campaign reports: {e}")
+
+    def _run_campaign_autopilot(self):
+        """Plan the coming week and generate campaign drafts for review."""
+        try:
+            call_command('run_campaign_autopilot')
+        except Exception as e:
+            logger.exception(f"Error running campaign autopilot: {e}")
 
     def shutdown(self):
         """Gracefully shut down the scheduler and release lock."""

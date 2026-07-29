@@ -7,7 +7,13 @@ from django.views.decorators.http import require_POST
 from websites.models import Website
 
 from .models import AnalyticsConnection
-from .utils import get_post_impact, get_series, get_signups_by_source, get_utm_sources
+from .utils import (
+    get_post_impact,
+    get_seo_overview,
+    get_series,
+    get_signups_by_source,
+    get_utm_sources,
+)
 
 PROVIDER_CONFIG_FIELDS = {
     "plausible": ["api_key", "site_id"],
@@ -58,6 +64,7 @@ def dashboard(request):
             "signups_by_source": get_signups_by_source(website, days=30),
             "utm_sources": get_utm_sources(website, days=30),
             "post_impact": get_post_impact(request.user, website, days=30),
+            "seo": get_seo_overview(website, days=28),
             "connections": connections,
             "available_providers": [
                 (value, label) for value, label in AnalyticsConnection.PROVIDER_CHOICES

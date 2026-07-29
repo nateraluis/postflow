@@ -124,10 +124,49 @@ def generate_drafts(campaign, platforms, slots):
             )
             errors = build_payload(post).validate_for_platform(platform)
             if errors:
-                logger.warning(f"Draft for {platform} has validation issues: {errors}")
+                logger.warning(f"Draft for {platform} over limit, repairing: {errors}")
+                _repair_length(client, voice, post, draft, platform)
             results.append((post, generated))
 
     return results
+
+
+def _repair_length(client, voice, post, draft, platform):
+    """One-shot shorten pass for captions that exceed the platform limit."""
+    hashtag_str = " ".join(f"#{h.lstrip('#')}" for h in draft.hashtags)
+    target = PLATFORM_CAPTION_LIMITS[platform] - len(hashtag_str) - 20
+
+    class ShortenedCaption(BaseModel):
+        caption: str
+
+    try:
+        response = client.messages.parse(
+            model=settings.ANTHROPIC_MODEL_DRAFTING,
+            max_tokens=2000,
+            system=_system_prompt(voice),
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"This {platform} caption is too long. Rewrite it to under "
+                    f"{target} characters. Keep the hook, the single idea, the "
+                    "closing, and the link. Cut detail, not voice. Do not add "
+                    "hashtags.\n\n" + draft.caption
+                ),
+            }],
+            output_format=ShortenedCaption,
+        )
+        if response.parsed_output is None:
+            return
+        caption = _apply_hard_rules(response.parsed_output.caption)
+        if hashtag_str:
+            caption = f"{caption}\n\n{hashtag_str}"
+        post.caption = caption
+        post.save(update_fields=["caption"])
+        remaining = build_payload(post).validate_for_platform(platform)
+        if remaining:
+            logger.warning(f"Draft for {platform} still over limit after repair: {remaining}")
+    except Exception:
+        logger.exception(f"Length repair failed for {platform} draft")
 
 
 def mark_promoted(blog_post):
@@ -138,8 +177,11 @@ def mark_promoted(blog_post):
 
 def _system_prompt(voice):
     return (
-        "You turn blog posts into social media drafts for the blog's author. "
-        "You write as the author, in their voice, following their rules exactly.\n\n"
+        "You write social media posts for the author of a blog, as the author. "
+        "Each post is a finished, standalone piece of writing for its platform: "
+        "it hooks in the first line, delivers one concrete idea with substance, "
+        "and closes naturally. It must work for a reader who never clicks the link. "
+        "Follow the author's voice rules exactly.\n\n"
         f"{voice.rules}"
     )
 
@@ -155,23 +197,32 @@ def _draft_request(blog_post, campaign, platforms, images):
         url = tag_url(blog_post.url, platform, campaign.utm_campaign)
         limit = PLATFORM_CAPTION_LIMITS[platform]
         platform_lines.append(
-            f"- {platform}: caption + hashtags must stay under {limit} characters. "
+            f"- {platform}: HARD LIMIT {limit} characters for caption plus hashtags plus "
+            f"the link; drafts over the limit are rejected, so aim well under it. "
             f"Link to include (except on instagram and glass, which do not support links): {url}"
         )
 
     body = blog_post.body_for_ai[:12000]
-    return f"""Create one social media draft for each of these platforms:
+    return f"""Write one social media post for each of these platforms:
 {chr(10).join(platform_lines)}
 
-Rules for every draft:
-- Reuse the author's own sentences from the post verbatim wherever possible.
-- Pick 1-4 of the available images by index (glass and instagram need at least one image if any exist).
-- Do not include hashtags inside the caption text; list them separately.
-- On instagram, mention that the link is in the bio instead of pasting a URL.
+How to work:
+1. Read the source post and pick the single strongest angle for each platform: a
+   specific moment, image, number, or lesson. Different platforms may take
+   different angles.
+2. Write each post as a complete standalone piece in the author's voice: hook in
+   the first line, one idea developed properly, natural close. Never compress the
+   source into stitched-together fragments; write flowing copy that happens to
+   use the author's own words and images where they fit.
+3. Work the link into a natural sentence near the end (on instagram say the link
+   is in the bio; on glass omit links entirely).
+4. Pick 1-4 of the available images by index (instagram and glass need at least
+   one image if any exist). Choose images that match the angle you chose.
+5. Do not include hashtags inside the caption text; list them separately.
 
-Blog post title: {blog_post.title}
+Source post title: {blog_post.title}
 
-Blog post content:
+Source post:
 {body}
 
 Available images:
@@ -212,13 +263,22 @@ def _create_scheduled_post(user, draft, post_date, images):
 def _assign_default_accounts(post, platform):
     defaults = UserDefaults.objects.filter(user=post.user).first()
     if defaults is None:
-        return
+        defaults = UserDefaults.objects.create(user=post.user)
     if platform == "pixelfed":
-        post.mastodon_accounts.set(defaults.default_mastodon_accounts.all())
+        accounts = defaults.default_mastodon_accounts.all()
+        if not accounts:
+            accounts = post.user.mastodon_accounts.all()
+        post.mastodon_accounts.set(accounts)
     elif platform == "mastodon":
-        post.mastodon_native_accounts.set(defaults.default_mastodon_native_accounts.all())
+        accounts = defaults.default_mastodon_native_accounts.all()
+        if not accounts:
+            accounts = post.user.mastodon_native_accounts.all()
+        post.mastodon_native_accounts.set(accounts)
     elif platform == "instagram":
-        post.instagram_accounts.set(defaults.default_instagram_accounts.all())
+        accounts = defaults.default_instagram_accounts.all()
+        if not accounts:
+            accounts = post.user.instagram_business_accounts.all()
+        post.instagram_accounts.set(accounts)
     elif platform == "linkedin":
         accounts = defaults.default_linkedin_accounts.all()
         if not accounts:

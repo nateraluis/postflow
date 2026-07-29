@@ -154,6 +154,24 @@ def regenerate_draft(request, pk):
 
 
 @login_required
+@require_POST
+def run_autopilot_now(request):
+    from . import autopilot
+
+    try:
+        summary, results = autopilot.run_autopilot(request.user)
+        messages.success(
+            request, f"Autopilot planned {len(results)} draft(s) for review. {summary}"
+        )
+    except ValueError as e:
+        messages.error(request, str(e))
+    except Exception:
+        logger.exception("Autopilot failed")
+        messages.error(request, "Autopilot failed. Check the Claude API key and try again.")
+    return redirect("campaigns:queue")
+
+
+@login_required
 def report_list(request):
     reports = request.user.campaign_reports.all()
     return render(request, "campaigns/reports.html", {
