@@ -29,6 +29,7 @@ urlpatterns = [
     path('pixelfed/', include('pixelfed.urls')),
     path('mastodon/', include('mastodon_native.urls')),
     path('mastodon-integration/', include('mastodon_integration.urls')),
+    path('websites/', include('websites.urls')),
     path('analytics/', include('analytics.urls')),
     path('analytics/pixelfed/', include('analytics_pixelfed.urls')),
     path('analytics/mastodon/', include('analytics_mastodon.urls')),

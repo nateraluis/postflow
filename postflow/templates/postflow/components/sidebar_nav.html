@@ -71,6 +71,20 @@
           </a>
         </li>
 
+        <!-- Websites -->
+        <li>
+          <a href="{% url 'websites:list' %}"
+             {% if mobile_view %}@click="mobileOpen = false"{% endif %}
+             class="{% if mobile_view %}block{% else %}group flex gap-x-3 rounded-md p-2 text-sm font-semibold{% endif %} {% if active_page == 'websites' %}{% if not mobile_view %}bg-gray-800 text-white{% else %}text-white font-semibold{% endif %}{% else %}{% if not mobile_view %}text-gray-400 hover:bg-gray-800 hover:text-white{% else %}text-gray-300 hover:text-white{% endif %}{% endif %}">
+            {% if not mobile_view %}
+            <svg class="size-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+            </svg>
+            {% endif %}
+            Websites
+          </a>
+        </li>
+
         <!-- Settings -->
         <li>
           <a href="{% url 'settings_hub' %}"

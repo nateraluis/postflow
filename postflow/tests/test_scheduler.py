@@ -156,6 +156,7 @@ class TestSchedulerInitialization:
             'fetch_mastodon_engagement',
             'snapshot_followers',
             'poll_rss_feeds',
+            'sync_website_content',
         }
         job_ids = {
             call[1]['id']

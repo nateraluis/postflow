@@ -1,0 +1,152 @@
+{% extends "postflow/_base.html" %}
+{% load humanize %}
+{% block main %}
+<div class="mt-8 max-w-5xl mx-auto">
+  <a href="{% url 'websites:list' %}" class="text-sm text-violet-600 hover:underline">&larr; Websites</a>
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mt-2 mb-6">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <h1 class="text-2xl font-bold text-gray-900 truncate">{{ website.title|default:website.url }}</h1>
+        {% if website.sync_status == 'ok' %}
+          <span class="inline-block text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Synced</span>
+        {% elif website.sync_status == 'error' %}
+          <span class="inline-block text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Error</span>
+        {% else %}
+          <span class="inline-block text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{{ website.get_sync_status_display }}</span>
+        {% endif %}
+      </div>
+      <a href="{{ website.url }}" target="_blank" rel="noopener" class="text-sm text-gray-500 hover:underline break-all">{{ website.url }}</a>
+      <p class="text-xs text-gray-400 mt-1">
+        {% if website.last_synced_at %}
+          Last synced {{ website.last_synced_at|naturaltime }}
+        {% else %}
+          Never synced
+        {% endif %}
+      </p>
+      {% if website.sync_status == 'error' and website.sync_error %}
+        <p class="text-xs text-red-600 mt-1">{{ website.sync_error }}</p>
+      {% endif %}
+    </div>
+
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <form method="post" action="{% url 'websites:sync' website.id %}">
+        {% csrf_token %}
+        <button type="submit"
+          class="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Sync now
+        </button>
+      </form>
+      <form method="post" action="{% url 'websites:delete' website.id %}">
+        {% csrf_token %}
+        <button type="submit"
+          onclick="return confirm('Delete {{ website.title|default:website.url|escapejs }} and all of its synced content? This cannot be undone.');"
+          class="text-sm text-red-500 hover:text-red-700 px-3 py-2 rounded-lg border border-transparent hover:border-red-100 transition-colors">
+          Delete website
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sources Panel -->
+  <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-8">
+    <h2 class="text-sm font-semibold text-gray-900 mb-3">Content sources</h2>
+
+    {% if sources %}
+      <div class="space-y-3">
+        {% for source in sources %}
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded-lg border">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-800">{{ source.get_kind_display }}</span>
+              {% if source.is_active %}
+                <span class="inline-block text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Active</span>
+              {% else %}
+                <span class="inline-block text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full font-medium">Inactive</span>
+              {% endif %}
+              <span class="text-xs text-gray-400">priority {{ source.priority }}</span>
+            </div>
+
+            {% if source.kind == 'ghost_content_api' and not source.is_active %}
+              <form method="post" action="{% url 'websites:add_api_key' website.id %}"
+                    class="flex flex-col sm:flex-row sm:items-center gap-2">
+                {% csrf_token %}
+                <input type="text" name="api_key" placeholder="Ghost Content API key" required
+                       class="p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500">
+                <button type="submit"
+                  class="text-sm bg-violet-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-violet-700 transition-colors">
+                  Save key
+                </button>
+              </form>
+            {% endif %}
+          </div>
+          {% if source.kind == 'ghost_content_api' and not source.is_active %}
+            <p class="text-xs text-gray-400 -mt-1 sm:text-right">
+              Ghost Admin &rarr; Settings &rarr; Integrations &rarr; Add custom integration &rarr; Content API key
+            </p>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-sm text-gray-400">No content sources configured yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Posts Grid -->
+  <h2 class="text-sm font-semibold text-gray-900 mb-3">Posts</h2>
+
+  {% if posts %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for post in posts %}
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden flex flex-col">
+          {% if post.feature_image and post.feature_image.image %}
+            <img src="{{ post.feature_image.image.url }}" alt="{{ post.feature_image.alt_text }}"
+                 class="w-full h-36 object-cover">
+          {% else %}
+            <div class="w-full h-36 bg-gray-100 flex items-center justify-center">
+              <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          {% endif %}
+
+          <div class="p-4 flex flex-col flex-1">
+            <a href="{{ post.url }}" target="_blank" rel="noopener"
+               class="text-sm font-semibold text-gray-900 hover:text-violet-600 line-clamp-2 mb-1">
+              {{ post.title }}
+            </a>
+
+            <p class="text-xs text-gray-400 mb-2">
+              {% if post.published_at %}{{ post.published_at|date:"M j, Y" }}{% else %}Unpublished{% endif %}
+            </p>
+
+            {% if post.excerpt %}
+              <p class="text-sm text-gray-600 line-clamp-3 mb-3">{{ post.excerpt }}</p>
+            {% endif %}
+
+            <div class="mt-auto pt-3 border-t flex items-center justify-between text-xs text-gray-400">
+              <span>{{ post.images.all|length }} image{{ post.images.all|length|pluralize }}</span>
+              {% if post.promo_count %}
+                <span class="text-violet-600 font-medium">Promoted {{ post.promo_count }}&times;</span>
+              {% else %}
+                <span>Not yet promoted</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="bg-gray-50 p-8 rounded-lg text-center">
+      <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
+      <p class="text-gray-600">Run a sync to import content.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

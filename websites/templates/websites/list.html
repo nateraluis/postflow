@@ -1,0 +1,79 @@
+{% extends "postflow/_base.html" %}
+{% load humanize %}
+{% block main %}
+<div class="mt-8 max-w-5xl mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">Websites</h1>
+  <p class="text-sm text-gray-500 mb-6">Connect a website to pull in its posts and images as source material for social content.</p>
+
+  <!-- Add Website Form -->
+  <form method="post" action="{% url 'websites:add' %}"
+        class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-8 flex flex-col sm:flex-row gap-3 sm:items-end">
+    {% csrf_token %}
+    <div class="flex-1">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Website URL</label>
+      <input type="url" name="url" placeholder="https://yourblog.com" required
+             class="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500">
+    </div>
+    <button type="submit"
+      class="inline-flex items-center justify-center gap-2 bg-violet-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add website
+    </button>
+  </form>
+
+  <!-- Websites Grid -->
+  {% if websites %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for website in websites %}
+        <a href="{% url 'websites:detail' website.id %}"
+           class="block bg-white p-4 rounded-lg shadow-sm border hover:shadow-md hover:border-violet-200 transition-all">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <h2 class="text-sm font-semibold text-gray-900 truncate" title="{{ website.title|default:website.url }}">
+              {{ website.title|default:website.url }}
+            </h2>
+            {% if website.sync_status == 'ok' %}
+              <span class="flex-shrink-0 inline-block text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Synced</span>
+            {% elif website.sync_status == 'error' %}
+              <span class="flex-shrink-0 inline-block text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Error</span>
+            {% else %}
+              <span class="flex-shrink-0 inline-block text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{{ website.get_sync_status_display }}</span>
+            {% endif %}
+          </div>
+
+          <p class="text-xs text-gray-500 truncate mb-3">{{ website.url }}</p>
+
+          <div class="flex items-center gap-2 flex-wrap mb-3">
+            {% if website.detected_platform %}
+              <span class="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{{ website.detected_platform }}</span>
+            {% endif %}
+            {% if website.best_source %}
+              <span class="inline-block text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full font-medium">{{ website.best_source.get_kind_display }}</span>
+            {% endif %}
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-gray-400 pt-3 border-t">
+            <span>{{ website.posts.count }} post{{ website.posts.count|pluralize }}</span>
+            <span>
+              {% if website.last_synced_at %}
+                Synced {{ website.last_synced_at|naturaltime }}
+              {% else %}
+                Never synced
+              {% endif %}
+            </span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="bg-gray-50 p-8 rounded-lg text-center">
+      <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21a9 9 0 100-18 9 9 0 000 18zm0 0c1.657 0 3-4.03 3-9s-1.343-9-3-9-3 4.03-3 9 1.343 9 3 9zm-9-9h18" />
+      </svg>
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">No websites yet</h3>
+      <p class="text-gray-600">Add a website above to start pulling in posts you can share on social media.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -236,6 +236,17 @@ class PostFlowScheduler:
         )
         logger.info("Added job: poll_rss_feeds (every 30 minutes)")
 
+        # Add job: Sync website content every 6 hours
+        # Runs at :10 past to stay off the busy :00/:15/:30/:45 slots
+        self.scheduler.add_job(
+            func=self._sync_website_content,
+            trigger=CronTrigger(hour='*/6', minute=10),
+            id='sync_website_content',
+            name='Sync website content',
+            replace_existing=True,
+        )
+        logger.info("Added job: sync_website_content (every 6 hours at :10)")
+
         # Start the scheduler
         self.scheduler.start()
         logger.info("PostFlow scheduler started successfully")
@@ -360,6 +371,13 @@ class PostFlowScheduler:
             call_command('poll_rss_feeds')
         except Exception as e:
             logger.exception(f"Error polling RSS feeds: {e}")
+
+    def _sync_website_content(self):
+        """Sync posts and images from connected websites."""
+        try:
+            call_command('sync_website_content')
+        except Exception as e:
+            logger.exception(f"Error syncing website content: {e}")
 
     def shutdown(self):
         """Gracefully shut down the scheduler and release lock."""
