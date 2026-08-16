@@ -88,6 +88,8 @@ jobs:
           sudo cp systemd/postflow.target /etc/systemd/system/
           sudo cp systemd/postflow-web.service /etc/systemd/system/
           sudo cp systemd/postflow-scheduler.service /etc/systemd/system/
+          sudo mkdir -p /etc/systemd/system/nginx.service.d
+          sudo cp deploy/nginx-systemd-override.conf /etc/systemd/system/nginx.service.d/override.conf
           sudo systemctl daemon-reload
 
           echo "--- Installing nginx config ---"
@@ -101,7 +103,8 @@ jobs:
 
           echo "--- Starting/reloading nginx ---"
           sudo systemctl enable nginx
-          sudo nginx -t && sudo systemctl restart nginx
+          sudo nginx -t
+          sudo systemctl reload-or-restart nginx
 
           echo "--- Enabling certbot auto-renewal ---"
           sudo systemctl enable certbot.timer
@@ -115,3 +118,14 @@ jobs:
 
           echo "--- Deploy complete ---"
           DEPLOY
+
+      - name: Verify site is reachable
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 https://postflow.photo/healthcheck || echo 000)
+            echo "attempt $i: HTTP $code"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 6
+          done
+          echo "Site failed external healthcheck after deploy" >&2
+          exit 1
