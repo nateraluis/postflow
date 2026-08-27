@@ -70,18 +70,35 @@ def mastodon_callback(request):
     if token_response.status_code == 200:
         token_data = token_response.json()
         access_token = token_data["access_token"]
-        logger.debug(access_token)
+
+        # Keep the refresh token and client credentials so the access token
+        # can be renewed before it expires (Pixelfed tokens last one year).
+        from .tokens import token_expiry_from_jwt
+        from django.utils import timezone
+        import datetime as dt
+
+        if token_data.get("expires_in"):
+            token_expires_at = timezone.now() + dt.timedelta(seconds=token_data["expires_in"])
+        else:
+            token_expires_at = token_expiry_from_jwt(access_token)
 
         # Step 4: Fetch user's Mastodon profile
         user_info = requests.get(f"{instance_url}/api/v1/accounts/verify_credentials", headers={
             "Authorization": f"Bearer {access_token}"
         }).json()
 
-        account = MastodonAccount.objects.create(
+        # Reconnecting an account should renew its token, not duplicate the row
+        account, _created = MastodonAccount.objects.update_or_create(
             user=request.user,
             instance_url=instance_url,
-            access_token=access_token,
-            username=user_info["username"]
+            username=user_info["username"],
+            defaults={
+                "access_token": access_token,
+                "refresh_token": token_data.get("refresh_token", ""),
+                "client_id": client_id or "",
+                "client_secret": client_secret or "",
+                "token_expires_at": token_expires_at,
+            },
         )
 
         # Auto-sync historical posts for new accounts

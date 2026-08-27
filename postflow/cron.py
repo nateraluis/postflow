@@ -41,6 +41,64 @@ def post_scheduled():
     _process_auto_deletes(now)
 
 
+def publish_to_platforms(post, payload, in_reply_to_ids=None):
+    """Publish a post to every connected platform; return names of failed ones.
+
+    Platform utils each set post.status themselves, so a platform that
+    succeeds after one that failed would overwrite "failed" with "posted"
+    and silently mask the failure. Snapshot the status after each platform
+    and restore "failed" at the end if any leg failed.
+    """
+    failed = []
+
+    def run(platform, publish):
+        try:
+            publish()
+        except Exception:
+            logger.exception(f"{platform} publish raised for post ID {post.id}")
+            failed.append(platform)
+            return
+        post.refresh_from_db()
+        if post.status == "failed":
+            failed.append(platform)
+
+    # Glass first: it has no API, so it becomes a manual task. If Glass is
+    # the only target the post moves to awaiting_manual instead of posted.
+    if post.glass_accounts.exists():
+        from glass.utils import queue_manual_post
+        run("glass", lambda: queue_manual_post(post))
+
+    if post.mastodon_accounts.exists():
+        run("pixelfed", lambda: post_pixelfed(
+            post, payload, in_reply_to_id=in_reply_to_ids.get('pixelfed') if in_reply_to_ids else None
+        ))
+
+    if post.mastodon_native_accounts.exists():
+        run("mastodon", lambda: post_mastodon(
+            post, payload, in_reply_to_id=in_reply_to_ids.get('mastodon') if in_reply_to_ids else None
+        ))
+
+    if post.instagram_accounts.exists():
+        run("instagram", lambda: post_instagram(post, payload))
+
+    if post.linkedin_accounts.exists():
+        from linkedin.utils import post_linkedin
+        run("linkedin", lambda: post_linkedin(post, payload))
+
+    if post.threads_accounts.exists():
+        from threads.utils import post_threads
+        run("threads", lambda: post_threads(post, payload))
+
+    if failed and post.status != "failed":
+        logger.error(
+            f"Post ID {post.id} failed on {', '.join(failed)} but a later platform "
+            f"marked it {post.status}; forcing status to failed"
+        )
+        post.status = "failed"
+        post.save(update_fields=["status"])
+    return failed
+
+
 def _publish_post(post, in_reply_to_ids=None):
     """Publish a single post to all configured platforms."""
     try:
@@ -62,31 +120,12 @@ def _publish_post(post, in_reply_to_ids=None):
             post.save(update_fields=["status"])
             return
 
-        # Glass first: it has no API, so it becomes a manual task. If Glass is
-        # the only target the post moves to awaiting_manual instead of posted.
-        if post.glass_accounts.exists():
-            from glass.utils import queue_manual_post
-            queue_manual_post(post)
-
-        if post.mastodon_accounts.exists():
-            post_pixelfed(post, payload, in_reply_to_id=in_reply_to_ids.get('pixelfed') if in_reply_to_ids else None)
-
-        if post.mastodon_native_accounts.exists():
-            post_mastodon(post, payload, in_reply_to_id=in_reply_to_ids.get('mastodon') if in_reply_to_ids else None)
-
-        if post.instagram_accounts.exists():
-            post_instagram(post, payload)
-
-        if post.linkedin_accounts.exists():
-            from linkedin.utils import post_linkedin
-            post_linkedin(post, payload)
-
-        if post.threads_accounts.exists():
-            from threads.utils import post_threads
-            post_threads(post, payload)
-
+        failed = publish_to_platforms(post, payload, in_reply_to_ids)
         post.refresh_from_db()
-        logger.info(f"Post ID {post.id} completed with status: {post.status}")
+        logger.info(
+            f"Post ID {post.id} completed with status: {post.status}"
+            + (f" (failed platforms: {', '.join(failed)})" if failed else "")
+        )
 
     except Exception as e:
         logger.exception(f"Unexpected error processing post ID {post.id}: {str(e)}")

@@ -150,6 +150,17 @@ class PostFlowScheduler:
         )
         logger.info("Added job: refresh_instagram_tokens (every 6 hours at :00)")
 
+        # Add job: Refresh Pixelfed tokens daily at 05:40 UTC
+        # (Pixelfed access tokens expire after a year; renew ahead of expiry)
+        self.scheduler.add_job(
+            func=self._refresh_pixelfed_tokens,
+            trigger=CronTrigger(hour=5, minute=40),
+            id='refresh_pixelfed_tokens',
+            name='Refresh Pixelfed access tokens',
+            replace_existing=True,
+        )
+        logger.info("Added job: refresh_pixelfed_tokens (daily at 05:40 UTC)")
+
         # Add job: Sync Pixelfed posts every hour
         # Runs at :15 past every hour (offset to avoid collision with token refresh)
         self.scheduler.add_job(
@@ -322,6 +333,17 @@ class PostFlowScheduler:
             call_command('refresh_instagram_tokens')
         except Exception as e:
             logger.exception(f"Error in refresh_instagram_tokens job: {e}")
+
+    def _refresh_pixelfed_tokens(self):
+        """
+        Execute the refresh_pixelfed_tokens task.
+        Calls the Django management command with error handling.
+        """
+        try:
+            logger.debug("Running refresh_pixelfed_tokens job...")
+            call_command('refresh_pixelfed_tokens')
+        except Exception as e:
+            logger.exception(f"Error in refresh_pixelfed_tokens job: {e}")
 
     def _sync_pixelfed_posts(self):
         """

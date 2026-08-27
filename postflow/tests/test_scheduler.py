@@ -148,6 +148,7 @@ class TestSchedulerInitialization:
         expected_job_ids = {
             'post_scheduled',
             'refresh_instagram_tokens',
+            'refresh_pixelfed_tokens',
             'sync_pixelfed_posts',
             'fetch_pixelfed_engagement',
             'sync_instagram_posts',

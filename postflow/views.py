@@ -618,20 +618,16 @@ def schedule_post(request):
         # Post Now: publish immediately instead of waiting for cron
         if is_post_now:
             from postflow.payload import build_payload
-            from pixelfed.utils import post_pixelfed
-            from mastodon_native.utils import post_mastodon
-            from instagram.utils import post_instagram
+            from postflow.cron import publish_to_platforms
 
             try:
                 payload = build_payload(scheduled_post)
-                if scheduled_post.mastodon_accounts.exists():
-                    post_pixelfed(scheduled_post, payload)
-                if scheduled_post.mastodon_native_accounts.exists():
-                    post_mastodon(scheduled_post, payload)
-                if scheduled_post.instagram_accounts.exists():
-                    post_instagram(scheduled_post, payload)
+                failed_platforms = publish_to_platforms(scheduled_post, payload)
                 scheduled_post.refresh_from_db()
-                logger.info(f"Post Now completed with status: {scheduled_post.status}")
+                logger.info(
+                    f"Post Now completed with status: {scheduled_post.status}"
+                    + (f" (failed platforms: {', '.join(failed_platforms)})" if failed_platforms else "")
+                )
             except Exception as pub_err:
                 logger.exception(f"Post Now failed: {pub_err}")
                 scheduled_post.status = "failed"

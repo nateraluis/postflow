@@ -1,7 +1,22 @@
 import requests
 import logging
 
+from .tokens import ensure_fresh_token
+
 logger = logging.getLogger("postflow")
+
+
+def _is_auth_error(response):
+    """Detect an authentication failure in a Pixelfed/Mastodon error response.
+
+    Pixelfed reports expired or revoked tokens as HTTP 500 with an
+    "Unauthenticated." JSON body, so a status-code check alone is not enough.
+    """
+    if response is None:
+        return False
+    if response.status_code in (401, 403):
+        return True
+    return "unauthenticated" in response.text[:500].lower()
 
 
 def post_pixelfed(scheduled_post, payload=None, in_reply_to_id=None):
@@ -18,6 +33,11 @@ def post_pixelfed(scheduled_post, payload=None, in_reply_to_id=None):
 
     for account in scheduled_post.mastodon_accounts.all():
         try:
+            if not ensure_fresh_token(account):
+                scheduled_post.status = "failed"
+                scheduled_post.save(update_fields=["status"])
+                continue
+
             headers = {
                 "Authorization": f"Bearer {account.access_token}",
                 "Accept": "application/json",
@@ -143,7 +163,14 @@ def post_pixelfed(scheduled_post, payload=None, in_reply_to_id=None):
             scheduled_post.save(update_fields=["status"])
         except requests.exceptions.HTTPError as e:
             logger.error(f"HTTP error posting to Pixelfed @{account.username}: {e.response.status_code}")
-            logger.error(f"Response: {e.response.text if e.response else 'No response'}")
+            # NB: a Response is falsy for error statuses, so compare against None
+            logger.error(f"Response: {e.response.text[:500] if e.response is not None else 'No response'}")
+            if _is_auth_error(e.response):
+                logger.error(
+                    f"Pixelfed rejected the access token for @{account.username} on "
+                    f"{account.instance_url} (expired or revoked). Reconnect the "
+                    "account from the Accounts page."
+                )
             scheduled_post.status = "failed"
             scheduled_post.save(update_fields=["status"])
         except requests.RequestException as e:

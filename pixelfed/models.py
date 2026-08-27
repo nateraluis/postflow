@@ -7,6 +7,12 @@ class MastodonAccount(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mastodon_accounts")
     instance_url = models.URLField(help_text="Mastodon or Pixelfed instance URL")
     access_token = EncryptedTextField(help_text="OAuth access token")
+    refresh_token = EncryptedTextField(blank=True, default="", help_text="OAuth refresh token")
+    client_id = models.CharField(max_length=255, blank=True, default="", help_text="OAuth client ID used to obtain the token")
+    client_secret = EncryptedTextField(blank=True, default="", help_text="OAuth client secret used to obtain the token")
+    token_expires_at = models.DateTimeField(
+        null=True, blank=True, help_text="When the access token expires"
+    )
     username = models.CharField(max_length=100, help_text="Mastodon username")
 
     # Sync tracking timestamps
