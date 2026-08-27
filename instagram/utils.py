@@ -128,11 +128,17 @@ def post_instagram(scheduled_post, payload=None):
     is_carousel = len(image_urls) > 1
     logger.info(f"Posting {'carousel with ' + str(len(image_urls)) + ' images' if is_carousel else 'single image'} to Instagram")
 
+    any_failed = False
     for account in scheduled_post.instagram_accounts.all():
+        if scheduled_post.status == "failed":
+            any_failed = True  # a previous account failed; remember it
         try:
             # Check if token is expired before attempting post
             if account.expires_at and account.expires_at <= now():
                 logger.error(f"Instagram token expired for @{account.username}. Cannot post.")
+                # Mark failed so the post doesn't sit pending and retry forever
+                scheduled_post.status = "failed"
+                scheduled_post.save(update_fields=["status"])
                 continue
 
             logger.info(f"Posting to Instagram Business Account @{account.username}")
@@ -398,3 +404,9 @@ def post_instagram(scheduled_post, payload=None):
             scheduled_post.status = "failed"
             scheduled_post.save(update_fields=["status"])
             return
+
+    # A later account's success must not mask an earlier account's failure
+    if any_failed and scheduled_post.status != "failed":
+        logger.error(f"Post ID {scheduled_post.id}: at least one Instagram account failed; marking post failed")
+        scheduled_post.status = "failed"
+        scheduled_post.save(update_fields=["status"])

@@ -41,7 +41,11 @@ def validate_public_url(url: str):
     except socket.gaierror as e:
         raise UnsafeURLError(f"Cannot resolve host {host!r}") from e
     for info in addr_infos:
-        ip = ipaddress.ip_address(info[4][0])
+        try:
+            ip = ipaddress.ip_address(info[4][0])
+        except ValueError as e:
+            # e.g. scoped IPv6 literals like fe80::1%eth0 — reject, don't crash
+            raise UnsafeURLError(f"Host {host!r} resolves to unparseable address {info[4][0]!r}") from e
         if (
             ip.is_private or ip.is_loopback or ip.is_link_local
             or ip.is_reserved or ip.is_multicast or ip.is_unspecified

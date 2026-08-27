@@ -29,11 +29,16 @@ def post_pixelfed(scheduled_post, payload=None, in_reply_to_id=None):
     image_files = scheduled_post.get_all_images()
     if not image_files:
         logger.error(f"Could not get image files for scheduled post ID {scheduled_post.id}")
+        # Mark failed so the scheduler doesn't retry this post every minute
+        scheduled_post.status = "failed"
+        scheduled_post.save(update_fields=["status"])
         return
 
+    any_failed = False
     for account in scheduled_post.mastodon_accounts.all():
         try:
             if not ensure_fresh_token(account):
+                any_failed = True
                 scheduled_post.status = "failed"
                 scheduled_post.save(update_fields=["status"])
                 continue
@@ -159,10 +164,12 @@ def post_pixelfed(scheduled_post, payload=None, in_reply_to_id=None):
 
         except requests.exceptions.Timeout:
             logger.error(f"Timeout posting to Pixelfed @{account.username}")
+            any_failed = True
             scheduled_post.status = "failed"
             scheduled_post.save(update_fields=["status"])
         except requests.exceptions.HTTPError as e:
-            logger.error(f"HTTP error posting to Pixelfed @{account.username}: {e.response.status_code}")
+            status_code = e.response.status_code if e.response is not None else "unknown"
+            logger.error(f"HTTP error posting to Pixelfed @{account.username}: {status_code}")
             # NB: a Response is falsy for error statuses, so compare against None
             logger.error(f"Response: {e.response.text[:500] if e.response is not None else 'No response'}")
             if _is_auth_error(e.response):
@@ -171,9 +178,20 @@ def post_pixelfed(scheduled_post, payload=None, in_reply_to_id=None):
                     f"{account.instance_url} (expired or revoked). Reconnect the "
                     "account from the Accounts page."
                 )
+            any_failed = True
             scheduled_post.status = "failed"
             scheduled_post.save(update_fields=["status"])
         except requests.RequestException as e:
             logger.error(f"Request failed posting to Pixelfed @{account.username}: {str(e)}")
+            any_failed = True
             scheduled_post.status = "failed"
             scheduled_post.save(update_fields=["status"])
+
+    # A later account's success must not mask an earlier account's failure
+    if any_failed and scheduled_post.status != "failed":
+        logger.error(
+            f"Post ID {scheduled_post.id}: at least one Pixelfed account failed; "
+            "marking post failed"
+        )
+        scheduled_post.status = "failed"
+        scheduled_post.save(update_fields=["status"])

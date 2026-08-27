@@ -1,9 +1,15 @@
-const CACHE_NAME = "postflow-v2";
+const CACHE_NAME = "postflow-v3";
 const STATIC_ASSETS = [
   "/",
   "/calendar/",
   "/hashtag-groups/",
   "/drafts/",
+  "/websites/",
+  "/campaigns/queue/",
+  "/campaigns/reports/",
+  "/glass/",
+  "/analytics/site/",
+  "/digest/",
 ];
 
 self.addEventListener("install", function (event) {

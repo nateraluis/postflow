@@ -118,6 +118,9 @@ def _system_prompt(max_posts):
         "blog post twice.\n"
         "- Skip anything in the recently-promoted list unless there is a clear "
         "reason (say the reason in the rationale).\n"
+        "- Never plan a blog post whose id appears in "
+        "blog_post_ids_with_drafts_waiting_review; those already have drafts "
+        "in the queue.\n"
         "- Each rationale must reference the data plainly (no invented numbers).\n"
         "Quality over quantity: fewer good posts beat a full calendar."
     )
@@ -145,6 +148,14 @@ def _build_context(user, website, connected, max_posts):
         )[:10]
     ]
 
+    waiting_blog_post_ids = list(
+        GeneratedDraft.objects.filter(
+            campaign__user=user,
+            scheduled_post__status="draft",
+            campaign__blog_post__isnull=False,
+        ).values_list("campaign__blog_post_id", flat=True).distinct()
+    )
+
     context = {
         "today": now.date(),
         "connected_platforms": connected,
@@ -157,6 +168,7 @@ def _build_context(user, website, connected, max_posts):
         "drafts_already_waiting_review": ScheduledPost.objects.filter(
             user=user, status="draft", generated_draft__isnull=False
         ).count(),
+        "blog_post_ids_with_drafts_waiting_review": waiting_blog_post_ids,
     }
 
     try:
@@ -226,6 +238,18 @@ def _execute_plan(user, website, plan, connected, max_posts):
             continue
         platforms = [p for p in dict.fromkeys(item.platforms) if p in connected]
         if not platforms:
+            continue
+        # A post drafted in an earlier run but never approved keeps
+        # last_promoted_at=None, so the plan can pick it again — skip it
+        # instead of piling duplicate drafts into the review queue.
+        if GeneratedDraft.objects.filter(
+            campaign__user=user,
+            campaign__blog_post=blog_post,
+            scheduled_post__status="draft",
+        ).exists():
+            logger.info(
+                f"Autopilot skipping '{blog_post.title}': draft already waiting review"
+            )
             continue
         seen_posts.add(item.blog_post_id)
 

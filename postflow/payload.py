@@ -9,6 +9,7 @@ across platform utils.
 from dataclasses import dataclass, field
 from typing import Optional
 import logging
+import re
 
 logger = logging.getLogger("postflow")
 
@@ -18,6 +19,7 @@ INSTAGRAM_CAPTION_LIMIT = 2200
 MASTODON_CAPTION_LIMIT = 500
 LINKEDIN_CAPTION_LIMIT = 3000
 THREADS_CAPTION_LIMIT = 500
+GLASS_CAPTION_LIMIT = 600
 
 
 @dataclass
@@ -40,6 +42,7 @@ class PostPayload:
     poll_expires_in: Optional[int] = None
     poll_multiple: bool = False
     poll_hide_totals: bool = False
+    image_count: int = 0
 
     def get_hashtag_string(self, platform: str = "default") -> str:
         """Get formatted hashtag string respecting platform limits and filtering banned tags."""
@@ -71,16 +74,23 @@ class PostPayload:
                 errors.append(
                     f"Caption exceeds Instagram limit ({len(full_caption)}/{INSTAGRAM_CAPTION_LIMIT} chars)"
                 )
-            hashtag_count = len(self.get_hashtag_string(platform).split()) if self.hashtags or self.pinned_hashtags else 0
+            # Count hashtags in the assembled caption: AI drafts embed them
+            # inline, composer posts carry them in self.hashtags — the full
+            # caption is the only place both end up.
+            hashtag_count = len(re.findall(r"#[^\s#]+", full_caption))
             if hashtag_count > INSTAGRAM_HASHTAG_LIMIT:
                 errors.append(
                     f"Too many hashtags for Instagram ({hashtag_count}/{INSTAGRAM_HASHTAG_LIMIT})"
                 )
+            if self.image_count == 0:
+                errors.append("Instagram requires at least one image")
         elif platform in ("mastodon", "pixelfed"):
             if len(full_caption) > MASTODON_CAPTION_LIMIT:
                 errors.append(
                     f"Caption exceeds {platform.title()} limit ({len(full_caption)}/{MASTODON_CAPTION_LIMIT} chars)"
                 )
+            if platform == "pixelfed" and self.image_count == 0:
+                errors.append("Pixelfed requires at least one image")
         elif platform == "linkedin":
             if len(full_caption) > LINKEDIN_CAPTION_LIMIT:
                 errors.append(
@@ -91,6 +101,13 @@ class PostPayload:
                 errors.append(
                     f"Caption exceeds Threads limit ({len(full_caption)}/{THREADS_CAPTION_LIMIT} chars)"
                 )
+        elif platform == "glass":
+            if len(full_caption) > GLASS_CAPTION_LIMIT:
+                errors.append(
+                    f"Caption exceeds Glass limit ({len(full_caption)}/{GLASS_CAPTION_LIMIT} chars)"
+                )
+            if self.image_count == 0:
+                errors.append("Glass requires at least one image")
 
         return errors
 
@@ -113,9 +130,13 @@ def build_payload(scheduled_post) -> PostPayload:
 
     # Collect alt texts
     alt_texts = []
+    image_count = 0
     if hasattr(scheduled_post, 'images') and scheduled_post.images.exists():
         for img in scheduled_post.images.all():
             alt_texts.append(getattr(img, 'alt_text', '') or '')
+        image_count = len(alt_texts)
+    elif getattr(scheduled_post, 'image', None):
+        image_count = 1  # legacy single-image field
 
     # Collect user tags
     user_tags = []
@@ -169,4 +190,5 @@ def build_payload(scheduled_post) -> PostPayload:
         poll_expires_in=poll_expires_in,
         poll_multiple=poll_multiple,
         poll_hide_totals=poll_hide_totals,
+        image_count=image_count,
     )

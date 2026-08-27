@@ -6,6 +6,24 @@
   "background_color": "#ffffff",
   "theme_color": "#4f46e5",
   "orientation": "portrait",
+  "shortcuts": [
+    {
+      "name": "New Post",
+      "url": "/compose/"
+    },
+    {
+      "name": "Schedule",
+      "url": "/schedule/"
+    },
+    {
+      "name": "Campaign queue",
+      "url": "/campaigns/queue/"
+    },
+    {
+      "name": "Analytics",
+      "url": "/analytics/"
+    }
+  ],
   "icons": [
     {
       "src": "https://postflow-static.s3.eu-central-1.amazonaws.com/postflow/icons/web-app-manifest-192x192.png",

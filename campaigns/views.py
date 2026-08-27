@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -109,6 +110,17 @@ def approve_draft(request, pk):
         messages.error(request, f"Fix before approving: {'; '.join(errors)}")
         return redirect("campaigns:queue")
 
+    # A draft approved after its slot passed would otherwise publish on the
+    # next scheduler tick; move it to the next sensible future slot instead.
+    if post.post_date and post.post_date <= timezone.now():
+        slots = planner.propose_slots(request.user, count=1)
+        post.post_date = slots[0] if slots else timezone.now() + timedelta(hours=1)
+        messages.info(
+            request,
+            f"The scheduled time had already passed; rescheduled for "
+            f"{post.post_date:%b %d, %H:%M} UTC.",
+        )
+
     post.status = "pending"
     post.save()
 
@@ -176,7 +188,7 @@ def report_list(request):
     reports = request.user.campaign_reports.all()
     return render(request, "campaigns/reports.html", {
         "reports": reports,
-        "active_page": "campaigns",
+        "active_page": "campaign_reports",
     })
 
 
@@ -194,7 +206,7 @@ def report_detail(request, pk):
     return render(request, "campaigns/report_detail.html", {
         "report": report,
         "recommendations": recommendations,
-        "active_page": "campaigns",
+        "active_page": "campaign_reports",
     })
 
 

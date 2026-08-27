@@ -140,7 +140,10 @@ def post_threads(scheduled_post, payload=None):
     else:
         logger.info("Posting text-only update to Threads")
 
+    any_failed = False
     for account in scheduled_post.threads_accounts.all():
+        if scheduled_post.status == "failed":
+            any_failed = True  # a previous account failed; remember it
         try:
             if account.expires_at and account.expires_at <= now():
                 # Skip this account but keep trying the remaining ones
@@ -312,6 +315,12 @@ def post_threads(scheduled_post, payload=None):
             scheduled_post.status = "failed"
             scheduled_post.save(update_fields=["status"])
             return
+
+    # A later account's success must not mask an earlier account's failure
+    if any_failed and scheduled_post.status != "failed":
+        logger.error(f"Post ID {scheduled_post.id}: at least one Threads account failed; marking post failed")
+        scheduled_post.status = "failed"
+        scheduled_post.save(update_fields=["status"])
 
 
 def _post_with_retry(url, data, account, label):

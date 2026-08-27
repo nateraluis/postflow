@@ -294,3 +294,89 @@ class TestReviewQueueFlow:
         assert resp.status_code == 404
         draft.scheduled_post.refresh_from_db()
         assert draft.scheduled_post.status == "draft"
+
+
+@pytest.mark.django_db
+class TestAutopilotDedup:
+    def _connect_account(self, user):
+        from mastodon_native.models import MastodonAccount
+
+        MastodonAccount.objects.create(
+            user=user, instance_url="https://mastodon.example", access_token="t", username="u"
+        )
+
+    @patch("campaigns.autopilot.anthropic.Anthropic")
+    def test_skips_posts_with_drafts_waiting_review(self, mock_client, user, blog_post):
+        from campaigns.autopilot import PlannedItem, WeeklyPlan, run_autopilot
+
+        self._connect_account(user)
+
+        prior_campaign = Campaign.objects.create(
+            user=user,
+            website=blog_post.website,
+            blog_post=blog_post,
+            name="Autopilot: earlier",
+            utm_campaign="earlier",
+        )
+        prior_post = ScheduledPost.objects.create(
+            user=user,
+            caption="waiting for review",
+            post_date=timezone.now() + timedelta(days=1),
+            status="draft",
+        )
+        GeneratedDraft.objects.create(
+            campaign=prior_campaign,
+            scheduled_post=prior_post,
+            platform="mastodon",
+            model_used="test",
+        )
+
+        plan_response = MagicMock()
+        plan_response.parsed_output = WeeklyPlan(
+            plan_summary="Plan",
+            items=[
+                PlannedItem(
+                    blog_post_id=blog_post.id,
+                    platforms=["mastodon"],
+                    goal="evergreen",
+                    rationale="r",
+                )
+            ],
+        )
+        mock_client.return_value.messages.parse.side_effect = [plan_response]
+
+        summary, results = run_autopilot(user)
+
+        assert results == []
+        assert GeneratedDraft.objects.count() == 1  # no duplicate was generated
+
+
+@pytest.mark.django_db
+class TestStaleDraftApproval:
+    def test_approving_past_dated_draft_reschedules_it(self, client, campaign):
+        post = ScheduledPost.objects.create(
+            user=campaign.user,
+            caption="Old draft",
+            post_date=timezone.now() - timedelta(days=3),
+            status="draft",
+        )
+        from mastodon_native.models import MastodonAccount
+
+        account = MastodonAccount.objects.create(
+            user=campaign.user,
+            instance_url="https://mastodon.example",
+            access_token="t",
+            username="tester",
+        )
+        post.mastodon_native_accounts.add(account)
+        draft = GeneratedDraft.objects.create(
+            campaign=campaign, scheduled_post=post, platform="mastodon", model_used="test"
+        )
+
+        client.force_login(campaign.user)
+        resp = client.post(f"/campaigns/drafts/{draft.id}/approve/")
+        assert resp.status_code == 302
+
+        post.refresh_from_db()
+        assert post.status == "pending"
+        assert post.post_date > timezone.now()  # not fired on the next tick

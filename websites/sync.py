@@ -79,13 +79,41 @@ def _geo_enricher(website, primary_source, session):
     return lambda url: fetch_markdown(url, session)
 
 
+def _url_variants(url):
+    """Trailing-slash and scheme variants of a URL, for cross-source matching."""
+    out = {url}
+    stripped = url.rstrip("/")
+    out.update({stripped, stripped + "/"})
+    for u in list(out):
+        if u.startswith("https://"):
+            out.add("http://" + u[8:])
+        elif u.startswith("http://"):
+            out.add("https://" + u[7:])
+    return [u for u in out if u]
+
+
 def _upsert_post(website, sp, enrich_markdown, session):
     """Create or update one BlogPost from a SourcePost. Returns True if created."""
-    post, created = BlogPost.objects.get_or_create(
-        website=website,
-        source_guid=sp.guid,
-        defaults={"title": sp.title[:500], "url": sp.url},
-    )
+    post = BlogPost.objects.filter(website=website, source_guid=sp.guid).first()
+    created = False
+    if post is None and sp.url:
+        # Each adapter keys posts differently (Ghost id, canonical URL, feed
+        # guid). When the site's best source changes, match the existing row
+        # by URL and adopt the new guid rather than duplicating the catalog.
+        post = BlogPost.objects.filter(
+            website=website, url__in=_url_variants(sp.url)
+        ).first()
+        if post is not None:
+            post.source_guid = sp.guid
+            post.save(update_fields=["source_guid"])
+    if post is None:
+        post = BlogPost.objects.create(
+            website=website,
+            source_guid=sp.guid,
+            title=sp.title[:500],
+            url=sp.url,
+        )
+        created = True
 
     # Never overwrite good data with empty values from a lower-fidelity fetch
     fields = {

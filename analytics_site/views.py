@@ -42,7 +42,7 @@ def dashboard(request):
     context = {
         "websites": websites,
         "website": website,
-        "active_page": "analytics",
+        "active_page": "analytics_site",
         "provider_choices": AnalyticsConnection.PROVIDER_CHOICES,
     }
 

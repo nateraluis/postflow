@@ -56,7 +56,10 @@ def post_linkedin(scheduled_post, payload=None):
 
     image_files = scheduled_post.get_all_images()[:MAX_IMAGES]
 
+    any_failed = False
     for account in accounts:
+        if scheduled_post.status == "failed":
+            any_failed = True  # a previous account failed; remember it
         if account.token_expired:
             logger.error(f"LinkedIn token expired for @{account.username or account.member_urn}. Cannot post.")
             scheduled_post.status = "failed"
@@ -161,3 +164,9 @@ def post_linkedin(scheduled_post, payload=None):
             logger.exception(f"Unexpected error posting to LinkedIn @{account.username or account.member_urn}")
             scheduled_post.status = "failed"
             scheduled_post.save(update_fields=["status"])
+
+    # A later account's success must not mask an earlier account's failure
+    if any_failed and scheduled_post.status != "failed":
+        logger.error(f"Post ID {scheduled_post.id}: at least one LinkedIn account failed; marking post failed")
+        scheduled_post.status = "failed"
+        scheduled_post.save(update_fields=["status"])

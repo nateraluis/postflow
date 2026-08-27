@@ -122,11 +122,21 @@ def generate_drafts(campaign, platforms, slots):
                 input_tokens=per_draft_input,
                 output_tokens=per_draft_output,
             )
-            errors = build_payload(post).validate_for_platform(platform)
-            if errors:
-                logger.warning(f"Draft for {platform} over limit, repairing: {errors}")
-                _repair_length(client, voice, post, draft, platform)
             results.append((post, generated))
+
+    # Length repair calls the Anthropic API; keep those network round-trips
+    # outside the transaction so the DB is never locked on a slow response.
+    for post, generated in results:
+        platform = generated.platform
+        errors = build_payload(post).validate_for_platform(platform)
+        length_errors = [e for e in errors if "exceeds" in e]
+        if length_errors:
+            logger.warning(f"Draft for {platform} over limit, repairing: {length_errors}")
+            _repair_length(client, voice, post, drafts_by_platform[platform], platform)
+        if len(errors) > len(length_errors):
+            # Not repairable by rewriting (missing image, too many hashtags);
+            # approval will surface these to the user.
+            logger.warning(f"Draft for {platform} has non-length issues: {errors}")
 
     return results
 
@@ -219,6 +229,7 @@ How to work:
 4. Pick 1-4 of the available images by index (instagram and glass need at least
    one image if any exist). Choose images that match the angle you chose.
 5. Do not include hashtags inside the caption text; list them separately.
+   Use at most 5 hashtags per platform.
 
 Source post title: {blog_post.title}
 

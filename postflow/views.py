@@ -1403,7 +1403,7 @@ def weekly_digest_preview(request):
     """Preview the weekly digest for the current user."""
     from postflow.digest import generate_digest
     digest = generate_digest(request.user)
-    context = {"digest": digest, "active_page": "analytics"}
+    context = {"digest": digest, "active_page": "digest"}
     if "HX-Request" in request.headers:
         return render(request, "postflow/components/weekly_digest.html", context)
     return render(request, "postflow/pages/digest_preview.html", context)

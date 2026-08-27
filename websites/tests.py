@@ -228,3 +228,48 @@ class TestViews:
         )
         resp = client.get("/websites/")
         assert resp.status_code == 200
+
+
+@pytest.mark.django_db
+class TestCrossSourceDedup:
+    """Switching a website's best source must not duplicate the catalog."""
+
+    def test_guid_scheme_change_adopts_existing_row(self, website):
+        from websites.sync import _upsert_post
+
+        existing = BlogPost.objects.create(
+            website=website,
+            source_guid="https://example.com/hello/",  # RSS/sitemap keyed by URL
+            title="Hello",
+            url="https://example.com/hello/",
+        )
+        sp = _source_post(guid="ghost-id-123", url="https://example.com/hello/", images=[])
+
+        created = _upsert_post(website, sp, None, None)
+
+        assert created is False
+        assert BlogPost.objects.filter(website=website).count() == 1
+        existing.refresh_from_db()
+        assert existing.source_guid == "ghost-id-123"
+
+    def test_url_variants_match(self, website):
+        from websites.sync import _upsert_post
+
+        BlogPost.objects.create(
+            website=website, source_guid="g1", title="T", url="http://example.com/hello"
+        )
+        sp = _source_post(guid="g2", url="https://example.com/hello/", images=[])
+
+        created = _upsert_post(website, sp, None, None)
+
+        assert created is False
+        assert BlogPost.objects.filter(website=website).count() == 1
+
+    def test_new_post_is_still_created(self, website):
+        from websites.sync import _upsert_post
+
+        sp = _source_post(guid="fresh", url="https://example.com/fresh/", images=[])
+        created = _upsert_post(website, sp, None, None)
+
+        assert created is True
+        assert BlogPost.objects.filter(website=website).count() == 1

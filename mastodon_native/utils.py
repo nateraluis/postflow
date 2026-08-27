@@ -9,15 +9,21 @@ def post_mastodon(scheduled_post, payload=None, in_reply_to_id=None):
     Posts to Mastodon accounts using Mastodon.py library with support for multiple images.
     Accepts an optional PostPayload for centralized caption/hashtag assembly.
     """
-    # Get all images for this post
-    image_files = scheduled_post.get_all_images()
+    # Get all images for this post. Mastodon allows text-only statuses, so a
+    # post without images is fine as long as it has a caption.
+    image_files = scheduled_post.get_all_images() or []
     if not image_files:
-        logger.error(f"Could not get image files for scheduled post ID {scheduled_post.id}")
-        scheduled_post.status = "failed"
-        scheduled_post.save(update_fields=["status"])
-        return
+        if not (scheduled_post.caption or "").strip():
+            logger.error(f"Post ID {scheduled_post.id} has no images and no caption; cannot post to Mastodon")
+            scheduled_post.status = "failed"
+            scheduled_post.save(update_fields=["status"])
+            return
+        logger.info(f"No images for post ID {scheduled_post.id}; posting text-only to Mastodon")
 
+    any_failed = False
     for account in scheduled_post.mastodon_native_accounts.all():
+        if scheduled_post.status == "failed":
+            any_failed = True  # a previous account failed; remember it
         try:
             # Initialize Mastodon client
             mastodon = Mastodon(
@@ -110,3 +116,9 @@ def post_mastodon(scheduled_post, payload=None, in_reply_to_id=None):
             logger.error(f"Error posting to Mastodon @{account.username}: {str(e)}")
             scheduled_post.status = "failed"
             scheduled_post.save(update_fields=["status"])
+
+    # A later account's success must not mask an earlier account's failure
+    if any_failed and scheduled_post.status != "failed":
+        logger.error(f"Post ID {scheduled_post.id}: at least one Mastodon account failed; marking post failed")
+        scheduled_post.status = "failed"
+        scheduled_post.save(update_fields=["status"])
