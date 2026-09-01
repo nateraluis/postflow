@@ -21,7 +21,7 @@ ExecStart=/home/postflow/app/.venv/bin/uwsgi \
     --harakiri 120 \
     --max-requests 5000 \
     --vacuum \
-    --die-on-term \
+    --die-on-term
 Restart=always
 RestartSec=5
 KillSignal=SIGQUIT
