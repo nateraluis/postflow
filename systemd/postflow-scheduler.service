@@ -15,8 +15,6 @@ Environment=DEBUG=False
 ExecStart=/home/postflow/app/.venv/bin/python manage.py run_scheduler
 Restart=always
 RestartSec=10
-StandardOutput=append:/var/log/postflow/scheduler.log
-StandardError=append:/var/log/postflow/scheduler.log
 
 [Install]
 WantedBy=postflow.target
