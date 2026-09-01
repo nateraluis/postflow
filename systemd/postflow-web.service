@@ -5,16 +5,15 @@ PartOf=postflow.target
 
 [Service]
 Type=notify
-User=ubuntu
-Group=ubuntu
-WorkingDirectory=/home/ubuntu/postflow
-EnvironmentFile=/home/ubuntu/postflow/core/.env
+User=postflow
+Group=postflow
+WorkingDirectory=/home/postflow/app
+EnvironmentFile=/home/postflow/app/core/.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
 Environment=DEBUG=False
-ExecStart=/home/ubuntu/postflow/.venv/bin/uwsgi \
-    --socket 127.0.0.1:8000 \
-    --protocol uwsgi \
+ExecStart=/home/postflow/app/.venv/bin/uwsgi \
+    --http-socket 127.0.0.1:8010 \
     --wsgi core.wsgi:application \
     --master \
     --processes 2 \
@@ -23,7 +22,6 @@ ExecStart=/home/ubuntu/postflow/.venv/bin/uwsgi \
     --max-requests 5000 \
     --vacuum \
     --die-on-term \
-    --logto /var/log/postflow/uwsgi.log
 Restart=always
 RestartSec=5
 KillSignal=SIGQUIT

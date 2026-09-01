@@ -1,4 +1,4 @@
-name: Deploy to EC2 (systemd)
+name: Deploy to products server
 
 on:
   push:
@@ -56,16 +56,22 @@ jobs:
           EOF
           sed -i 's/^[[:space:]]*//' .env
 
-      - name: Upload .env to EC2
+      - name: Upload .env
         run: |
-          scp -i ~/.ssh/id_rsa .env ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/postflow/core/.env
+          scp -i ~/.ssh/id_rsa .env root@${{ secrets.EC2_HOST }}:/home/postflow/app/core/.env.staged
 
       - name: Deploy
         run: |
-          ssh ubuntu@${{ secrets.EC2_HOST }} << 'DEPLOY'
+          ssh -i ~/.ssh/id_rsa root@${{ secrets.EC2_HOST }} << 'DEPLOY'
+          set -e
+          mv /home/postflow/app/core/.env.staged /home/postflow/app/core/.env
+          chown postflow:postflow /home/postflow/app/core/.env
+          chmod 600 /home/postflow/app/core/.env
+
+          sudo -u postflow bash <<'APP'
           set -e
           export PATH="$HOME/.local/bin:$PATH"
-          cd /home/ubuntu/postflow
+          cd /home/postflow/app
 
           echo "--- Pulling latest changes ---"
           git fetch origin main
@@ -83,49 +89,25 @@ jobs:
 
           echo "--- Collecting static files ---"
           .venv/bin/python manage.py collectstatic --noinput 2>&1 | tail -3
+          APP
 
           echo "--- Installing systemd services ---"
-          sudo cp systemd/postflow.target /etc/systemd/system/
-          sudo cp systemd/postflow-web.service /etc/systemd/system/
-          sudo cp systemd/postflow-scheduler.service /etc/systemd/system/
-          sudo mkdir -p /etc/systemd/system/nginx.service.d
-          sudo cp deploy/nginx-systemd-override.conf /etc/systemd/system/nginx.service.d/override.conf
-          sudo systemctl daemon-reload
-
-          echo "--- Installing nginx config ---"
-          sudo cp deploy/nginx-postflow.conf /etc/nginx/sites-available/postflow
-          sudo ln -sf /etc/nginx/sites-available/postflow /etc/nginx/sites-enabled/postflow
-          sudo rm -f /etc/nginx/sites-enabled/default
-
-          echo "--- Starting/restarting systemd services ---"
-          sudo systemctl enable postflow.target
-          sudo systemctl restart postflow.target
-
-          echo "--- Starting/reloading nginx ---"
-          sudo systemctl enable nginx
-          sudo nginx -t
-          sudo systemctl reload-or-restart nginx
-
-          echo "--- Enabling certbot auto-renewal ---"
-          sudo systemctl enable certbot.timer
-          sudo systemctl start certbot.timer
+          cp /home/postflow/app/systemd/postflow.target /etc/systemd/system/
+          cp /home/postflow/app/systemd/postflow-web.service /etc/systemd/system/
+          cp /home/postflow/app/systemd/postflow-scheduler.service /etc/systemd/system/
+          systemctl daemon-reload
+          systemctl enable postflow.target
+          systemctl restart postflow.target
 
           echo "--- Verifying services ---"
           sleep 3
-          sudo systemctl is-active postflow-web.service
-          sudo systemctl is-active postflow-scheduler.service
-          sudo systemctl is-active nginx
-
-          echo "--- Deploy complete ---"
+          systemctl is-active postflow-web.service
+          systemctl is-active postflow-scheduler.service
           DEPLOY
 
-      - name: Verify site is reachable
+      - name: Health check
         run: |
-          for i in $(seq 1 10); do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 https://postflow.photo/healthcheck || echo 000)
-            echo "attempt $i: HTTP $code"
-            if [ "$code" = "200" ]; then exit 0; fi
-            sleep 6
-          done
-          echo "Site failed external healthcheck after deploy" >&2
-          exit 1
+          sleep 3
+          code=$(curl -s -o /dev/null -w "%{http_code}" https://postflow.photo/)
+          echo "site → $code"
+          test "$code" = "200"
