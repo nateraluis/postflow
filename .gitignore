@@ -46,3 +46,4 @@ dev_db.sqlite3
 
 # Ignore pipenv virtual environment
 Pipfile.lock
+DEPLOYED_SHA
