@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -63,21 +67,19 @@ jobs:
           EOF
           sed -i 's/^[[:space:]]*//' .env
 
+      # CI logs in as the app user, never root. The only root right it has is
+      # /etc/sudoers.d/postflow-deploy: "systemctl restart postflow.target".
       - name: Upload .env
         run: |
-          scp -i ~/.ssh/id_rsa .env root@${{ secrets.EC2_HOST }}:/home/postflow/app/core/.env.staged
+          scp -i ~/.ssh/id_rsa .env postflow@${{ secrets.EC2_HOST }}:/home/postflow/app/core/.env.staged
 
       - name: Deploy
         run: |
-          ssh -i ~/.ssh/id_rsa root@${{ secrets.EC2_HOST }} << 'DEPLOY'
-          set -e
-          mv /home/postflow/app/core/.env.staged /home/postflow/app/core/.env
-          chown postflow:postflow /home/postflow/app/core/.env
-          chmod 600 /home/postflow/app/core/.env
-
-          sudo -u postflow bash <<'APP'
+          ssh -i ~/.ssh/id_rsa postflow@${{ secrets.EC2_HOST }} << 'DEPLOY'
           set -e
           export PATH="$HOME/.local/bin:$PATH"
+          chmod 600 /home/postflow/app/core/.env.staged
+          mv /home/postflow/app/core/.env.staged /home/postflow/app/core/.env
           cd /home/postflow/app
 
           echo "--- Pulling latest changes ---"
@@ -96,17 +98,18 @@ jobs:
 
           echo "--- Collecting static files ---"
           .venv/bin/python manage.py collectstatic --noinput 2>&1 | tail -3
-          APP
 
-          echo "--- Installing systemd services ---"
-          cp /home/postflow/app/systemd/postflow.target /etc/systemd/system/
-          cp /home/postflow/app/systemd/postflow-web.service /etc/systemd/system/
-          cp /home/postflow/app/systemd/postflow-scheduler.service /etc/systemd/system/
-          systemctl daemon-reload
-          systemctl enable postflow.target
-          systemctl restart postflow.target
+          git rev-parse HEAD > DEPLOYED_SHA
 
-          echo "--- Verifying services ---"
+          # Unit files in systemd/ are installed on the box by hand (needs root).
+          # Flag drift instead of silently running stale units.
+          for u in postflow.target postflow-web.service postflow-scheduler.service; do
+            cmp -s "systemd/$u" "/etc/systemd/system/$u" || \
+              echo "::warning::systemd/$u differs from the installed unit; install it on the box as root"
+          done
+
+          echo "--- Restarting ---"
+          sudo -n /usr/bin/systemctl restart postflow.target
           sleep 3
           systemctl is-active postflow-web.service
           systemctl is-active postflow-scheduler.service
